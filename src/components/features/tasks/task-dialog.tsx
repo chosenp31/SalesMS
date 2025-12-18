@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { Task, User, Deal } from "@/types";
+import { Task, User, DealOption } from "@/types";
 import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ type TaskFormValues = z.infer<typeof taskSchema>;
 interface TaskDialogProps {
   task?: Task;
   users: User[];
-  deals: Deal[];
+  deals: DealOption[];
   currentUserId: string;
   trigger: React.ReactNode;
 }

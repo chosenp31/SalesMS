@@ -1,5 +1,3 @@
-import { DealPhase, DealStatus } from "@/types";
-
 // Business type labels
 export const BUSINESS_TYPE_LABELS = {
   corporation: "法人",
@@ -15,7 +13,7 @@ export const CONTRACT_TYPE_LABELS = {
 } as const;
 
 // Deal status labels
-export const DEAL_STATUS_LABELS: Record<DealStatus, string> = {
+export const DEAL_STATUS_LABELS: Record<string, string> = {
   // Sales phase
   appointment_acquired: "アポ獲得",
   in_negotiation: "商談中",
@@ -41,7 +39,7 @@ export const DEAL_STATUS_LABELS: Record<DealStatus, string> = {
 };
 
 // Deal phase labels
-export const DEAL_PHASE_LABELS: Record<DealPhase, string> = {
+export const DEAL_PHASE_LABELS: Record<string, string> = {
   sales: "営業フェーズ",
   contract: "契約フェーズ",
   installation: "工事フェーズ",
@@ -49,7 +47,7 @@ export const DEAL_PHASE_LABELS: Record<DealPhase, string> = {
 };
 
 // Status to phase mapping
-export const STATUS_TO_PHASE: Record<DealStatus, DealPhase> = {
+export const STATUS_TO_PHASE: Record<string, string> = {
   // Sales phase
   appointment_acquired: "sales",
   in_negotiation: "sales",
@@ -75,7 +73,7 @@ export const STATUS_TO_PHASE: Record<DealStatus, DealPhase> = {
 };
 
 // Phase statuses (ordered)
-export const PHASE_STATUSES: Record<DealPhase, DealStatus[]> = {
+export const PHASE_STATUSES: Record<string, string[]> = {
   sales: ["appointment_acquired", "in_negotiation", "quote_submitted", "deal_won", "deal_lost"],
   contract: ["contract_type_selection", "document_collection", "review_requested", "review_pending", "review_approved", "review_rejected"],
   installation: ["survey_scheduling", "survey_completed", "installation_scheduling", "installation_completed"],

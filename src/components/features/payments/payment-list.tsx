@@ -1,6 +1,6 @@
 "use client";
 
-import { Payment, Deal } from "@/types";
+import { Payment, DealOption } from "@/types";
 import { PAYMENT_STATUS_LABELS } from "@/constants";
 import {
   Table,
@@ -23,7 +23,7 @@ import Link from "next/link";
 
 interface PaymentListProps {
   payments: Payment[];
-  deals: Deal[];
+  deals: DealOption[];
 }
 
 const statusColors = {

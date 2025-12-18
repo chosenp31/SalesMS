@@ -1,6 +1,6 @@
 "use client";
 
-import { Task, User, Deal } from "@/types";
+import { Task, User, DealOption } from "@/types";
 import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from "@/constants";
 import {
   Table,
@@ -25,7 +25,7 @@ import Link from "next/link";
 interface TaskListProps {
   tasks: Task[];
   users: User[];
-  deals: Deal[];
+  deals: DealOption[];
   currentUserId: string;
 }
 

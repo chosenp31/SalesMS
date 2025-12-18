@@ -27,7 +27,7 @@ interface DealListProps {
   deals: Deal[];
 }
 
-const phaseColors = {
+const phaseColors: Record<string, string> = {
   sales: "bg-blue-100 text-blue-800",
   contract: "bg-yellow-100 text-yellow-800",
   installation: "bg-purple-100 text-purple-800",

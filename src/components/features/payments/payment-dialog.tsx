@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { Payment, Deal } from "@/types";
+import { Payment, DealOption } from "@/types";
 import { PAYMENT_STATUS_LABELS, LEASE_COMPANIES } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,7 @@ type PaymentFormValues = z.infer<typeof paymentSchema>;
 
 interface PaymentDialogProps {
   payment?: Payment;
-  deals: Deal[];
+  deals: DealOption[];
   trigger: React.ReactNode;
 }
 

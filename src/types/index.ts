@@ -26,7 +26,7 @@ export type Deal = {
   customer_id: string;
   assigned_user_id: string;
   title: string;
-  status: DealStatus;
+  status: string;
   contract_type: "lease" | "rental" | "installment";
   product_category: string | null;
   estimated_amount: number | null;
@@ -74,6 +74,12 @@ export type Payment = {
   status: "pending" | "paid";
   created_at: string;
   updated_at: string;
+  // Relations
+  deal?: {
+    id: string;
+    title: string;
+    customer?: { company_name: string };
+  };
 };
 
 export type Activity = {
@@ -99,7 +105,11 @@ export type Task = {
   created_at: string;
   updated_at: string;
   // Relations
-  deal?: Deal;
+  deal?: {
+    id: string;
+    title: string;
+    customer?: { company_name: string };
+  } | null;
   assigned_user?: User;
 };
 
@@ -130,3 +140,10 @@ export type DealStatus =
 
 // Phase type
 export type DealPhase = "sales" | "contract" | "installation" | "completion";
+
+// Simplified types for select components
+export type DealOption = {
+  id: string;
+  title: string;
+  customer?: { company_name: string } | null;
+};

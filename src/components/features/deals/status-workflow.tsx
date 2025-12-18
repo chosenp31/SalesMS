@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Deal, DealStatus, DealPhase } from "@/types";
+import { Deal } from "@/types";
 import {
   DEAL_STATUS_LABELS,
   DEAL_PHASE_LABELS,
@@ -19,9 +19,9 @@ interface StatusWorkflowProps {
   deal: Deal;
 }
 
-const phaseOrder: DealPhase[] = ["sales", "contract", "installation", "completion"];
+const phaseOrder = ["sales", "contract", "installation", "completion"];
 
-const phaseColors = {
+const phaseColors: Record<string, { bg: string; border: string; text: string; active: string }> = {
   sales: {
     bg: "bg-blue-50",
     border: "border-blue-200",
@@ -54,7 +54,7 @@ export function StatusWorkflow({ deal }: StatusWorkflowProps) {
   const currentPhase = STATUS_TO_PHASE[deal.status];
   const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
 
-  const updateStatus = async (newStatus: DealStatus) => {
+  const updateStatus = async (newStatus: string) => {
     setLoading(true);
     const supabase = createClient();
 

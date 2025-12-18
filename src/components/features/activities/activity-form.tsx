@@ -20,10 +20,12 @@ interface ActivityFormProps {
   userId: string;
 }
 
+type ActivityType = "phone" | "visit" | "email" | "online_meeting" | "other";
+
 export function ActivityForm({ dealId, userId }: ActivityFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [activityType, setActivityType] = useState<string>("phone");
+  const [activityType, setActivityType] = useState<ActivityType>("phone");
   const [content, setContent] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,7 +55,7 @@ export function ActivityForm({ dealId, userId }: ActivityFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex space-x-4">
-        <Select value={activityType} onValueChange={setActivityType}>
+        <Select value={activityType} onValueChange={(v) => setActivityType(v as ActivityType)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="種別を選択" />
           </SelectTrigger>
