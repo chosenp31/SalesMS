@@ -33,34 +33,23 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 認証情報を取得（セッション維持のため）
+  await supabase.auth.getUser();
 
-  // Protected routes
-  const protectedPaths = ["/deals", "/customers", "/tasks", "/payments"];
-  const isProtectedPath = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
+  // 認証チェックを一時的に無効化（デモ用）
+  // TODO: 本番運用時は認証を有効化すること
 
-  if (!user && isProtectedPath) {
-    // No user, redirect to login page
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && request.nextUrl.pathname === "/login") {
-    // User logged in, redirect to deals page
+  // ルートへのアクセスは案件一覧にリダイレクト
+  if (request.nextUrl.pathname === "/") {
     const url = request.nextUrl.clone();
     url.pathname = "/deals";
     return NextResponse.redirect(url);
   }
 
-  // Redirect root to deals if logged in, login if not
-  if (request.nextUrl.pathname === "/") {
+  // ログインページへのアクセスも案件一覧にリダイレクト
+  if (request.nextUrl.pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = user ? "/deals" : "/login";
+    url.pathname = "/deals";
     return NextResponse.redirect(url);
   }
 
