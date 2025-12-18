@@ -1,26 +1,68 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { ClipboardList } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { TaskList } from "@/components/features/tasks/task-list";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { TaskDialog } from "@/components/features/tasks/task-dialog";
 
-export default function TasksPage() {
+export default async function TasksPage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+
+  const { data: tasks, error } = await supabase
+    .from("tasks")
+    .select(`
+      *,
+      deal:deals(id, title, customer:customers(company_name)),
+      assigned_user:users(*)
+    `)
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("priority", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching tasks:", error);
+  }
+
+  // Get all users for assignment
+  const { data: users } = await supabase
+    .from("users")
+    .select("*")
+    .order("name");
+
+  // Get all deals for linking
+  const { data: deals } = await supabase
+    .from("deals")
+    .select("id, title, customer:customers(company_name)")
+    .order("created_at", { ascending: false });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">タスク管理</h1>
-        <p className="text-sm text-gray-500">タスクの一覧と管理</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">タスク管理</h1>
+          <p className="text-sm text-gray-500">タスクの一覧と管理</p>
+        </div>
+        <TaskDialog
+          users={users || []}
+          deals={deals || []}
+          currentUserId={authUser?.id || ""}
+          trigger={
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              新規タスク
+            </Button>
+          }
+        />
       </div>
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <ClipboardList className="h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            タスク管理機能
-          </h3>
-          <p className="text-sm text-gray-500 text-center max-w-md">
-            この機能はPhase 2で実装予定です。
-            <br />
-            タスクの作成、割り当て、進捗管理などが可能になります。
-          </p>
-        </CardContent>
-      </Card>
+      <TaskList
+        tasks={tasks || []}
+        users={users || []}
+        deals={deals || []}
+        currentUserId={authUser?.id || ""}
+      />
     </div>
   );
 }

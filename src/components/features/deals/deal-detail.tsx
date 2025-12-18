@@ -1,6 +1,6 @@
 "use client";
 
-import { Deal, Activity } from "@/types";
+import { Deal, Activity, LeaseApplication } from "@/types";
 import {
   DEAL_STATUS_LABELS,
   CONTRACT_TYPE_LABELS,
@@ -15,11 +15,13 @@ import { cn } from "@/lib/utils";
 import { StatusWorkflow } from "./status-workflow";
 import { ActivityList } from "../activities/activity-list";
 import { ActivityForm } from "../activities/activity-form";
+import { LeaseApplications } from "./lease-applications";
 import Link from "next/link";
 
 interface DealDetailProps {
   deal: Deal;
   activities: Activity[];
+  leaseApplications: LeaseApplication[];
   currentUserId: string;
 }
 
@@ -30,7 +32,7 @@ const phaseColors = {
   completion: "bg-green-100 text-green-800",
 };
 
-export function DealDetail({ deal, activities, currentUserId }: DealDetailProps) {
+export function DealDetail({ deal, activities, leaseApplications, currentUserId }: DealDetailProps) {
   const phase = STATUS_TO_PHASE[deal.status];
 
   const formatAmount = (amount: number | null) => {
@@ -151,6 +153,9 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Lease Applications */}
+          <LeaseApplications dealId={deal.id} applications={leaseApplications} />
+
           <Card>
             <CardHeader>
               <CardTitle>顧客情報</CardTitle>

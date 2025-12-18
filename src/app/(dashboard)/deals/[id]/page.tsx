@@ -37,6 +37,13 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
     .eq("deal_id", id)
     .order("created_at", { ascending: false });
 
+  // Get lease applications for this deal
+  const { data: leaseApplications } = await supabase
+    .from("lease_applications")
+    .select("*")
+    .eq("deal_id", id)
+    .order("created_at", { ascending: false });
+
   // Get current user
   const {
     data: { user: authUser },
@@ -67,6 +74,7 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
       <DealDetail
         deal={deal}
         activities={activities || []}
+        leaseApplications={leaseApplications || []}
         currentUserId={authUser?.id || ""}
       />
     </div>

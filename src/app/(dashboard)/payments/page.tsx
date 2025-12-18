@@ -1,26 +1,49 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { CreditCard } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { PaymentList } from "@/components/features/payments/payment-list";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { PaymentDialog } from "@/components/features/payments/payment-dialog";
 
-export default function PaymentsPage() {
+export default async function PaymentsPage() {
+  const supabase = await createClient();
+
+  const { data: payments, error } = await supabase
+    .from("payments")
+    .select(`
+      *,
+      deal:deals(id, title, customer:customers(company_name))
+    `)
+    .order("expected_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching payments:", error);
+  }
+
+  // Get all deals for linking
+  const { data: deals } = await supabase
+    .from("deals")
+    .select("id, title, customer:customers(company_name)")
+    .order("created_at", { ascending: false });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">入金管理</h1>
-        <p className="text-sm text-gray-500">入金の一覧と管理</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">入金管理</h1>
+          <p className="text-sm text-gray-500">入金の一覧と管理</p>
+        </div>
+        <PaymentDialog
+          deals={deals || []}
+          trigger={
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              新規入金
+            </Button>
+          }
+        />
       </div>
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <CreditCard className="h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            入金管理機能
-          </h3>
-          <p className="text-sm text-gray-500 text-center max-w-md">
-            この機能はPhase 2で実装予定です。
-            <br />
-            入金予定の管理、入金確認、レポート機能などが可能になります。
-          </p>
-        </CardContent>
-      </Card>
+      <PaymentList payments={payments || []} deals={deals || []} />
     </div>
   );
 }
