@@ -1,9 +1,6 @@
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- Users table (営業担当)
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'sales' CHECK (role IN ('admin', 'manager', 'sales')),
@@ -12,7 +9,7 @@ CREATE TABLE users (
 
 -- Customers table (顧客)
 CREATE TABLE customers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_name TEXT NOT NULL,
     representative_name TEXT NOT NULL,
     phone TEXT,
@@ -25,7 +22,7 @@ CREATE TABLE customers (
 
 -- Deals table (案件)
 CREATE TABLE deals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     assigned_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
@@ -39,7 +36,7 @@ CREATE TABLE deals (
 
 -- Lease applications table (リース審査申請)
 CREATE TABLE lease_applications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     deal_id UUID NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
     lease_company TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'preparing' CHECK (status IN ('preparing', 'reviewing', 'approved', 'rejected', 'conditionally_approved')),
@@ -52,7 +49,7 @@ CREATE TABLE lease_applications (
 
 -- Installations table (工事・設置)
 CREATE TABLE installations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     deal_id UUID UNIQUE NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
     status TEXT NOT NULL DEFAULT 'not_started' CHECK (status IN ('not_started', 'survey_scheduling', 'survey_completed', 'installation_scheduling', 'installation_completed')),
     survey_date DATE,
@@ -64,7 +61,7 @@ CREATE TABLE installations (
 
 -- Payments table (入金)
 CREATE TABLE payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     deal_id UUID NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
     lease_company TEXT,
     expected_amount DECIMAL(15, 2),
@@ -78,7 +75,7 @@ CREATE TABLE payments (
 
 -- Activities table (活動履歴・議事録)
 CREATE TABLE activities (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     deal_id UUID NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     activity_type TEXT NOT NULL CHECK (activity_type IN ('phone', 'visit', 'email', 'online_meeting', 'other')),
@@ -88,7 +85,7 @@ CREATE TABLE activities (
 
 -- Tasks table (タスク)
 CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
     assigned_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
