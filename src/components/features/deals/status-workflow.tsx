@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Contract, ContractStatus } from "@/types";
+import { ContractStatus } from "@/types";
 import {
   CONTRACT_STATUS_LABELS,
   CONTRACT_PHASE_LABELS,
@@ -15,8 +15,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Check, ChevronRight } from "lucide-react";
 
+// StatusWorkflowが必要とする最小限の契約情報
+interface ContractForWorkflow {
+  id: string;
+  status: ContractStatus;
+}
+
 interface StatusWorkflowProps {
-  contract: Contract;
+  contract: ContractForWorkflow;
 }
 
 const phaseOrder = ["sales", "contract", "installation", "completion"];
