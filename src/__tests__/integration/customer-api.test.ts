@@ -9,8 +9,6 @@
 import {
   createMockSupabaseClient,
   createMockQueryBuilder,
-  mockSuccessResponse,
-  mockErrorResponse,
 } from '../mocks/supabase';
 import { createMockCustomer } from '../utils/test-utils';
 

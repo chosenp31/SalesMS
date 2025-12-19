@@ -6,15 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { Customer, Deal, User } from "@/types";
-import {
-  CONTRACT_TYPE_LABELS,
-  DEAL_STATUS_LABELS,
-  PHASE_STATUSES,
-  PRODUCT_CATEGORIES,
-} from "@/constants";
+import { Customer, Deal, User, DealStatus } from "@/types";
+import { DEAL_STATUS_LABELS } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -33,13 +29,12 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 
 const dealSchema = z.object({
-  title: z.string().min(1, "案件名は必須です"),
+  title: z.string().min(1, "商談名は必須です"),
   customer_id: z.string().min(1, "顧客を選択してください"),
   assigned_user_id: z.string().min(1, "担当者を選択してください"),
-  contract_type: z.enum(["lease", "rental", "installment"]),
-  status: z.string().min(1, "ステータスを選択してください"),
-  product_category: z.string().optional(),
-  estimated_amount: z.string().optional(),
+  status: z.enum(["active", "won", "lost", "pending"]),
+  description: z.string().optional(),
+  total_amount: z.string().optional(),
 });
 
 type DealFormValues = z.infer<typeof dealSchema>;
@@ -68,10 +63,9 @@ export function DealForm({
       title: deal?.title || "",
       customer_id: deal?.customer_id || defaultCustomerId || "",
       assigned_user_id: deal?.assigned_user_id || currentUserId || "",
-      contract_type: deal?.contract_type || "lease",
-      status: deal?.status || "appointment_acquired",
-      product_category: deal?.product_category || "",
-      estimated_amount: deal?.estimated_amount?.toString() || "",
+      status: deal?.status || "active",
+      description: deal?.description || "",
+      total_amount: deal?.total_amount?.toString() || "",
     },
   });
 
@@ -83,11 +77,10 @@ export function DealForm({
       title: data.title,
       customer_id: data.customer_id,
       assigned_user_id: data.assigned_user_id,
-      contract_type: data.contract_type,
-      status: data.status,
-      product_category: data.product_category || null,
-      estimated_amount: data.estimated_amount
-        ? parseFloat(data.estimated_amount)
+      status: data.status as DealStatus,
+      description: data.description || null,
+      total_amount: data.total_amount
+        ? parseFloat(data.total_amount)
         : null,
     };
 
@@ -116,9 +109,6 @@ export function DealForm({
     router.refresh();
   };
 
-  // Get all statuses for the select
-  const allStatuses = Object.values(PHASE_STATUSES).flat();
-
   return (
     <Card>
       <CardContent className="pt-6">
@@ -130,9 +120,9 @@ export function DealForm({
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>案件名 *</FormLabel>
+                    <FormLabel>商談名 *</FormLabel>
                     <FormControl>
-                      <Input placeholder="複合機リース契約" {...field} />
+                      <Input placeholder="OA機器導入商談" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -194,35 +184,6 @@ export function DealForm({
               />
               <FormField
                 control={form.control}
-                name="contract_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>契約種別 *</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="契約種別を選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.entries(CONTRACT_TYPE_LABELS).map(
-                          ([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          )
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
@@ -237,11 +198,13 @@ export function DealForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {allStatuses.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {DEAL_STATUS_LABELS[status]}
-                          </SelectItem>
-                        ))}
+                        {Object.entries(DEAL_STATUS_LABELS).map(
+                          ([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -250,37 +213,10 @@ export function DealForm({
               />
               <FormField
                 control={form.control}
-                name="product_category"
+                name="total_amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>商品カテゴリ</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="商品カテゴリを選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {PRODUCT_CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="estimated_amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>見込金額</FormLabel>
+                    <FormLabel>合計金額</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -293,6 +229,23 @@ export function DealForm({
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>備考</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="商談に関するメモを入力..."
+                      className="min-h-[100px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="flex justify-end space-x-4">
               <Button
                 type="button"

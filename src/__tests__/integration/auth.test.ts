@@ -248,7 +248,7 @@ describe('認証API統合テスト', () => {
         error: null,
       });
 
-      const result = await mockSupabase.auth.signInWithPassword({
+      await mockSupabase.auth.signInWithPassword({
         email: 'test@example.com',
         password: '!@#$%^&*()_+-=[]{}|;:\'",.<>?/',
       });
@@ -266,7 +266,7 @@ describe('認証API統合テスト', () => {
         error: null,
       });
 
-      const result = await mockSupabase.auth.signInWithPassword({
+      await mockSupabase.auth.signInWithPassword({
         email: 'test@example.com',
         password: 'パスワード123',
       });

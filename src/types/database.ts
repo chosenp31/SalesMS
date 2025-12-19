@@ -69,16 +69,16 @@ export type Database = {
         };
         Relationships: [];
       };
+      // 商談テーブル（顧客への提案全体を管理）
       deals: {
         Row: {
           id: string;
           customer_id: string;
           assigned_user_id: string;
           title: string;
-          status: string;
-          contract_type: "lease" | "rental" | "installment";
-          product_category: string | null;
-          estimated_amount: number | null;
+          status: "active" | "won" | "lost" | "pending";
+          description: string | null;
+          total_amount: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -87,10 +87,9 @@ export type Database = {
           customer_id: string;
           assigned_user_id: string;
           title: string;
-          status?: string;
-          contract_type: "lease" | "rental" | "installment";
-          product_category?: string | null;
-          estimated_amount?: number | null;
+          status?: "active" | "won" | "lost" | "pending";
+          description?: string | null;
+          total_amount?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -99,10 +98,9 @@ export type Database = {
           customer_id?: string;
           assigned_user_id?: string;
           title?: string;
-          status?: string;
-          contract_type?: "lease" | "rental" | "installment";
-          product_category?: string | null;
-          estimated_amount?: number | null;
+          status?: "active" | "won" | "lost" | "pending";
+          description?: string | null;
+          total_amount?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -123,10 +121,74 @@ export type Database = {
           }
         ];
       };
-      lease_applications: {
+      // 契約テーブル（個別の契約を管理）
+      contracts: {
         Row: {
           id: string;
           deal_id: string;
+          title: string;
+          contract_type: "lease" | "rental" | "installment";
+          product_category: string | null;
+          lease_company: string | null;
+          status: "negotiating" | "quote_submitted" | "accepted" | "rejected" | "document_collection" | "review_requested" | "review_pending" | "review_approved" | "review_rejected" | "survey_scheduling" | "survey_completed" | "installation_scheduling" | "installation_completed" | "delivered" | "payment_pending" | "completed";
+          monthly_amount: number | null;
+          total_amount: number | null;
+          contract_months: number | null;
+          start_date: string | null;
+          end_date: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          deal_id: string;
+          title: string;
+          contract_type: "lease" | "rental" | "installment";
+          product_category?: string | null;
+          lease_company?: string | null;
+          status?: "negotiating" | "quote_submitted" | "accepted" | "rejected" | "document_collection" | "review_requested" | "review_pending" | "review_approved" | "review_rejected" | "survey_scheduling" | "survey_completed" | "installation_scheduling" | "installation_completed" | "delivered" | "payment_pending" | "completed";
+          monthly_amount?: number | null;
+          total_amount?: number | null;
+          contract_months?: number | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          deal_id?: string;
+          title?: string;
+          contract_type?: "lease" | "rental" | "installment";
+          product_category?: string | null;
+          lease_company?: string | null;
+          status?: "negotiating" | "quote_submitted" | "accepted" | "rejected" | "document_collection" | "review_requested" | "review_pending" | "review_approved" | "review_rejected" | "survey_scheduling" | "survey_completed" | "installation_scheduling" | "installation_completed" | "delivered" | "payment_pending" | "completed";
+          monthly_amount?: number | null;
+          total_amount?: number | null;
+          contract_months?: number | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contracts_deal_id_fkey";
+            columns: ["deal_id"];
+            isOneToOne: false;
+            referencedRelation: "deals";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      // リース審査（契約単位）
+      lease_applications: {
+        Row: {
+          id: string;
+          contract_id: string;
           lease_company: string;
           status: "preparing" | "reviewing" | "approved" | "rejected" | "conditionally_approved";
           submitted_at: string | null;
@@ -137,7 +199,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          deal_id: string;
+          contract_id: string;
           lease_company: string;
           status?: "preparing" | "reviewing" | "approved" | "rejected" | "conditionally_approved";
           submitted_at?: string | null;
@@ -148,7 +210,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          deal_id?: string;
+          contract_id?: string;
           lease_company?: string;
           status?: "preparing" | "reviewing" | "approved" | "rejected" | "conditionally_approved";
           submitted_at?: string | null;
@@ -159,102 +221,66 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "lease_applications_deal_id_fkey";
-            columns: ["deal_id"];
+            foreignKeyName: "lease_applications_contract_id_fkey";
+            columns: ["contract_id"];
             isOneToOne: false;
-            referencedRelation: "deals";
+            referencedRelation: "contracts";
             referencedColumns: ["id"];
           }
         ];
       };
-      installations: {
+      // 入金（契約単位）
+      payments: {
         Row: {
           id: string;
-          deal_id: string;
-          status: "not_started" | "survey_scheduling" | "survey_completed" | "installation_scheduling" | "installation_completed";
-          survey_date: string | null;
-          installation_date: string | null;
+          contract_id: string;
+          payment_type: "initial" | "monthly" | "final" | "other";
+          expected_amount: number | null;
+          actual_amount: number | null;
+          expected_date: string | null;
+          actual_date: string | null;
+          status: "pending" | "paid";
           notes: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          deal_id: string;
-          status?: "not_started" | "survey_scheduling" | "survey_completed" | "installation_scheduling" | "installation_completed";
-          survey_date?: string | null;
-          installation_date?: string | null;
+          contract_id: string;
+          payment_type?: "initial" | "monthly" | "final" | "other";
+          expected_amount?: number | null;
+          actual_amount?: number | null;
+          expected_date?: string | null;
+          actual_date?: string | null;
+          status?: "pending" | "paid";
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          deal_id?: string;
-          status?: "not_started" | "survey_scheduling" | "survey_completed" | "installation_scheduling" | "installation_completed";
-          survey_date?: string | null;
-          installation_date?: string | null;
+          contract_id?: string;
+          payment_type?: "initial" | "monthly" | "final" | "other";
+          expected_amount?: number | null;
+          actual_amount?: number | null;
+          expected_date?: string | null;
+          actual_date?: string | null;
+          status?: "pending" | "paid";
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "installations_deal_id_fkey";
-            columns: ["deal_id"];
-            isOneToOne: true;
-            referencedRelation: "deals";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
-      payments: {
-        Row: {
-          id: string;
-          deal_id: string;
-          lease_company: string | null;
-          expected_amount: number | null;
-          actual_amount: number | null;
-          expected_date: string | null;
-          actual_date: string | null;
-          status: "pending" | "paid";
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          deal_id: string;
-          lease_company?: string | null;
-          expected_amount?: number | null;
-          actual_amount?: number | null;
-          expected_date?: string | null;
-          actual_date?: string | null;
-          status?: "pending" | "paid";
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          deal_id?: string;
-          lease_company?: string | null;
-          expected_amount?: number | null;
-          actual_amount?: number | null;
-          expected_date?: string | null;
-          actual_date?: string | null;
-          status?: "pending" | "paid";
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "payments_deal_id_fkey";
-            columns: ["deal_id"];
+            foreignKeyName: "payments_contract_id_fkey";
+            columns: ["contract_id"];
             isOneToOne: false;
-            referencedRelation: "deals";
+            referencedRelation: "contracts";
             referencedColumns: ["id"];
           }
         ];
       };
+      // 活動履歴（商談単位）
       activities: {
         Row: {
           id: string;
@@ -297,10 +323,12 @@ export type Database = {
           }
         ];
       };
+      // タスク（商談または契約に紐づけ可能）
       tasks: {
         Row: {
           id: string;
           deal_id: string | null;
+          contract_id: string | null;
           assigned_user_id: string;
           title: string;
           description: string | null;
@@ -313,6 +341,7 @@ export type Database = {
         Insert: {
           id?: string;
           deal_id?: string | null;
+          contract_id?: string | null;
           assigned_user_id: string;
           title: string;
           description?: string | null;
@@ -325,6 +354,7 @@ export type Database = {
         Update: {
           id?: string;
           deal_id?: string | null;
+          contract_id?: string | null;
           assigned_user_id?: string;
           title?: string;
           description?: string | null;
@@ -340,6 +370,13 @@ export type Database = {
             columns: ["deal_id"];
             isOneToOne: false;
             referencedRelation: "deals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_contract_id_fkey";
+            columns: ["contract_id"];
+            isOneToOne: false;
+            referencedRelation: "contracts";
             referencedColumns: ["id"];
           },
           {

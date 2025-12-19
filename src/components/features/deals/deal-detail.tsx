@@ -1,40 +1,44 @@
 "use client";
 
-import { Deal, Activity, LeaseApplication } from "@/types";
+import { Deal, Activity } from "@/types";
 import {
   DEAL_STATUS_LABELS,
   CONTRACT_TYPE_LABELS,
-  STATUS_TO_PHASE,
-  DEAL_PHASE_LABELS,
+  CONTRACT_STATUS_LABELS,
 } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { StatusWorkflow } from "./status-workflow";
 import { ActivityList } from "../activities/activity-list";
 import { ActivityForm } from "../activities/activity-form";
-import { LeaseApplications } from "./lease-applications";
 import Link from "next/link";
+import { Eye, Plus } from "lucide-react";
 
 interface DealDetailProps {
   deal: Deal;
   activities: Activity[];
-  leaseApplications: LeaseApplication[];
   currentUserId: string;
 }
 
-const phaseColors: Record<string, string> = {
-  sales: "bg-blue-100 text-blue-800",
-  contract: "bg-yellow-100 text-yellow-800",
-  installation: "bg-purple-100 text-purple-800",
-  completion: "bg-green-100 text-green-800",
+const statusColors: Record<string, string> = {
+  active: "bg-blue-100 text-blue-800",
+  won: "bg-green-100 text-green-800",
+  lost: "bg-red-100 text-red-800",
+  pending: "bg-yellow-100 text-yellow-800",
 };
 
-export function DealDetail({ deal, activities, leaseApplications, currentUserId }: DealDetailProps) {
-  const phase = STATUS_TO_PHASE[deal.status];
-
+export function DealDetail({ deal, activities, currentUserId }: DealDetailProps) {
   const formatAmount = (amount: number | null) => {
     if (!amount) return "-";
     return new Intl.NumberFormat("ja-JP", {
@@ -45,20 +49,17 @@ export function DealDetail({ deal, activities, leaseApplications, currentUserId 
 
   return (
     <div className="space-y-6">
-      {/* Status Workflow */}
-      <StatusWorkflow deal={deal} />
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Deal Information */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>案件情報</CardTitle>
+              <CardTitle>商談情報</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">案件名</dt>
+                  <dt className="text-sm font-medium text-gray-500">商談名</dt>
                   <dd className="mt-1 text-sm text-gray-900">{deal.title}</dd>
                 </div>
                 <div>
@@ -73,50 +74,34 @@ export function DealDetail({ deal, activities, leaseApplications, currentUserId 
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">フェーズ</dt>
-                  <dd className="mt-1">
-                    <Badge
-                      variant="secondary"
-                      className={cn(phase && phaseColors[phase])}
-                    >
-                      {phase ? DEAL_PHASE_LABELS[phase] : "-"}
-                    </Badge>
-                  </dd>
-                </div>
-                <div>
                   <dt className="text-sm font-medium text-gray-500">
                     ステータス
                   </dt>
                   <dd className="mt-1">
-                    <Badge>
+                    <Badge
+                      variant="secondary"
+                      className={cn(statusColors[deal.status])}
+                    >
                       {DEAL_STATUS_LABELS[deal.status] || deal.status}
                     </Badge>
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">契約種別</dt>
+                  <dt className="text-sm font-medium text-gray-500">合計金額</dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    {CONTRACT_TYPE_LABELS[deal.contract_type]}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">
-                    商品カテゴリ
-                  </dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {deal.product_category || "-"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">見込金額</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {formatAmount(deal.estimated_amount)}
+                    {formatAmount(deal.total_amount)}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">担当者</dt>
                   <dd className="mt-1 text-sm text-gray-900">
                     {deal.assigned_user?.name || "-"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">契約数</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {deal.contracts?.length || 0}件
                   </dd>
                 </div>
                 <div>
@@ -135,7 +120,74 @@ export function DealDetail({ deal, activities, leaseApplications, currentUserId 
                     })}
                   </dd>
                 </div>
+                {deal.description && (
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">備考</dt>
+                    <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                      {deal.description}
+                    </dd>
+                  </div>
+                )}
               </dl>
+            </CardContent>
+          </Card>
+
+          {/* Contracts */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>契約一覧</CardTitle>
+              <Button size="sm" asChild>
+                <Link href={`/deals/${deal.id}/contracts/new`}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  新規契約
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {!deal.contracts || deal.contracts.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  契約がまだ登録されていません
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>契約名</TableHead>
+                      <TableHead>契約種別</TableHead>
+                      <TableHead>ステータス</TableHead>
+                      <TableHead>月額</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deal.contracts.map((contract) => (
+                      <TableRow key={contract.id}>
+                        <TableCell className="font-medium">
+                          {contract.title}
+                        </TableCell>
+                        <TableCell>
+                          {CONTRACT_TYPE_LABELS[contract.contract_type]}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {CONTRACT_STATUS_LABELS[contract.status] || contract.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {formatAmount(contract.monthly_amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/contracts/${contract.id}`}>
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
 
@@ -153,9 +205,6 @@ export function DealDetail({ deal, activities, leaseApplications, currentUserId 
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Lease Applications */}
-          <LeaseApplications dealId={deal.id} applications={leaseApplications} />
-
           <Card>
             <CardHeader>
               <CardTitle>顧客情報</CardTitle>

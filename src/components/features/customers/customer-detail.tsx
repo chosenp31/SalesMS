@@ -1,7 +1,7 @@
 "use client";
 
 import { Customer, Deal } from "@/types";
-import { BUSINESS_TYPE_LABELS, DEAL_STATUS_LABELS, CONTRACT_TYPE_LABELS } from "@/constants";
+import { BUSINESS_TYPE_LABELS, DEAL_STATUS_LABELS } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,11 +17,19 @@ import Link from "next/link";
 import { Eye, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface CustomerDetailProps {
   customer: Customer;
   deals: Deal[];
 }
+
+const statusColors: Record<string, string> = {
+  active: "bg-blue-100 text-blue-800",
+  won: "bg-green-100 text-green-800",
+  lost: "bg-red-100 text-red-800",
+  pending: "bg-yellow-100 text-yellow-800",
+};
 
 export function CustomerDetail({ customer, deals }: CustomerDetailProps) {
   return (
@@ -101,9 +109,9 @@ export function CustomerDetail({ customer, deals }: CustomerDetailProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>案件名</TableHead>
+                  <TableHead>商談名</TableHead>
                   <TableHead>ステータス</TableHead>
-                  <TableHead>契約種別</TableHead>
+                  <TableHead>契約数</TableHead>
                   <TableHead>担当者</TableHead>
                   <TableHead>作成日</TableHead>
                   <TableHead className="text-right">操作</TableHead>
@@ -114,12 +122,15 @@ export function CustomerDetail({ customer, deals }: CustomerDetailProps) {
                   <TableRow key={deal.id}>
                     <TableCell className="font-medium">{deal.title}</TableCell>
                     <TableCell>
-                      <Badge>
+                      <Badge
+                        variant="secondary"
+                        className={cn(statusColors[deal.status])}
+                      >
                         {DEAL_STATUS_LABELS[deal.status] || deal.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {CONTRACT_TYPE_LABELS[deal.contract_type]}
+                      {deal.contracts?.length || 0}件
                     </TableCell>
                     <TableCell>
                       {deal.assigned_user?.name || "-"}

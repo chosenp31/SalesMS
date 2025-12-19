@@ -1,7 +1,7 @@
 "use client";
 
-import { Payment, DealOption } from "@/types";
-import { PAYMENT_STATUS_LABELS } from "@/constants";
+import { Payment, ContractOption } from "@/types";
+import { PAYMENT_STATUS_LABELS, PAYMENT_TYPE_LABELS } from "@/constants";
 import {
   Table,
   TableBody,
@@ -23,7 +23,7 @@ import Link from "next/link";
 
 interface PaymentListProps {
   payments: Payment[];
-  deals: DealOption[];
+  contracts: ContractOption[];
 }
 
 const statusColors = {
@@ -31,7 +31,7 @@ const statusColors = {
   paid: "bg-green-100 text-green-800",
 };
 
-export function PaymentList({ payments, deals }: PaymentListProps) {
+export function PaymentList({ payments, contracts }: PaymentListProps) {
   const router = useRouter();
 
   const handleMarkAsPaid = async (payment: Payment) => {
@@ -116,8 +116,9 @@ export function PaymentList({ payments, deals }: PaymentListProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>案件</TableHead>
-              <TableHead>リース会社</TableHead>
+              <TableHead>契約</TableHead>
+              <TableHead>顧客</TableHead>
+              <TableHead>種別</TableHead>
               <TableHead>ステータス</TableHead>
               <TableHead className="text-right">予定金額</TableHead>
               <TableHead className="text-right">実績金額</TableHead>
@@ -130,18 +131,25 @@ export function PaymentList({ payments, deals }: PaymentListProps) {
             {payments.map((payment) => (
               <TableRow key={payment.id}>
                 <TableCell>
-                  {payment.deal ? (
+                  {payment.contract ? (
                     <Link
-                      href={`/deals/${payment.deal.id}`}
+                      href={`/deals/${payment.contract.deal?.id}`}
                       className="text-primary hover:underline"
                     >
-                      {payment.deal.title}
+                      {payment.contract.title}
                     </Link>
                   ) : (
                     "-"
                   )}
                 </TableCell>
-                <TableCell>{payment.lease_company || "-"}</TableCell>
+                <TableCell>
+                  {payment.contract?.deal?.customer?.company_name || "-"}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {PAYMENT_TYPE_LABELS[payment.payment_type]}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   <Badge
                     variant="secondary"
@@ -186,7 +194,7 @@ export function PaymentList({ payments, deals }: PaymentListProps) {
                     )}
                     <PaymentDialog
                       payment={payment}
-                      deals={deals}
+                      contracts={contracts}
                       trigger={
                         <Button variant="ghost" size="sm">
                           <Pencil className="h-4 w-4" />

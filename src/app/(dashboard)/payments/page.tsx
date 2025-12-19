@@ -11,7 +11,15 @@ export default async function PaymentsPage() {
     .from("payments")
     .select(`
       *,
-      deal:deals(id, title, customer:customers(company_name))
+      contract:contracts(
+        id,
+        title,
+        deal:deals(
+          id,
+          title,
+          customer:customers(company_name)
+        )
+      )
     `)
     .order("expected_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -20,10 +28,18 @@ export default async function PaymentsPage() {
     console.error("Error fetching payments:", error);
   }
 
-  // Get all deals for linking
-  const { data: deals } = await supabase
-    .from("deals")
-    .select("id, title, customer:customers(company_name)")
+  // Get all contracts for linking
+  const { data: contracts } = await supabase
+    .from("contracts")
+    .select(`
+      id,
+      title,
+      deal:deals(
+        id,
+        title,
+        customer:customers(company_name)
+      )
+    `)
     .order("created_at", { ascending: false });
 
   return (
@@ -34,7 +50,7 @@ export default async function PaymentsPage() {
           <p className="text-sm text-gray-500">入金の一覧と管理</p>
         </div>
         <PaymentDialog
-          deals={deals || []}
+          contracts={contracts || []}
           trigger={
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -43,7 +59,7 @@ export default async function PaymentsPage() {
           }
         />
       </div>
-      <PaymentList payments={payments || []} deals={deals || []} />
+      <PaymentList payments={payments || []} contracts={contracts || []} />
     </div>
   );
 }

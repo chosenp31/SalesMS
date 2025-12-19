@@ -6,10 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { Payment, DealOption } from "@/types";
-import { PAYMENT_STATUS_LABELS, LEASE_COMPANIES } from "@/constants";
+import { Payment, ContractOption } from "@/types";
+import { PAYMENT_STATUS_LABELS, PAYMENT_TYPE_LABELS } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -34,24 +35,25 @@ import {
 } from "@/components/ui/select";
 
 const paymentSchema = z.object({
-  deal_id: z.string().min(1, "案件を選択してください"),
-  lease_company: z.string().optional(),
+  contract_id: z.string().min(1, "契約を選択してください"),
+  payment_type: z.enum(["initial", "monthly", "final", "other"]),
   expected_amount: z.string().optional(),
   actual_amount: z.string().optional(),
   expected_date: z.string().optional(),
   actual_date: z.string().optional(),
   status: z.enum(["pending", "paid"]),
+  notes: z.string().optional(),
 });
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
 interface PaymentDialogProps {
   payment?: Payment;
-  deals: DealOption[];
+  contracts: ContractOption[];
   trigger: React.ReactNode;
 }
 
-export function PaymentDialog({ payment, deals, trigger }: PaymentDialogProps) {
+export function PaymentDialog({ payment, contracts, trigger }: PaymentDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -59,13 +61,14 @@ export function PaymentDialog({ payment, deals, trigger }: PaymentDialogProps) {
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
-      deal_id: payment?.deal_id || "",
-      lease_company: payment?.lease_company || "",
+      contract_id: payment?.contract_id || "",
+      payment_type: payment?.payment_type || "initial",
       expected_amount: payment?.expected_amount?.toString() || "",
       actual_amount: payment?.actual_amount?.toString() || "",
       expected_date: payment?.expected_date || "",
       actual_date: payment?.actual_date || "",
       status: payment?.status || "pending",
+      notes: payment?.notes || "",
     },
   });
 
@@ -74,8 +77,8 @@ export function PaymentDialog({ payment, deals, trigger }: PaymentDialogProps) {
     const supabase = createClient();
 
     const paymentData = {
-      deal_id: data.deal_id,
-      lease_company: data.lease_company || null,
+      contract_id: data.contract_id,
+      payment_type: data.payment_type,
       expected_amount: data.expected_amount
         ? parseFloat(data.expected_amount)
         : null,
@@ -85,6 +88,7 @@ export function PaymentDialog({ payment, deals, trigger }: PaymentDialogProps) {
       expected_date: data.expected_date || null,
       actual_date: data.actual_date || null,
       status: data.status,
+      notes: data.notes || null,
     };
 
     if (payment) {
@@ -110,23 +114,25 @@ export function PaymentDialog({ payment, deals, trigger }: PaymentDialogProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="deal_id"
+              name="contract_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>案件 *</FormLabel>
+                  <FormLabel>契約 *</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="案件を選択" />
+                        <SelectValue placeholder="契約を選択" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {deals.map((deal) => (
-                        <SelectItem key={deal.id} value={deal.id}>
-                          {deal.title}
+                      {contracts.map((contract) => (
+                        <SelectItem key={contract.id} value={contract.id}>
+                          {contract.title}
+                          {contract.deal?.customer?.company_name &&
+                            ` (${contract.deal.customer.company_name})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -137,26 +143,27 @@ export function PaymentDialog({ payment, deals, trigger }: PaymentDialogProps) {
             />
             <FormField
               control={form.control}
-              name="lease_company"
+              name="payment_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>リース会社</FormLabel>
+                  <FormLabel>入金種別 *</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="リース会社を選択" />
+                        <SelectValue placeholder="入金種別を選択" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">なし</SelectItem>
-                      {LEASE_COMPANIES.map((company) => (
-                        <SelectItem key={company} value={company}>
-                          {company}
-                        </SelectItem>
-                      ))}
+                      {Object.entries(PAYMENT_TYPE_LABELS).map(
+                        ([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -244,6 +251,23 @@ export function PaymentDialog({ payment, deals, trigger }: PaymentDialogProps) {
                       )}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>備考</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="備考を入力..."
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

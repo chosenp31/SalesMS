@@ -57,7 +57,7 @@ const applicationSchema = z.object({
 type ApplicationFormValues = z.infer<typeof applicationSchema>;
 
 interface LeaseApplicationsProps {
-  dealId: string;
+  contractId: string;
   applications: LeaseApplication[];
 }
 
@@ -70,11 +70,11 @@ const statusColors = {
 };
 
 function ApplicationDialog({
-  dealId,
+  contractId,
   application,
   trigger,
 }: {
-  dealId: string;
+  contractId: string;
   application?: LeaseApplication;
   trigger: React.ReactNode;
 }) {
@@ -98,7 +98,7 @@ function ApplicationDialog({
     const supabase = createClient();
 
     const applicationData = {
-      deal_id: dealId,
+      contract_id: contractId,
       lease_company: data.lease_company,
       status: data.status,
       submitted_at: data.submitted_at || null,
@@ -253,7 +253,7 @@ function ApplicationDialog({
 }
 
 export function LeaseApplications({
-  dealId,
+  contractId,
   applications,
 }: LeaseApplicationsProps) {
   const router = useRouter();
@@ -274,7 +274,7 @@ export function LeaseApplications({
           リース審査
         </CardTitle>
         <ApplicationDialog
-          dealId={dealId}
+          contractId={contractId}
           trigger={
             <Button size="sm">
               <Plus className="h-4 w-4 mr-1" />
@@ -329,7 +329,7 @@ export function LeaseApplications({
                 </div>
                 <div className="flex space-x-1">
                   <ApplicationDialog
-                    dealId={dealId}
+                    contractId={contractId}
                     application={app}
                     trigger={
                       <Button variant="ghost" size="sm">

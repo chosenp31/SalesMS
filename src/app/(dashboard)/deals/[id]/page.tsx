@@ -18,7 +18,8 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
     .select(`
       *,
       customer:customers(*),
-      assigned_user:users(*)
+      assigned_user:users(*),
+      contracts(*)
     `)
     .eq("id", id)
     .single();
@@ -34,13 +35,6 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
       *,
       user:users(*)
     `)
-    .eq("deal_id", id)
-    .order("created_at", { ascending: false });
-
-  // Get lease applications for this deal
-  const { data: leaseApplications } = await supabase
-    .from("lease_applications")
-    .select("*")
     .eq("deal_id", id)
     .order("created_at", { ascending: false });
 
@@ -61,7 +55,7 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{deal.title}</h1>
-            <p className="text-sm text-gray-500">案件詳細</p>
+            <p className="text-sm text-gray-500">商談詳細</p>
           </div>
         </div>
         <Button asChild>
@@ -74,7 +68,6 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
       <DealDetail
         deal={deal}
         activities={activities || []}
-        leaseApplications={leaseApplications || []}
         currentUserId={authUser?.id || ""}
       />
     </div>
