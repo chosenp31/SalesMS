@@ -14,13 +14,13 @@ envContent.split("\n").forEach(line => {
 });
 
 const supabaseUrl = envVars.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = envVars.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = envVars.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Supabase環境変数が設定されていません");
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error("Supabase環境変数が設定されていません（SUPABASE_SERVICE_ROLE_KEYが必要です）");
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // ============================================
 // マスターデータ
@@ -442,23 +442,18 @@ async function seed() {
   console.log("💰 入金データを作成中...");
 
   type PaymentStatus = "入金予定" | "入金済";
-  type PaymentType = "initial" | "monthly" | "final" | "other";
 
   const payments: Array<{
     id: string;
     deal_id: string;
     contract_id: string;
-    payment_type: PaymentType;
     expected_amount: number;
     actual_amount: number | null;
     expected_date: string;
     actual_date: string | null;
     status: PaymentStatus;
-    notes: string | null;
-    created_at: string;
+    lease_company: string | null;
   }> = [];
-
-  const paymentTypes: PaymentType[] = ["initial", "monthly", "final", "other"];
 
   for (let i = 0; i < 50; i++) {
     const contract = contracts[i % contracts.length];
@@ -472,14 +467,12 @@ async function seed() {
       id: crypto.randomUUID(),
       deal_id: contract.deal_id,
       contract_id: contract.id,
-      payment_type: randomElement(paymentTypes),
       expected_amount: expectedAmount,
       actual_amount: isPaid ? expectedAmount : null,
       expected_date: formatDate(expectedDate),
       actual_date: isPaid ? formatDate(new Date(expectedDate.getTime() + randomInt(-5, 10) * 24 * 60 * 60 * 1000)) : null,
       status: isPaid ? "入金済" : "入金予定",
-      notes: Math.random() > 0.8 ? "備考あり" : null,
-      created_at: contract.created_at,
+      lease_company: contract.lease_company,
     });
   }
 
