@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Task, User, DealOption } from "@/types";
+import { Task, User, DealOption, TaskStatus } from "@/types";
 import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from "@/constants";
 import {
   Table,
@@ -24,7 +24,7 @@ import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle } from "lucide-react";
+import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, Building2 } from "lucide-react";
 import { TaskDialog } from "./task-dialog";
 import Link from "next/link";
 
@@ -41,13 +41,13 @@ const priorityColors = {
   low: "bg-green-100 text-green-800 border-green-200",
 };
 
-const statusColors = {
-  not_started: "bg-gray-100 text-gray-800 border-gray-200",
-  in_progress: "bg-blue-100 text-blue-800 border-blue-200",
-  completed: "bg-green-100 text-green-800 border-green-200",
+const statusColors: Record<TaskStatus, string> = {
+  未着手: "bg-gray-100 text-gray-800 border-gray-200",
+  進行中: "bg-blue-100 text-blue-800 border-blue-200",
+  完了: "bg-green-100 text-green-800 border-green-200",
 };
 
-type SortField = "title" | "deal" | "priority" | "status" | "assigned_user" | "due_date";
+type SortField = "title" | "deal" | "priority" | "status" | "assigned_user" | "due_date" | "company";
 type SortDirection = "asc" | "desc";
 
 export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) {
@@ -137,7 +137,7 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
   const handleStatusToggle = async (task: Task, e: React.MouseEvent) => {
     e.stopPropagation();
     const supabase = createClient();
-    const newStatus = task.status === "completed" ? "not_started" : "completed";
+    const newStatus: TaskStatus = task.status === "完了" ? "未着手" : "完了";
 
     await supabase.from("tasks").update({ status: newStatus }).eq("id", task.id);
     router.refresh();
@@ -164,7 +164,8 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
           task.title.toLowerCase().includes(lowerSearch) ||
           task.description?.toLowerCase().includes(lowerSearch) ||
           task.deal?.title?.toLowerCase().includes(lowerSearch) ||
-          task.assigned_user?.name?.toLowerCase().includes(lowerSearch)
+          task.assigned_user?.name?.toLowerCase().includes(lowerSearch) ||
+          task.company?.toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -181,7 +182,7 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
 
     // Apply sort
     const priorityOrder = { high: 0, medium: 1, low: 2 };
-    const statusOrder = { not_started: 0, in_progress: 1, completed: 2 };
+    const statusOrder: Record<TaskStatus, number> = { 未着手: 0, 進行中: 1, 完了: 2 };
 
     result = [...result].sort((a, b) => {
       let comparison = 0;
@@ -203,6 +204,9 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
             b.assigned_user?.name || ""
           );
           break;
+        case "company":
+          comparison = (a.company || "").localeCompare(b.company || "");
+          break;
         case "due_date":
           const aDate = a.due_date ? new Date(a.due_date).getTime() : Infinity;
           const bDate = b.due_date ? new Date(b.due_date).getTime() : Infinity;
@@ -215,8 +219,8 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
     return result;
   }, [tasks, searchValue, activeFilters, sortField, sortDirection]);
 
-  const getDueDateStyle = (dueDate: string | null, status: string) => {
-    if (!dueDate || status === "completed") return "";
+  const getDueDateStyle = (dueDate: string | null, status: TaskStatus) => {
+    if (!dueDate || status === "完了") return "";
     const date = new Date(dueDate);
     if (isPast(date) && !isToday(date)) return "text-red-600 font-medium";
     if (isToday(date)) return "text-orange-600 font-medium";
@@ -257,16 +261,16 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
   // Statistics
   const stats = useMemo(() => {
     const total = tasks.length;
-    const completed = tasks.filter((t) => t.status === "completed").length;
+    const completed = tasks.filter((t) => t.status === "完了").length;
     const overdue = tasks.filter(
       (t) =>
-        t.status !== "completed" &&
+        t.status !== "完了" &&
         t.due_date &&
         isPast(new Date(t.due_date)) &&
         !isToday(new Date(t.due_date))
     ).length;
     const highPriority = tasks.filter(
-      (t) => t.status !== "completed" && t.priority === "high"
+      (t) => t.status !== "完了" && t.priority === "high"
     ).length;
     return { total, completed, overdue, highPriority };
   }, [tasks]);
@@ -307,7 +311,7 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
       </div>
 
       <SearchFilterBar
-        placeholder="タスク名、説明、関連案件、担当者で検索..."
+        placeholder="タスク名、説明、関連案件、担当者、担当会社で検索..."
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         filters={filterOptions}
@@ -324,11 +328,14 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-12"></TableHead>
-              <TableHead className="w-[250px]">
+              <TableHead className="w-[200px]">
                 <SortHeader field="title">タスク名</SortHeader>
               </TableHead>
               <TableHead>
                 <SortHeader field="deal">関連案件</SortHeader>
+              </TableHead>
+              <TableHead>
+                <SortHeader field="company">担当会社</SortHeader>
               </TableHead>
               <TableHead>
                 <SortHeader field="priority">優先度</SortHeader>
@@ -351,12 +358,12 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
                 key={task.id}
                 className={cn(
                   "cursor-pointer hover:bg-blue-50 transition-colors",
-                  task.status === "completed" && "opacity-60 bg-gray-50"
+                  task.status === "完了" && "opacity-60 bg-gray-50"
                 )}
               >
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <Checkbox
-                    checked={task.status === "completed"}
+                    checked={task.status === "完了"}
                     onCheckedChange={() => {
                       const e = { stopPropagation: () => { } } as React.MouseEvent;
                       handleStatusToggle(task, e);
@@ -366,12 +373,12 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
                 <TableCell
                   className={cn(
                     "font-medium",
-                    task.status === "completed" && "line-through"
+                    task.status === "完了" && "line-through"
                   )}
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      {task.status !== "completed" &&
+                      {task.status !== "完了" &&
                         task.due_date &&
                         isPast(new Date(task.due_date)) &&
                         !isToday(new Date(task.due_date)) && (
@@ -395,6 +402,16 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
                     >
                       {task.deal.title}
                     </Link>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {task.company ? (
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <Building2 className="h-3.5 w-3.5" />
+                      <span className="text-sm">{task.company}</span>
+                    </div>
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}

@@ -41,7 +41,7 @@ const paymentSchema = z.object({
   actual_amount: z.string().optional(),
   expected_date: z.string().optional(),
   actual_date: z.string().optional(),
-  status: z.enum(["pending", "paid"]),
+  status: z.enum(["入金予定", "入金済"]),
   notes: z.string().optional(),
 });
 
@@ -67,7 +67,7 @@ export function PaymentDialog({ payment, contracts, trigger }: PaymentDialogProp
       actual_amount: payment?.actual_amount?.toString() || "",
       expected_date: payment?.expected_date || "",
       actual_date: payment?.actual_date || "",
-      status: payment?.status || "pending",
+      status: payment?.status || "入金予定",
       notes: payment?.notes || "",
     },
   });

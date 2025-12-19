@@ -25,32 +25,44 @@ interface StatusWorkflowProps {
   contract: ContractForWorkflow;
 }
 
-const phaseOrder = ["sales", "contract", "installation", "completion"];
+const phaseOrder = ["商談中", "審査中", "工事中", "入金中"];
 
 const phaseColors: Record<string, { bg: string; border: string; text: string; active: string }> = {
-  sales: {
+  商談中: {
     bg: "bg-blue-50",
     border: "border-blue-200",
     text: "text-blue-800",
     active: "bg-blue-500",
   },
-  contract: {
+  審査中: {
     bg: "bg-yellow-50",
     border: "border-yellow-200",
     text: "text-yellow-800",
     active: "bg-yellow-500",
   },
-  installation: {
+  工事中: {
     bg: "bg-purple-50",
     border: "border-purple-200",
     text: "text-purple-800",
     active: "bg-purple-500",
   },
-  completion: {
+  入金中: {
     bg: "bg-green-50",
     border: "border-green-200",
     text: "text-green-800",
     active: "bg-green-500",
+  },
+  失注: {
+    bg: "bg-red-50",
+    border: "border-red-200",
+    text: "text-red-800",
+    active: "bg-red-500",
+  },
+  クローズ: {
+    bg: "bg-gray-50",
+    border: "border-gray-200",
+    text: "text-gray-800",
+    active: "bg-gray-500",
   },
 };
 
@@ -120,7 +132,7 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
                       isCurrent ? colors.text : "text-gray-500"
                     )}
                   >
-                    {CONTRACT_PHASE_LABELS[phase]}
+                    {CONTRACT_PHASE_LABELS[phase as keyof typeof CONTRACT_PHASE_LABELS]}
                   </span>
                 </div>
                 {index < phaseOrder.length - 1 && (
@@ -133,8 +145,8 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
 
         {/* Current Phase Statuses */}
         <div className={cn("p-4 rounded-lg", phaseColors[currentPhase].bg)}>
-          <h4 className={cn("text-sm font-medium mb-3", phaseColors[currentPhase].text)}>
-            {CONTRACT_PHASE_LABELS[currentPhase]}のステータス
+          <h4 className={cn("text-sm font-medium mb-3", phaseColors[currentPhase]?.text)}>
+            {CONTRACT_PHASE_LABELS[currentPhase as keyof typeof CONTRACT_PHASE_LABELS]}のステータス
           </h4>
           <div className="flex flex-wrap gap-2">
             {PHASE_STATUSES[currentPhase].map((status) => {
@@ -173,7 +185,7 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
                 updateStatus(firstStatus);
               }}
             >
-              {CONTRACT_PHASE_LABELS[phaseOrder[currentPhaseIndex + 1]]}へ進む
+              {CONTRACT_PHASE_LABELS[phaseOrder[currentPhaseIndex + 1] as keyof typeof CONTRACT_PHASE_LABELS]}へ進む
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

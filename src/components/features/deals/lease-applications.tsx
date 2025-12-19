@@ -43,11 +43,11 @@ import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
 const applicationSchema = z.object({
   lease_company: z.string().min(1, "リース会社を選択してください"),
   status: z.enum([
-    "preparing",
-    "reviewing",
-    "approved",
-    "rejected",
-    "conditionally_approved",
+    "準備中",
+    "審査結果待ち",
+    "可決",
+    "否決",
+    "条件付可決",
   ]),
   submitted_at: z.string().optional(),
   result_at: z.string().optional(),
@@ -61,12 +61,12 @@ interface LeaseApplicationsProps {
   applications: LeaseApplication[];
 }
 
-const statusColors = {
-  preparing: "bg-gray-100 text-gray-800",
-  reviewing: "bg-blue-100 text-blue-800",
-  approved: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-  conditionally_approved: "bg-yellow-100 text-yellow-800",
+const statusColors: Record<string, string> = {
+  準備中: "bg-gray-100 text-gray-800",
+  審査結果待ち: "bg-blue-100 text-blue-800",
+  可決: "bg-green-100 text-green-800",
+  否決: "bg-red-100 text-red-800",
+  条件付可決: "bg-yellow-100 text-yellow-800",
 };
 
 function ApplicationDialog({
@@ -86,7 +86,7 @@ function ApplicationDialog({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
       lease_company: application?.lease_company || "",
-      status: application?.status || "preparing",
+      status: application?.status || "準備中",
       submitted_at: application?.submitted_at?.split("T")[0] || "",
       result_at: application?.result_at?.split("T")[0] || "",
       conditions: application?.conditions || "",

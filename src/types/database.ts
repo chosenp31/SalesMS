@@ -6,6 +6,48 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+// 契約ステータス（小分類）の型
+export type ContractStatusType =
+  | "日程調整中"
+  | "MTG実施待ち"
+  | "見積提出"
+  | "受注確定"
+  | "書類準備中"
+  | "審査結果待ち"
+  | "可決"
+  | "否決"
+  | "下見日程調整中"
+  | "下見実施待ち"
+  | "工事日程調整中"
+  | "工事実施待ち"
+  | "入金待ち"
+  | "入金済"
+  | "失注"
+  | "クローズ";
+
+// 契約フェーズ（大分類）の型
+export type ContractPhaseType =
+  | "商談中"
+  | "審査中"
+  | "工事中"
+  | "入金中"
+  | "失注"
+  | "クローズ";
+
+// リース審査ステータスの型
+export type LeaseApplicationStatusType =
+  | "準備中"
+  | "審査結果待ち"
+  | "可決"
+  | "否決"
+  | "条件付可決";
+
+// 入金ステータスの型
+export type PaymentStatusType = "入金予定" | "入金済";
+
+// タスクステータスの型
+export type TaskStatusType = "未着手" | "進行中" | "完了";
+
 export type Database = {
   public: {
     Tables: {
@@ -130,7 +172,8 @@ export type Database = {
           contract_type: "lease" | "rental" | "installment";
           product_category: string | null;
           lease_company: string | null;
-          status: "negotiating" | "quote_submitted" | "accepted" | "rejected" | "document_collection" | "review_requested" | "review_pending" | "review_approved" | "review_rejected" | "survey_scheduling" | "survey_completed" | "installation_scheduling" | "installation_completed" | "delivered" | "payment_pending" | "completed";
+          phase: ContractPhaseType;
+          status: ContractStatusType;
           monthly_amount: number | null;
           total_amount: number | null;
           contract_months: number | null;
@@ -147,7 +190,8 @@ export type Database = {
           contract_type: "lease" | "rental" | "installment";
           product_category?: string | null;
           lease_company?: string | null;
-          status?: "negotiating" | "quote_submitted" | "accepted" | "rejected" | "document_collection" | "review_requested" | "review_pending" | "review_approved" | "review_rejected" | "survey_scheduling" | "survey_completed" | "installation_scheduling" | "installation_completed" | "delivered" | "payment_pending" | "completed";
+          phase?: ContractPhaseType;
+          status?: ContractStatusType;
           monthly_amount?: number | null;
           total_amount?: number | null;
           contract_months?: number | null;
@@ -164,7 +208,8 @@ export type Database = {
           contract_type?: "lease" | "rental" | "installment";
           product_category?: string | null;
           lease_company?: string | null;
-          status?: "negotiating" | "quote_submitted" | "accepted" | "rejected" | "document_collection" | "review_requested" | "review_pending" | "review_approved" | "review_rejected" | "survey_scheduling" | "survey_completed" | "installation_scheduling" | "installation_completed" | "delivered" | "payment_pending" | "completed";
+          phase?: ContractPhaseType;
+          status?: ContractStatusType;
           monthly_amount?: number | null;
           total_amount?: number | null;
           contract_months?: number | null;
@@ -190,7 +235,7 @@ export type Database = {
           id: string;
           contract_id: string;
           lease_company: string;
-          status: "preparing" | "reviewing" | "approved" | "rejected" | "conditionally_approved";
+          status: LeaseApplicationStatusType;
           submitted_at: string | null;
           result_at: string | null;
           conditions: string | null;
@@ -201,7 +246,7 @@ export type Database = {
           id?: string;
           contract_id: string;
           lease_company: string;
-          status?: "preparing" | "reviewing" | "approved" | "rejected" | "conditionally_approved";
+          status?: LeaseApplicationStatusType;
           submitted_at?: string | null;
           result_at?: string | null;
           conditions?: string | null;
@@ -212,7 +257,7 @@ export type Database = {
           id?: string;
           contract_id?: string;
           lease_company?: string;
-          status?: "preparing" | "reviewing" | "approved" | "rejected" | "conditionally_approved";
+          status?: LeaseApplicationStatusType;
           submitted_at?: string | null;
           result_at?: string | null;
           conditions?: string | null;
@@ -239,7 +284,7 @@ export type Database = {
           actual_amount: number | null;
           expected_date: string | null;
           actual_date: string | null;
-          status: "pending" | "paid";
+          status: PaymentStatusType;
           notes: string | null;
           created_at: string;
           updated_at: string;
@@ -252,7 +297,7 @@ export type Database = {
           actual_amount?: number | null;
           expected_date?: string | null;
           actual_date?: string | null;
-          status?: "pending" | "paid";
+          status?: PaymentStatusType;
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -265,7 +310,7 @@ export type Database = {
           actual_amount?: number | null;
           expected_date?: string | null;
           actual_date?: string | null;
-          status?: "pending" | "paid";
+          status?: PaymentStatusType;
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -333,8 +378,9 @@ export type Database = {
           title: string;
           description: string | null;
           due_date: string | null;
-          status: "not_started" | "in_progress" | "completed";
+          status: TaskStatusType;
           priority: "high" | "medium" | "low";
+          company: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -346,8 +392,9 @@ export type Database = {
           title: string;
           description?: string | null;
           due_date?: string | null;
-          status?: "not_started" | "in_progress" | "completed";
+          status?: TaskStatusType;
           priority?: "high" | "medium" | "low";
+          company?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -359,8 +406,9 @@ export type Database = {
           title?: string;
           description?: string | null;
           due_date?: string | null;
-          status?: "not_started" | "in_progress" | "completed";
+          status?: TaskStatusType;
           priority?: "high" | "medium" | "low";
+          company?: string | null;
           created_at?: string;
           updated_at?: string;
         };
