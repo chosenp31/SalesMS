@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation"; // 認証無効化のためコメントアウト
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Header } from "@/components/layouts/header";
 import { User } from "@/types";
@@ -11,22 +11,26 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createClient();
 
+  // 認証チェックを一時的に無効化（デモ用）
+  // TODO: 本番運用時は認証を有効化すること
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  if (!authUser) {
-    redirect("/login");
+  // if (!authUser) {
+  //   redirect("/login");
+  // }
+
+  // Get user profile - デモ用にnullを許容
+  let user: User | null = null;
+  if (authUser) {
+    const { data: userProfile } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", authUser.id)
+      .single();
+    user = userProfile;
   }
-
-  // Get user profile
-  const { data: userProfile } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", authUser.id)
-    .single();
-
-  const user: User | null = userProfile;
 
   return (
     <div className="flex h-screen bg-gray-100">
