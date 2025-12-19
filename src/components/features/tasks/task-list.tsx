@@ -26,10 +26,10 @@ import {
 } from "@/components/ui/search-filter-bar";
 import { format, isPast, isToday } from "date-fns";
 import { ja } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, formatTaskId, formatDealId, formatContractId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, Building2 } from "lucide-react";
+import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, Building2, ExternalLink } from "lucide-react";
 import { TaskDialog } from "./task-dialog";
 import Link from "next/link";
 
@@ -85,7 +85,7 @@ const statusColors: Record<TaskStatus, string> = {
   完了: "bg-green-100 text-green-800 border-green-200",
 };
 
-type SortField = "title" | "deal" | "phase" | "contractStatus" | "priority" | "status" | "assigned_user" | "due_date" | "company";
+type SortField = "task_id" | "title" | "phase" | "contractStatus" | "customer" | "deal" | "contract" | "company" | "assigned_user" | "priority" | "status" | "due_date";
 type SortDirection = "asc" | "desc";
 
 export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) {
@@ -99,9 +99,9 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
   const filterOptions: FilterOption[] = [
     {
       key: "status",
-      label: "ステータス",
+      label: "タスクステータス",
       type: "select",
-      quickFilter: true, // インライン表示
+      quickFilter: true,
       options: Object.entries(TASK_STATUS_LABELS).map(([value, label]) => ({
         value,
         label,
@@ -111,7 +111,7 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
       key: "priority",
       label: "優先度",
       type: "select",
-      quickFilter: true, // インライン表示
+      quickFilter: true,
       options: Object.entries(TASK_PRIORITY_LABELS).map(([value, label]) => ({
         value,
         label,
@@ -190,6 +190,33 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
     router.refresh();
   };
 
+  // Helper to get task display ID
+  const getTaskDisplayId = (task: Task) => {
+    return formatTaskId(
+      task.deal?.customer?.customer_number,
+      task.deal?.deal_number,
+      task.contract?.contract_number,
+      task.task_number
+    );
+  };
+
+  // Helper to get deal display ID
+  const getDealDisplayId = (task: Task) => {
+    return formatDealId(
+      task.deal?.customer?.customer_number,
+      task.deal?.deal_number
+    );
+  };
+
+  // Helper to get contract display ID
+  const getContractDisplayId = (task: Task) => {
+    return formatContractId(
+      task.deal?.customer?.customer_number,
+      task.deal?.deal_number,
+      task.contract?.contract_number
+    );
+  };
+
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
     let result = tasks;
@@ -202,8 +229,11 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
           task.title.toLowerCase().includes(lowerSearch) ||
           task.description?.toLowerCase().includes(lowerSearch) ||
           task.deal?.title?.toLowerCase().includes(lowerSearch) ||
+          task.deal?.customer?.company_name?.toLowerCase().includes(lowerSearch) ||
+          task.contract?.title?.toLowerCase().includes(lowerSearch) ||
           task.assigned_user?.name?.toLowerCase().includes(lowerSearch) ||
-          task.company?.toLowerCase().includes(lowerSearch)
+          task.company?.toLowerCase().includes(lowerSearch) ||
+          getTaskDisplayId(task).toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -225,11 +255,11 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
     result = [...result].sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
+        case "task_id":
+          comparison = getTaskDisplayId(a).localeCompare(getTaskDisplayId(b));
+          break;
         case "title":
           comparison = a.title.localeCompare(b.title);
-          break;
-        case "deal":
-          comparison = (a.deal?.title || "").localeCompare(b.deal?.title || "");
           break;
         case "phase":
           comparison = (a.contract?.phase || "").localeCompare(b.contract?.phase || "");
@@ -237,19 +267,26 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
         case "contractStatus":
           comparison = (a.contract?.status || "").localeCompare(b.contract?.status || "");
           break;
+        case "customer":
+          comparison = (a.deal?.customer?.company_name || "").localeCompare(b.deal?.customer?.company_name || "");
+          break;
+        case "deal":
+          comparison = (a.deal?.title || "").localeCompare(b.deal?.title || "");
+          break;
+        case "contract":
+          comparison = (a.contract?.title || "").localeCompare(b.contract?.title || "");
+          break;
+        case "company":
+          comparison = (a.company || "").localeCompare(b.company || "");
+          break;
+        case "assigned_user":
+          comparison = (a.assigned_user?.name || "").localeCompare(b.assigned_user?.name || "");
+          break;
         case "priority":
           comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
           break;
         case "status":
           comparison = statusOrder[a.status] - statusOrder[b.status];
-          break;
-        case "assigned_user":
-          comparison = (a.assigned_user?.name || "").localeCompare(
-            b.assigned_user?.name || ""
-          );
-          break;
-        case "company":
-          comparison = (a.company || "").localeCompare(b.company || "");
           break;
         case "due_date":
           const aDate = a.due_date ? new Date(a.due_date).getTime() : Infinity;
@@ -355,7 +392,7 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
       </div>
 
       <SearchFilterBar
-        placeholder="タスク名、説明、関連案件、担当者、担当会社で検索..."
+        placeholder="タスクID、タスク名、顧客名、案件名、契約名、担当者で検索..."
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         filters={filterOptions}
@@ -368,183 +405,220 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
       />
 
       <div className="bg-white rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50">
-              <TableHead className="w-12"></TableHead>
-              <TableHead className="w-[180px]">
-                <SortHeader field="title">タスク名</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="deal">関連案件</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="phase">案件ステータス大分類</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="contractStatus">案件ステータス小分類</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="company">担当会社</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="assigned_user">担当者</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="priority">優先度</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="status">タスクステータス</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="due_date">期限</SortHeader>
-              </TableHead>
-              <TableHead className="text-right w-[100px]">操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredTasks.map((task) => (
-              <TableRow
-                key={task.id}
-                className={cn(
-                  "cursor-pointer hover:bg-blue-50 transition-colors",
-                  task.status === "完了" && "opacity-60 bg-gray-50"
-                )}
-              >
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <Checkbox
-                    checked={task.status === "完了"}
-                    onCheckedChange={() => {
-                      const e = { stopPropagation: () => { } } as React.MouseEvent;
-                      handleStatusToggle(task, e);
-                    }}
-                  />
-                </TableCell>
-                <TableCell
-                  className={cn(
-                    "font-medium",
-                    task.status === "完了" && "line-through"
-                  )}
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      {task.status !== "完了" &&
-                        task.due_date &&
-                        isPast(new Date(task.due_date)) &&
-                        !isToday(new Date(task.due_date)) && (
-                          <AlertCircle className="h-4 w-4 text-red-500" />
-                        )}
-                      {task.title}
-                    </div>
-                    {task.description && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                        {task.description}
-                      </p>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {task.deal ? (
-                    <Link
-                      href={`/deals/${task.deal.id}`}
-                      className="text-primary hover:underline text-sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {task.deal.title}
-                    </Link>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {task.contract?.phase ? (
-                    <Badge
-                      variant="outline"
-                      className={cn("border", phaseColors[task.contract.phase])}
-                    >
-                      {CONTRACT_PHASE_LABELS[task.contract.phase as keyof typeof CONTRACT_PHASE_LABELS]}
-                    </Badge>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {task.contract?.status ? (
-                    <Badge
-                      variant="outline"
-                      className={cn("border", contractStatusColors[task.contract.status])}
-                    >
-                      {CONTRACT_STATUS_LABELS[task.contract.status]}
-                    </Badge>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {task.company ? (
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                      <Building2 className="h-3.5 w-3.5" />
-                      <span className="text-sm">{task.company}</span>
-                    </div>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-gray-600">
-                  {task.assigned_user?.name || "-"}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={cn("border", priorityColors[task.priority])}
-                  >
-                    {TASK_PRIORITY_LABELS[task.priority]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={cn("border", statusColors[task.status])}
-                  >
-                    {TASK_STATUS_LABELS[task.status]}
-                  </Badge>
-                </TableCell>
-                <TableCell
-                  className={getDueDateStyle(task.due_date, task.status)}
-                >
-                  {task.due_date
-                    ? format(new Date(task.due_date), "yyyy/MM/dd", { locale: ja })
-                    : "-"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div
-                    className="flex justify-end space-x-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <TaskDialog
-                      task={task}
-                      users={users}
-                      deals={deals}
-                      currentUserId={currentUserId}
-                      trigger={
-                        <Button variant="ghost" size="sm">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      }
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => handleDelete(task.id, e)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50">
+                <TableHead className="w-12"></TableHead>
+                <TableHead className="w-[140px]">
+                  <SortHeader field="task_id">タスクID</SortHeader>
+                </TableHead>
+                <TableHead className="w-[160px]">
+                  <SortHeader field="title">タスク名</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="phase">大分類</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="contractStatus">小分類</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="customer">顧客</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="deal">案件名</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="contract">契約名</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="company">担当会社</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="assigned_user">担当者</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="priority">優先度</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="status">ステータス</SortHeader>
+                </TableHead>
+                <TableHead>
+                  <SortHeader field="due_date">期限</SortHeader>
+                </TableHead>
+                <TableHead className="text-right w-[100px]">操作</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredTasks.map((task) => {
+                const taskDisplayId = getTaskDisplayId(task);
+                const dealDisplayId = getDealDisplayId(task);
+                const contractDisplayId = getContractDisplayId(task);
+                return (
+                  <TableRow
+                    key={task.id}
+                    className={cn(
+                      "cursor-pointer hover:bg-blue-50 transition-colors",
+                      task.status === "完了" && "opacity-60 bg-gray-50"
+                    )}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={task.status === "完了"}
+                        onCheckedChange={() => {
+                          const e = { stopPropagation: () => { } } as React.MouseEvent;
+                          handleStatusToggle(task, e);
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono text-sm font-medium text-blue-600">
+                      {taskDisplayId}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "font-medium",
+                        task.status === "完了" && "line-through"
+                      )}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          {task.status !== "完了" &&
+                            task.due_date &&
+                            isPast(new Date(task.due_date)) &&
+                            !isToday(new Date(task.due_date)) && (
+                              <AlertCircle className="h-4 w-4 text-red-500" />
+                            )}
+                          {task.title}
+                        </div>
+                        {task.description && (
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                            {task.description}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {task.contract?.phase ? (
+                        <Badge
+                          variant="outline"
+                          className={cn("border", phaseColors[task.contract.phase])}
+                        >
+                          {CONTRACT_PHASE_LABELS[task.contract.phase as keyof typeof CONTRACT_PHASE_LABELS]}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {task.contract?.status ? (
+                        <Badge
+                          variant="outline"
+                          className={cn("border", contractStatusColors[task.contract.status])}
+                        >
+                          {CONTRACT_STATUS_LABELS[task.contract.status]}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-700">
+                      {task.deal?.customer?.company_name || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {task.deal ? (
+                        <Link
+                          href={`/deals/${task.deal.id}`}
+                          className="flex items-center gap-1 text-primary hover:underline text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="font-mono text-xs text-gray-500">{dealDisplayId}</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {task.contract ? (
+                        <Link
+                          href={`/contracts/${task.contract.id}`}
+                          className="flex items-center gap-1 text-primary hover:underline text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="font-mono text-xs text-gray-500">{contractDisplayId}</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {task.company ? (
+                        <div className="flex items-center gap-1.5 text-gray-600">
+                          <Building2 className="h-3.5 w-3.5" />
+                          <span className="text-sm">{task.company}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-gray-600 text-sm">
+                      {task.assigned_user?.name || "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn("border", priorityColors[task.priority])}
+                      >
+                        {TASK_PRIORITY_LABELS[task.priority]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn("border", statusColors[task.status])}
+                      >
+                        {TASK_STATUS_LABELS[task.status]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell
+                      className={getDueDateStyle(task.due_date, task.status)}
+                    >
+                      {task.due_date
+                        ? format(new Date(task.due_date), "yyyy/MM/dd", { locale: ja })
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div
+                        className="flex justify-end space-x-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <TaskDialog
+                          task={task}
+                          users={users}
+                          deals={deals}
+                          currentUserId={currentUserId}
+                          trigger={
+                            <Button variant="ghost" size="sm">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleDelete(task.id, e)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
         {filteredTasks.length === 0 && (
           <div className="p-8 text-center text-gray-500">
             条件に一致するタスクがありません

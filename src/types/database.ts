@@ -84,6 +84,7 @@ export type Database = {
           email: string | null;
           address: string | null;
           business_type: "corporation" | "sole_proprietor" | "new_corporation";
+          customer_number: number;
           created_at: string;
           updated_at: string;
         };
@@ -95,6 +96,7 @@ export type Database = {
           email?: string | null;
           address?: string | null;
           business_type: "corporation" | "sole_proprietor" | "new_corporation";
+          customer_number?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -106,6 +108,7 @@ export type Database = {
           email?: string | null;
           address?: string | null;
           business_type?: "corporation" | "sole_proprietor" | "new_corporation";
+          customer_number?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -121,6 +124,7 @@ export type Database = {
           status: "active" | "won" | "lost" | "pending";
           description: string | null;
           total_amount: number | null;
+          deal_number: number;
           created_at: string;
           updated_at: string;
         };
@@ -132,6 +136,7 @@ export type Database = {
           status?: "active" | "won" | "lost" | "pending";
           description?: string | null;
           total_amount?: number | null;
+          deal_number?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -143,6 +148,7 @@ export type Database = {
           status?: "active" | "won" | "lost" | "pending";
           description?: string | null;
           total_amount?: number | null;
+          deal_number?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -180,6 +186,7 @@ export type Database = {
           start_date: string | null;
           end_date: string | null;
           notes: string | null;
+          contract_number: number;
           created_at: string;
           updated_at: string;
         };
@@ -198,6 +205,7 @@ export type Database = {
           start_date?: string | null;
           end_date?: string | null;
           notes?: string | null;
+          contract_number?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -216,6 +224,7 @@ export type Database = {
           start_date?: string | null;
           end_date?: string | null;
           notes?: string | null;
+          contract_number?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -381,6 +390,7 @@ export type Database = {
           status: TaskStatusType;
           priority: "high" | "medium" | "low";
           company: string | null;
+          task_number: number;
           created_at: string;
           updated_at: string;
         };
@@ -395,6 +405,7 @@ export type Database = {
           status?: TaskStatusType;
           priority?: "high" | "medium" | "low";
           company?: string | null;
+          task_number?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -409,6 +420,7 @@ export type Database = {
           status?: TaskStatusType;
           priority?: "high" | "medium" | "low";
           company?: string | null;
+          task_number?: number;
           created_at?: string;
           updated_at?: string;
         };

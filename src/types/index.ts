@@ -20,6 +20,7 @@ export type Customer = {
   email: string | null;
   address: string | null;
   business_type: "corporation" | "sole_proprietor" | "new_corporation";
+  customer_number?: number;
   created_at: string;
   updated_at: string;
 };
@@ -43,6 +44,7 @@ export type Deal = {
   status: DealStatus;
   description: string | null;
   total_amount: number | null;
+  deal_number?: number;
   created_at: string;
   updated_at: string;
   // Relations
@@ -104,6 +106,7 @@ export type Contract = {
   start_date: string | null;
   end_date: string | null;
   notes: string | null;
+  contract_number?: number;
   created_at: string;
   updated_at: string;
   // Relations
@@ -193,17 +196,20 @@ export type Task = {
   status: TaskStatus;
   priority: "high" | "medium" | "low";
   company: string | null;
+  task_number?: number;
   created_at: string;
   updated_at: string;
   // Relations
   deal?: {
     id: string;
     title: string;
-    customer?: { company_name: string };
+    deal_number?: number;
+    customer?: { company_name: string; customer_number?: number };
   } | null;
   contract?: {
     id: string;
     title: string;
+    contract_number?: number;
     phase?: ContractPhase;
     status?: ContractStatus;
   } | null;

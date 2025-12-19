@@ -11,9 +11,9 @@ export default async function DealsPage() {
     .from("deals")
     .select(`
       *,
-      customer:customers(*),
+      customer:customers(*, customer_number),
       assigned_user:users(*),
-      contracts(id, title, phase, status)
+      contracts(id, title, phase, status, product_category, contract_number)
     `)
     .order("created_at", { ascending: false });
 

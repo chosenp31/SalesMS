@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   FileText,
+  FileSignature,
   ClipboardList,
   CreditCard,
   LogOut,
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 
 const navigation = [
   { name: "案件管理", href: "/deals", icon: FileText },
+  { name: "契約管理", href: "/contracts", icon: FileSignature },
   { name: "顧客管理", href: "/customers", icon: Users },
   { name: "タスク", href: "/tasks", icon: ClipboardList },
   { name: "入金管理", href: "/payments", icon: CreditCard },

@@ -27,7 +27,7 @@ import { useRouter } from "next/navigation";
 import { Eye, Pencil, FileText, Search, X } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, formatDealId } from "@/lib/utils";
 
 interface DealListProps {
   deals: Deal[];
@@ -66,14 +66,24 @@ const statusColors: Record<string, string> = {
   クローズ: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
-type SortField = "title" | "customer" | "phase" | "status" | "contracts" | "total_amount" | "created_at" | "assigned_user";
+type SortField = "deal_id" | "customer" | "product" | "phase" | "status" | "contracts" | "assigned_user" | "created_at";
 type SortDirection = "asc" | "desc";
 
 // 契約からフェーズとステータスを取得するヘルパー
-const getPrimaryContractInfo = (contracts?: { id: string; title: string; phase?: string; status?: string }[]) => {
-  if (!contracts || contracts.length === 0) return { phase: null, status: null };
+const getPrimaryContractInfo = (contracts?: { id: string; title: string; phase?: string; status?: string; product_category?: string }[]) => {
+  if (!contracts || contracts.length === 0) return { phase: null, status: null, product: null };
   const primary = contracts[0];
-  return { phase: primary.phase || null, status: primary.status || null };
+  return {
+    phase: primary.phase || null,
+    status: primary.status || null,
+    product: primary.product_category || null
+  };
+};
+
+// 商材一覧を取得するヘルパー
+const getProductCategories = (contracts?: { product_category?: string | null }[]): string[] => {
+  if (!contracts || contracts.length === 0) return [];
+  return [...new Set(contracts.map(c => c.product_category).filter((p): p is string => !!p))];
 };
 
 export function DealList({ deals }: DealListProps) {
@@ -110,6 +120,12 @@ export function DealList({ deals }: DealListProps) {
   const handleClearAll = () => {
     setSearchValue("");
     setColumnFilters({});
+  };
+
+  // Handle contract count click - navigate to contracts page with deal filter
+  const handleContractCountClick = (e: React.MouseEvent, dealId: string) => {
+    e.stopPropagation();
+    router.push(`/contracts?deal_id=${dealId}`);
   };
 
   // Generate filter options from data
@@ -162,7 +178,8 @@ export function DealList({ deals }: DealListProps) {
         (deal) =>
           deal.title.toLowerCase().includes(lowerSearch) ||
           deal.customer?.company_name?.toLowerCase().includes(lowerSearch) ||
-          deal.assigned_user?.name?.toLowerCase().includes(lowerSearch)
+          deal.assigned_user?.name?.toLowerCase().includes(lowerSearch) ||
+          formatDealId(deal.customer?.customer_number, deal.deal_number).toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -172,8 +189,8 @@ export function DealList({ deals }: DealListProps) {
         const lowerSearch = filter.searchText.toLowerCase();
         result = result.filter((deal) => {
           switch (column) {
-            case "title":
-              return deal.title.toLowerCase().includes(lowerSearch);
+            case "deal_id":
+              return formatDealId(deal.customer?.customer_number, deal.deal_number).toLowerCase().includes(lowerSearch);
             case "customer":
               return deal.customer?.company_name?.toLowerCase().includes(lowerSearch);
             case "assigned_user":
@@ -208,13 +225,18 @@ export function DealList({ deals }: DealListProps) {
       const aContract = getPrimaryContractInfo(a.contracts);
       const bContract = getPrimaryContractInfo(b.contracts);
       switch (sortField) {
-        case "title":
-          comparison = a.title.localeCompare(b.title);
+        case "deal_id":
+          const aId = formatDealId(a.customer?.customer_number, a.deal_number);
+          const bId = formatDealId(b.customer?.customer_number, b.deal_number);
+          comparison = aId.localeCompare(bId);
           break;
         case "customer":
           comparison = (a.customer?.company_name || "").localeCompare(
             b.customer?.company_name || ""
           );
+          break;
+        case "product":
+          comparison = (aContract.product || "").localeCompare(bContract.product || "");
           break;
         case "phase":
           comparison = (aContract.phase || "").localeCompare(bContract.phase || "");
@@ -224,9 +246,6 @@ export function DealList({ deals }: DealListProps) {
           break;
         case "contracts":
           comparison = (a.contracts?.length || 0) - (b.contracts?.length || 0);
-          break;
-        case "total_amount":
-          comparison = (a.total_amount || 0) - (b.total_amount || 0);
           break;
         case "assigned_user":
           comparison = (a.assigned_user?.name || "").localeCompare(
@@ -243,20 +262,12 @@ export function DealList({ deals }: DealListProps) {
     return result;
   }, [deals, searchValue, columnFilters, sortField, sortDirection]);
 
-  const formatAmount = (amount: number | null) => {
-    if (!amount) return "-";
-    return new Intl.NumberFormat("ja-JP", {
-      style: "currency",
-      currency: "JPY",
-    }).format(amount);
-  };
-
   const hasActiveFilters = searchValue.length > 0 || Object.keys(columnFilters).length > 0;
 
   if (deals.length === 0) {
     return (
       <div className="bg-white rounded-lg border p-8 text-center">
-        <p className="text-gray-500">商談がまだ登録されていません</p>
+        <p className="text-gray-500">案件がまだ登録されていません</p>
       </div>
     );
   }
@@ -269,7 +280,7 @@ export function DealList({ deals }: DealListProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="案件名、顧客名、担当者で検索..."
+            placeholder="案件ID、顧客名、主担当者で検索..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             className="pl-10 pr-10 h-10 bg-white"
@@ -305,22 +316,22 @@ export function DealList({ deals }: DealListProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="w-[200px]">
+              <TableHead className="w-[120px]">
                 <ColumnFilterHeader
-                  column="title"
-                  label="案件名"
+                  column="deal_id"
+                  label="案件ID"
                   sortField={sortField}
                   sortDirection={sortDirection}
-                  onSort={() => handleSort("title")}
+                  onSort={() => handleSort("deal_id")}
                   searchable
-                  activeFilter={columnFilters["title"]}
-                  onFilterChange={(f) => handleColumnFilterChange("title", f)}
+                  activeFilter={columnFilters["deal_id"]}
+                  onFilterChange={(f) => handleColumnFilterChange("deal_id", f)}
                 />
               </TableHead>
               <TableHead>
                 <ColumnFilterHeader
                   column="customer"
-                  label="顧客"
+                  label="顧客名"
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={() => handleSort("customer")}
@@ -332,8 +343,30 @@ export function DealList({ deals }: DealListProps) {
               </TableHead>
               <TableHead>
                 <ColumnFilterHeader
+                  column="product"
+                  label="商材"
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("product")}
+                  sortable
+                  filterable={false}
+                />
+              </TableHead>
+              <TableHead>
+                <ColumnFilterHeader
+                  column="contracts"
+                  label="契約数"
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("contracts")}
+                  sortable
+                  filterable={false}
+                />
+              </TableHead>
+              <TableHead>
+                <ColumnFilterHeader
                   column="phase"
-                  label="ステータス大分類"
+                  label="大分類"
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={() => handleSort("phase")}
@@ -346,7 +379,7 @@ export function DealList({ deals }: DealListProps) {
               <TableHead>
                 <ColumnFilterHeader
                   column="status"
-                  label="ステータス小分類"
+                  label="小分類"
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={() => handleSort("status")}
@@ -358,31 +391,8 @@ export function DealList({ deals }: DealListProps) {
               </TableHead>
               <TableHead>
                 <ColumnFilterHeader
-                  column="contracts"
-                  label="契約"
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                  onSort={() => handleSort("contracts")}
-                  sortable
-                  filterable={false}
-                />
-              </TableHead>
-              <TableHead>
-                <ColumnFilterHeader
-                  column="total_amount"
-                  label="合計金額"
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                  onSort={() => handleSort("total_amount")}
-                  sortable
-                  filterable={false}
-                  align="right"
-                />
-              </TableHead>
-              <TableHead>
-                <ColumnFilterHeader
                   column="assigned_user"
-                  label="担当者"
+                  label="主担当者"
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={() => handleSort("assigned_user")}
@@ -409,21 +419,54 @@ export function DealList({ deals }: DealListProps) {
           <TableBody>
             {filteredDeals.map((deal) => {
               const contractInfo = getPrimaryContractInfo(deal.contracts);
+              const products = getProductCategories(deal.contracts);
+              const dealDisplayId = formatDealId(deal.customer?.customer_number, deal.deal_number);
               return (
               <TableRow
                 key={deal.id}
                 className="cursor-pointer hover:bg-blue-50 transition-colors"
                 onClick={() => router.push(`/deals/${deal.id}`)}
               >
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    {deal.title}
-                  </div>
+                <TableCell className="font-mono text-sm font-medium text-blue-600">
+                  {dealDisplayId}
                 </TableCell>
                 <TableCell>
                   <span className="text-gray-700">
                     {deal.customer?.company_name || "-"}
                   </span>
+                </TableCell>
+                <TableCell>
+                  {products.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {products.slice(0, 2).map((product, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {product}
+                        </Badge>
+                      ))}
+                      {products.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{products.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {deal.contracts && deal.contracts.length > 0 ? (
+                    <button
+                      className="flex items-center gap-1.5 hover:bg-blue-100 rounded px-2 py-1 transition-colors"
+                      onClick={(e) => handleContractCountClick(e, deal.id)}
+                    >
+                      <FileText className="h-4 w-4 text-blue-500" />
+                      <Badge variant="secondary" className="font-medium bg-blue-100 text-blue-700 hover:bg-blue-200">
+                        {deal.contracts.length}件
+                      </Badge>
+                    </button>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {contractInfo.phase ? (
@@ -448,21 +491,6 @@ export function DealList({ deals }: DealListProps) {
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}
-                </TableCell>
-                <TableCell>
-                  {deal.contracts && deal.contracts.length > 0 ? (
-                    <div className="flex items-center gap-1.5">
-                      <FileText className="h-4 w-4 text-gray-400" />
-                      <Badge variant="secondary" className="font-normal">
-                        {deal.contracts.length}件
-                      </Badge>
-                    </div>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatAmount(deal.total_amount)}
                 </TableCell>
                 <TableCell className="text-gray-600">
                   {deal.assigned_user?.name || "-"}
