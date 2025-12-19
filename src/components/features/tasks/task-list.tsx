@@ -2,7 +2,12 @@
 
 import { useState, useMemo } from "react";
 import { Task, User, DealOption, TaskStatus } from "@/types";
-import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from "@/constants";
+import {
+  TASK_STATUS_LABELS,
+  TASK_PRIORITY_LABELS,
+  CONTRACT_PHASE_LABELS,
+  CONTRACT_STATUS_LABELS,
+} from "@/constants";
 import {
   Table,
   TableBody,
@@ -41,13 +46,46 @@ const priorityColors = {
   low: "bg-green-100 text-green-800 border-green-200",
 };
 
+const phaseColors: Record<string, string> = {
+  商談中: "bg-blue-100 text-blue-800 border-blue-200",
+  審査中: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  工事中: "bg-purple-100 text-purple-800 border-purple-200",
+  入金中: "bg-green-100 text-green-800 border-green-200",
+  失注: "bg-red-100 text-red-800 border-red-200",
+  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
+};
+
+const contractStatusColors: Record<string, string> = {
+  // 商談中
+  日程調整中: "bg-blue-50 text-blue-700 border-blue-200",
+  MTG実施待ち: "bg-blue-50 text-blue-700 border-blue-200",
+  見積提出: "bg-blue-50 text-blue-700 border-blue-200",
+  受注確定: "bg-blue-100 text-blue-800 border-blue-200",
+  // 審査中
+  書類準備中: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  審査結果待ち: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  可決: "bg-green-100 text-green-800 border-green-200",
+  否決: "bg-red-100 text-red-800 border-red-200",
+  // 工事中
+  下見日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
+  下見実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
+  工事日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
+  工事実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
+  // 入金中
+  入金待ち: "bg-green-50 text-green-700 border-green-200",
+  入金済: "bg-green-100 text-green-800 border-green-200",
+  // 終了
+  失注: "bg-red-100 text-red-800 border-red-200",
+  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
+};
+
 const statusColors: Record<TaskStatus, string> = {
   未着手: "bg-gray-100 text-gray-800 border-gray-200",
   進行中: "bg-blue-100 text-blue-800 border-blue-200",
   完了: "bg-green-100 text-green-800 border-green-200",
 };
 
-type SortField = "title" | "deal" | "priority" | "status" | "assigned_user" | "due_date" | "company";
+type SortField = "title" | "deal" | "phase" | "contractStatus" | "priority" | "status" | "assigned_user" | "due_date" | "company";
 type SortDirection = "asc" | "desc";
 
 export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) {
@@ -193,6 +231,12 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
         case "deal":
           comparison = (a.deal?.title || "").localeCompare(b.deal?.title || "");
           break;
+        case "phase":
+          comparison = (a.contract?.phase || "").localeCompare(b.contract?.phase || "");
+          break;
+        case "contractStatus":
+          comparison = (a.contract?.status || "").localeCompare(b.contract?.status || "");
+          break;
         case "priority":
           comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
           break;
@@ -328,23 +372,29 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-12"></TableHead>
-              <TableHead className="w-[200px]">
+              <TableHead className="w-[180px]">
                 <SortHeader field="title">タスク名</SortHeader>
               </TableHead>
               <TableHead>
                 <SortHeader field="deal">関連案件</SortHeader>
               </TableHead>
               <TableHead>
+                <SortHeader field="phase">案件ステータス大分類</SortHeader>
+              </TableHead>
+              <TableHead>
+                <SortHeader field="contractStatus">案件ステータス小分類</SortHeader>
+              </TableHead>
+              <TableHead>
                 <SortHeader field="company">担当会社</SortHeader>
+              </TableHead>
+              <TableHead>
+                <SortHeader field="assigned_user">担当者</SortHeader>
               </TableHead>
               <TableHead>
                 <SortHeader field="priority">優先度</SortHeader>
               </TableHead>
               <TableHead>
-                <SortHeader field="status">ステータス</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="assigned_user">担当者</SortHeader>
+                <SortHeader field="status">タスクステータス</SortHeader>
               </TableHead>
               <TableHead>
                 <SortHeader field="due_date">期限</SortHeader>
@@ -407,6 +457,30 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
                   )}
                 </TableCell>
                 <TableCell>
+                  {task.contract?.phase ? (
+                    <Badge
+                      variant="outline"
+                      className={cn("border", phaseColors[task.contract.phase])}
+                    >
+                      {CONTRACT_PHASE_LABELS[task.contract.phase as keyof typeof CONTRACT_PHASE_LABELS]}
+                    </Badge>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {task.contract?.status ? (
+                    <Badge
+                      variant="outline"
+                      className={cn("border", contractStatusColors[task.contract.status])}
+                    >
+                      {CONTRACT_STATUS_LABELS[task.contract.status]}
+                    </Badge>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </TableCell>
+                <TableCell>
                   {task.company ? (
                     <div className="flex items-center gap-1.5 text-gray-600">
                       <Building2 className="h-3.5 w-3.5" />
@@ -415,6 +489,9 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}
+                </TableCell>
+                <TableCell className="text-gray-600">
+                  {task.assigned_user?.name || "-"}
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -431,9 +508,6 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
                   >
                     {TASK_STATUS_LABELS[task.status]}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-gray-600">
-                  {task.assigned_user?.name || "-"}
                 </TableCell>
                 <TableCell
                   className={getDueDateStyle(task.due_date, task.status)}

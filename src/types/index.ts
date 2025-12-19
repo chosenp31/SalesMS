@@ -24,6 +24,16 @@ export type Customer = {
   updated_at: string;
 };
 
+// 商談内の契約（一覧表示用）
+export type DealContract = {
+  id: string;
+  title: string;
+  contract_type?: "lease" | "rental" | "installment";
+  phase?: string;
+  status?: string;
+  monthly_amount?: number | null;
+};
+
 // 商談（顧客への提案全体）
 export type Deal = {
   id: string;
@@ -38,7 +48,7 @@ export type Deal = {
   // Relations
   customer?: Customer;
   assigned_user?: User;
-  contracts?: Contract[];
+  contracts?: DealContract[];
   activities?: Activity[];
 };
 
@@ -194,6 +204,8 @@ export type Task = {
   contract?: {
     id: string;
     title: string;
+    phase?: ContractPhase;
+    status?: ContractStatus;
   } | null;
   assigned_user?: User;
 };

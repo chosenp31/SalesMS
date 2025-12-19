@@ -166,15 +166,15 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
                           {contract.title}
                         </TableCell>
                         <TableCell>
-                          {CONTRACT_TYPE_LABELS[contract.contract_type]}
+                          {contract.contract_type ? CONTRACT_TYPE_LABELS[contract.contract_type] : "-"}
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">
-                            {CONTRACT_STATUS_LABELS[contract.status] || contract.status}
+                            {contract.status ? (CONTRACT_STATUS_LABELS[contract.status] || contract.status) : "-"}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {formatAmount(contract.monthly_amount)}
+                          {formatAmount(contract.monthly_amount ?? null)}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" asChild>
