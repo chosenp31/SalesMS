@@ -1,12 +1,7 @@
 "use client";
 
 import { Deal } from "@/types";
-import {
-  DEAL_STATUS_LABELS,
-  CONTRACT_TYPE_LABELS,
-  STATUS_TO_PHASE,
-  DEAL_PHASE_LABELS,
-} from "@/constants";
+import { DEAL_STATUS_LABELS } from "@/constants";
 import {
   Table,
   TableBody,
@@ -27,18 +22,18 @@ interface DealListProps {
   deals: Deal[];
 }
 
-const phaseColors: Record<string, string> = {
-  sales: "bg-blue-100 text-blue-800",
-  contract: "bg-yellow-100 text-yellow-800",
-  installation: "bg-purple-100 text-purple-800",
-  completion: "bg-green-100 text-green-800",
+const statusColors: Record<string, string> = {
+  active: "bg-blue-100 text-blue-800",
+  won: "bg-green-100 text-green-800",
+  lost: "bg-red-100 text-red-800",
+  pending: "bg-yellow-100 text-yellow-800",
 };
 
 export function DealList({ deals }: DealListProps) {
   if (deals.length === 0) {
     return (
       <div className="bg-white rounded-lg border p-8 text-center">
-        <p className="text-gray-500">案件がまだ登録されていません</p>
+        <p className="text-gray-500">商談がまだ登録されていません</p>
       </div>
     );
   }
@@ -56,64 +51,53 @@ export function DealList({ deals }: DealListProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>案件名</TableHead>
+            <TableHead>商談名</TableHead>
             <TableHead>顧客</TableHead>
-            <TableHead>フェーズ</TableHead>
             <TableHead>ステータス</TableHead>
-            <TableHead>契約種別</TableHead>
-            <TableHead>見込金額</TableHead>
+            <TableHead>契約数</TableHead>
+            <TableHead>合計金額</TableHead>
             <TableHead>担当者</TableHead>
             <TableHead>作成日</TableHead>
             <TableHead className="text-right">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {deals.map((deal) => {
-            const phase = STATUS_TO_PHASE[deal.status];
-            return (
-              <TableRow key={deal.id}>
-                <TableCell className="font-medium">{deal.title}</TableCell>
-                <TableCell>{deal.customer?.company_name || "-"}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant="secondary"
-                    className={cn(phase && phaseColors[phase])}
-                  >
-                    {phase ? DEAL_PHASE_LABELS[phase] : "-"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge>
-                    {DEAL_STATUS_LABELS[deal.status] || deal.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {CONTRACT_TYPE_LABELS[deal.contract_type]}
-                </TableCell>
-                <TableCell>{formatAmount(deal.estimated_amount)}</TableCell>
-                <TableCell>{deal.assigned_user?.name || "-"}</TableCell>
-                <TableCell>
-                  {format(new Date(deal.created_at), "yyyy/MM/dd", {
-                    locale: ja,
-                  })}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/deals/${deal.id}`}>
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/deals/${deal.id}/edit`}>
-                        <Pencil className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {deals.map((deal) => (
+            <TableRow key={deal.id}>
+              <TableCell className="font-medium">{deal.title}</TableCell>
+              <TableCell>{deal.customer?.company_name || "-"}</TableCell>
+              <TableCell>
+                <Badge
+                  variant="secondary"
+                  className={cn(statusColors[deal.status])}
+                >
+                  {DEAL_STATUS_LABELS[deal.status] || deal.status}
+                </Badge>
+              </TableCell>
+              <TableCell>{deal.contracts?.length || 0}件</TableCell>
+              <TableCell>{formatAmount(deal.total_amount)}</TableCell>
+              <TableCell>{deal.assigned_user?.name || "-"}</TableCell>
+              <TableCell>
+                {format(new Date(deal.created_at), "yyyy/MM/dd", {
+                  locale: ja,
+                })}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end space-x-2">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/deals/${deal.id}`}>
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/deals/${deal.id}/edit`}>
+                      <Pencil className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>

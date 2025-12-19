@@ -10,17 +10,20 @@ import {
   BUSINESS_TYPE_LABELS,
   CONTRACT_TYPE_LABELS,
   DEAL_STATUS_LABELS,
-  DEAL_PHASE_LABELS,
+  CONTRACT_STATUS_LABELS,
+  CONTRACT_PHASE_LABELS,
   STATUS_TO_PHASE,
   PHASE_STATUSES,
   ACTIVITY_TYPE_LABELS,
   LEASE_APPLICATION_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
+  PAYMENT_TYPE_LABELS,
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
   USER_ROLE_LABELS,
   LEASE_COMPANIES,
   PRODUCT_CATEGORIES,
+  CONTRACT_MONTHS_OPTIONS,
 } from '@/constants';
 
 describe('定数テスト', () => {
@@ -38,7 +41,7 @@ describe('定数テスト', () => {
   });
 
   describe('CONTRACT_TYPE_LABELS（契約種別ラベル）', () => {
-    // なぜ必要：案件登録時に正しい契約種別が選択できることを保証
+    // なぜ必要：契約登録時に正しい契約種別が選択できることを保証
     it('すべての契約種別に日本語ラベルが定義されている', () => {
       expect(CONTRACT_TYPE_LABELS.lease).toBe('リース');
       expect(CONTRACT_TYPE_LABELS.rental).toBe('レンタル');
@@ -50,54 +53,66 @@ describe('定数テスト', () => {
     });
   });
 
-  describe('DEAL_STATUS_LABELS（案件ステータスラベル）', () => {
-    // なぜ必要：ワークフロー画面で正しいステータス名が表示されることを保証
-    it('営業フェーズのステータスに日本語ラベルが定義されている', () => {
-      expect(DEAL_STATUS_LABELS.appointment_acquired).toBe('アポ獲得');
-      expect(DEAL_STATUS_LABELS.in_negotiation).toBe('商談中');
-      expect(DEAL_STATUS_LABELS.quote_submitted).toBe('見積提出');
-      expect(DEAL_STATUS_LABELS.deal_won).toBe('商談成立');
-      expect(DEAL_STATUS_LABELS.deal_lost).toBe('失注');
+  describe('DEAL_STATUS_LABELS（商談ステータスラベル）', () => {
+    // なぜ必要：商談の状態表示に使用
+    it('すべての商談ステータスに日本語ラベルが定義されている', () => {
+      expect(DEAL_STATUS_LABELS.active).toBe('進行中');
+      expect(DEAL_STATUS_LABELS.won).toBe('成約');
+      expect(DEAL_STATUS_LABELS.lost).toBe('失注');
+      expect(DEAL_STATUS_LABELS.pending).toBe('保留');
     });
 
-    it('契約フェーズのステータスに日本語ラベルが定義されている', () => {
-      expect(DEAL_STATUS_LABELS.contract_type_selection).toBe('契約種別選択');
-      expect(DEAL_STATUS_LABELS.document_collection).toBe('書類収集中');
-      expect(DEAL_STATUS_LABELS.review_requested).toBe('審査依頼中');
-      expect(DEAL_STATUS_LABELS.review_pending).toBe('審査待ち');
-      expect(DEAL_STATUS_LABELS.review_approved).toBe('可決');
-      expect(DEAL_STATUS_LABELS.review_rejected).toBe('否決');
-    });
-
-    it('工事フェーズのステータスに日本語ラベルが定義されている', () => {
-      expect(DEAL_STATUS_LABELS.survey_scheduling).toBe('下見調整中');
-      expect(DEAL_STATUS_LABELS.survey_completed).toBe('下見完了');
-      expect(DEAL_STATUS_LABELS.installation_scheduling).toBe('工事調整中');
-      expect(DEAL_STATUS_LABELS.installation_completed).toBe('工事完了');
-    });
-
-    it('完了フェーズのステータスに日本語ラベルが定義されている', () => {
-      expect(DEAL_STATUS_LABELS.delivery_completed).toBe('納品完了');
-      expect(DEAL_STATUS_LABELS.payment_pending).toBe('入金待ち');
-      expect(DEAL_STATUS_LABELS.completed).toBe('完了');
-    });
-
-    it('全18種類のステータスが定義されている', () => {
-      expect(Object.keys(DEAL_STATUS_LABELS)).toHaveLength(18);
+    it('定義されている商談ステータスは4種類である', () => {
+      expect(Object.keys(DEAL_STATUS_LABELS)).toHaveLength(4);
     });
   });
 
-  describe('DEAL_PHASE_LABELS（案件フェーズラベル）', () => {
+  describe('CONTRACT_STATUS_LABELS（契約ステータスラベル）', () => {
+    // なぜ必要：ワークフロー画面で正しいステータス名が表示されることを保証
+    it('営業フェーズのステータスに日本語ラベルが定義されている', () => {
+      expect(CONTRACT_STATUS_LABELS.negotiating).toBe('商談中');
+      expect(CONTRACT_STATUS_LABELS.quote_submitted).toBe('見積提出');
+      expect(CONTRACT_STATUS_LABELS.accepted).toBe('受注確定');
+      expect(CONTRACT_STATUS_LABELS.rejected).toBe('失注');
+    });
+
+    it('契約フェーズのステータスに日本語ラベルが定義されている', () => {
+      expect(CONTRACT_STATUS_LABELS.document_collection).toBe('書類収集中');
+      expect(CONTRACT_STATUS_LABELS.review_requested).toBe('審査依頼中');
+      expect(CONTRACT_STATUS_LABELS.review_pending).toBe('審査待ち');
+      expect(CONTRACT_STATUS_LABELS.review_approved).toBe('可決');
+      expect(CONTRACT_STATUS_LABELS.review_rejected).toBe('否決');
+    });
+
+    it('工事フェーズのステータスに日本語ラベルが定義されている', () => {
+      expect(CONTRACT_STATUS_LABELS.survey_scheduling).toBe('下見調整中');
+      expect(CONTRACT_STATUS_LABELS.survey_completed).toBe('下見完了');
+      expect(CONTRACT_STATUS_LABELS.installation_scheduling).toBe('工事調整中');
+      expect(CONTRACT_STATUS_LABELS.installation_completed).toBe('工事完了');
+    });
+
+    it('完了フェーズのステータスに日本語ラベルが定義されている', () => {
+      expect(CONTRACT_STATUS_LABELS.delivered).toBe('納品完了');
+      expect(CONTRACT_STATUS_LABELS.payment_pending).toBe('入金待ち');
+      expect(CONTRACT_STATUS_LABELS.completed).toBe('完了');
+    });
+
+    it('全16種類のステータスが定義されている', () => {
+      expect(Object.keys(CONTRACT_STATUS_LABELS)).toHaveLength(16);
+    });
+  });
+
+  describe('CONTRACT_PHASE_LABELS（契約フェーズラベル）', () => {
     // なぜ必要：ワークフロー進行状況の表示に使用
     it('すべてのフェーズに日本語ラベルが定義されている', () => {
-      expect(DEAL_PHASE_LABELS.sales).toBe('営業フェーズ');
-      expect(DEAL_PHASE_LABELS.contract).toBe('契約フェーズ');
-      expect(DEAL_PHASE_LABELS.installation).toBe('工事フェーズ');
-      expect(DEAL_PHASE_LABELS.completion).toBe('完了フェーズ');
+      expect(CONTRACT_PHASE_LABELS.sales).toBe('営業フェーズ');
+      expect(CONTRACT_PHASE_LABELS.contract).toBe('契約フェーズ');
+      expect(CONTRACT_PHASE_LABELS.installation).toBe('工事フェーズ');
+      expect(CONTRACT_PHASE_LABELS.completion).toBe('完了フェーズ');
     });
 
     it('定義されているフェーズは4種類である', () => {
-      expect(Object.keys(DEAL_PHASE_LABELS)).toHaveLength(4);
+      expect(Object.keys(CONTRACT_PHASE_LABELS)).toHaveLength(4);
     });
   });
 
@@ -107,11 +122,10 @@ describe('定数テスト', () => {
 
     it('営業フェーズのステータスが正しくマッピングされている', () => {
       const salesStatuses = [
-        'appointment_acquired',
-        'in_negotiation',
+        'negotiating',
         'quote_submitted',
-        'deal_won',
-        'deal_lost',
+        'accepted',
+        'rejected',
       ];
       salesStatuses.forEach((status) => {
         expect(STATUS_TO_PHASE[status]).toBe('sales');
@@ -120,7 +134,6 @@ describe('定数テスト', () => {
 
     it('契約フェーズのステータスが正しくマッピングされている', () => {
       const contractStatuses = [
-        'contract_type_selection',
         'document_collection',
         'review_requested',
         'review_pending',
@@ -146,7 +159,7 @@ describe('定数テスト', () => {
 
     it('完了フェーズのステータスが正しくマッピングされている', () => {
       const completionStatuses = [
-        'delivery_completed',
+        'delivered',
         'payment_pending',
         'completed',
       ];
@@ -155,8 +168,8 @@ describe('定数テスト', () => {
       });
     });
 
-    it('DEAL_STATUS_LABELSの全ステータスがマッピングされている', () => {
-      const statusKeys = Object.keys(DEAL_STATUS_LABELS);
+    it('CONTRACT_STATUS_LABELSの全ステータスがマッピングされている', () => {
+      const statusKeys = Object.keys(CONTRACT_STATUS_LABELS);
       const mappedStatuses = Object.keys(STATUS_TO_PHASE);
 
       statusKeys.forEach((status) => {
@@ -168,14 +181,14 @@ describe('定数テスト', () => {
   describe('PHASE_STATUSES（フェーズ内ステータス一覧）', () => {
     // なぜ必要：各フェーズ内で選択可能なステータスの定義
 
-    it('営業フェーズには5つのステータスが含まれる', () => {
-      expect(PHASE_STATUSES.sales).toHaveLength(5);
-      expect(PHASE_STATUSES.sales).toContain('appointment_acquired');
-      expect(PHASE_STATUSES.sales).toContain('deal_lost');
+    it('営業フェーズには4つのステータスが含まれる', () => {
+      expect(PHASE_STATUSES.sales).toHaveLength(4);
+      expect(PHASE_STATUSES.sales).toContain('negotiating');
+      expect(PHASE_STATUSES.sales).toContain('rejected');
     });
 
-    it('契約フェーズには6つのステータスが含まれる', () => {
-      expect(PHASE_STATUSES.contract).toHaveLength(6);
+    it('契約フェーズには5つのステータスが含まれる', () => {
+      expect(PHASE_STATUSES.contract).toHaveLength(5);
       expect(PHASE_STATUSES.contract).toContain('review_approved');
       expect(PHASE_STATUSES.contract).toContain('review_rejected');
     });
@@ -241,6 +254,20 @@ describe('定数テスト', () => {
     });
   });
 
+  describe('PAYMENT_TYPE_LABELS（入金種別ラベル）', () => {
+    // なぜ必要：入金種別の表示に使用
+    it('すべての入金種別に日本語ラベルが定義されている', () => {
+      expect(PAYMENT_TYPE_LABELS.initial).toBe('初回');
+      expect(PAYMENT_TYPE_LABELS.monthly).toBe('月額');
+      expect(PAYMENT_TYPE_LABELS.final).toBe('最終');
+      expect(PAYMENT_TYPE_LABELS.other).toBe('その他');
+    });
+
+    it('定義されている入金種別は4種類である', () => {
+      expect(Object.keys(PAYMENT_TYPE_LABELS)).toHaveLength(4);
+    });
+  });
+
   describe('TASK_STATUS_LABELS（タスクステータスラベル）', () => {
     // なぜ必要：タスク管理画面のステータス表示に使用
     it('すべてのタスクステータスに日本語ラベルが定義されている', () => {
@@ -295,7 +322,7 @@ describe('定数テスト', () => {
   });
 
   describe('PRODUCT_CATEGORIES（商品カテゴリリスト）', () => {
-    // なぜ必要：案件登録時の商品カテゴリ選択に使用
+    // なぜ必要：契約登録時の商品カテゴリ選択に使用
     it('商品カテゴリリストに必要なカテゴリが含まれている', () => {
       expect(PRODUCT_CATEGORIES).toContain('複合機');
       expect(PRODUCT_CATEGORIES).toContain('ビジネスフォン');
@@ -307,6 +334,21 @@ describe('定数テスト', () => {
 
     it('定義されている商品カテゴリは6種類である', () => {
       expect(PRODUCT_CATEGORIES).toHaveLength(6);
+    });
+  });
+
+  describe('CONTRACT_MONTHS_OPTIONS（契約期間オプション）', () => {
+    // なぜ必要：契約期間選択に使用
+    it('契約期間オプションに必要な選択肢が含まれている', () => {
+      const values = CONTRACT_MONTHS_OPTIONS.map(opt => opt.value);
+      expect(values).toContain(12);
+      expect(values).toContain(36);
+      expect(values).toContain(60);
+      expect(values).toContain(84);
+    });
+
+    it('定義されている契約期間オプションは7種類である', () => {
+      expect(CONTRACT_MONTHS_OPTIONS).toHaveLength(7);
     });
   });
 });

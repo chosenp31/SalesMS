@@ -96,11 +96,11 @@ describe('LeaseApplicationsコンポーネント', () => {
       ['approved', '可決', 'bg-green-100'],
       ['rejected', '否決', 'bg-red-100'],
       ['conditionally_approved', '条件付き可決', 'bg-yellow-100'],
-    ])('ステータス %s は %s と表示される', (status, label, colorClass) => {
+    ] as const)('ステータス %s は %s と表示される', (status, label, colorClass) => {
       const applications = [
         createMockLeaseApplication({
           id: 'app-001',
-          status: status as any,
+          status: status,
         }),
       ];
 

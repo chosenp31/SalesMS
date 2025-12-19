@@ -6,7 +6,7 @@
  * - ステータス切り替え、削除の動作確認
  * - 期限切れの視覚的表示の検証
  */
-import { render, screen, fireEvent, waitFor } from '../../utils/test-utils';
+import { render, screen, waitFor } from '../../utils/test-utils';
 import userEvent from '@testing-library/user-event';
 import { TaskList } from '@/components/features/tasks/task-list';
 import {

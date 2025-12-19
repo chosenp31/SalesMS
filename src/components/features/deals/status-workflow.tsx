@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Deal } from "@/types";
+import { Contract, ContractStatus } from "@/types";
 import {
-  DEAL_STATUS_LABELS,
-  DEAL_PHASE_LABELS,
+  CONTRACT_STATUS_LABELS,
+  CONTRACT_PHASE_LABELS,
   STATUS_TO_PHASE,
   PHASE_STATUSES,
 } from "@/constants";
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { Check, ChevronRight } from "lucide-react";
 
 interface StatusWorkflowProps {
-  deal: Deal;
+  contract: Contract;
 }
 
 const phaseOrder = ["sales", "contract", "installation", "completion"];
@@ -48,20 +48,20 @@ const phaseColors: Record<string, { bg: string; border: string; text: string; ac
   },
 };
 
-export function StatusWorkflow({ deal }: StatusWorkflowProps) {
+export function StatusWorkflow({ contract }: StatusWorkflowProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const currentPhase = STATUS_TO_PHASE[deal.status];
+  const currentPhase = STATUS_TO_PHASE[contract.status];
   const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
 
-  const updateStatus = async (newStatus: string) => {
+  const updateStatus = async (newStatus: ContractStatus) => {
     setLoading(true);
     const supabase = createClient();
 
     const { error } = await supabase
-      .from("deals")
+      .from("contracts")
       .update({ status: newStatus })
-      .eq("id", deal.id);
+      .eq("id", contract.id);
 
     if (error) {
       console.error("Error updating status:", error);
@@ -74,7 +74,7 @@ export function StatusWorkflow({ deal }: StatusWorkflowProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ステータス</CardTitle>
+        <CardTitle>契約ステータス</CardTitle>
       </CardHeader>
       <CardContent>
         {/* Phase Progress */}
@@ -114,7 +114,7 @@ export function StatusWorkflow({ deal }: StatusWorkflowProps) {
                       isCurrent ? colors.text : "text-gray-500"
                     )}
                   >
-                    {DEAL_PHASE_LABELS[phase]}
+                    {CONTRACT_PHASE_LABELS[phase]}
                   </span>
                 </div>
                 {index < phaseOrder.length - 1 && (
@@ -128,23 +128,23 @@ export function StatusWorkflow({ deal }: StatusWorkflowProps) {
         {/* Current Phase Statuses */}
         <div className={cn("p-4 rounded-lg", phaseColors[currentPhase].bg)}>
           <h4 className={cn("text-sm font-medium mb-3", phaseColors[currentPhase].text)}>
-            {DEAL_PHASE_LABELS[currentPhase]}のステータス
+            {CONTRACT_PHASE_LABELS[currentPhase]}のステータス
           </h4>
           <div className="flex flex-wrap gap-2">
             {PHASE_STATUSES[currentPhase].map((status) => {
-              const isCurrentStatus = deal.status === status;
+              const isCurrentStatus = contract.status === status;
               return (
                 <Button
                   key={status}
                   variant={isCurrentStatus ? "default" : "outline"}
                   size="sm"
                   disabled={loading || isCurrentStatus}
-                  onClick={() => updateStatus(status)}
+                  onClick={() => updateStatus(status as ContractStatus)}
                   className={cn(
                     isCurrentStatus && phaseColors[currentPhase].active
                   )}
                 >
-                  {DEAL_STATUS_LABELS[status]}
+                  {CONTRACT_STATUS_LABELS[status]}
                 </Button>
               );
             })}
@@ -163,11 +163,11 @@ export function StatusWorkflow({ deal }: StatusWorkflowProps) {
               disabled={loading}
               onClick={() => {
                 const nextPhase = phaseOrder[currentPhaseIndex + 1];
-                const firstStatus = PHASE_STATUSES[nextPhase][0];
+                const firstStatus = PHASE_STATUSES[nextPhase][0] as ContractStatus;
                 updateStatus(firstStatus);
               }}
             >
-              {DEAL_PHASE_LABELS[phaseOrder[currentPhaseIndex + 1]]}へ進む
+              {CONTRACT_PHASE_LABELS[phaseOrder[currentPhaseIndex + 1]]}へ進む
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

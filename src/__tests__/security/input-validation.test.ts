@@ -6,7 +6,7 @@
  * - バリデーションルールが適切に機能することを確認
  * - データ整合性のセキュリティを検証
  */
-import { createMockCustomer, createMockDeal, createMockTask, createMockPayment } from '../utils/test-utils';
+import { createMockCustomer, createMockDeal, createMockTask } from '../utils/test-utils';
 
 describe('入力バリデーションセキュリティテスト', () => {
   describe('顧客データバリデーション', () => {
@@ -43,11 +43,12 @@ describe('入力バリデーションセキュリティテスト', () => {
       ];
 
       // 電話番号の基本的な形式チェック
+      const phoneRegex = /^[\d-+()\s]+$/;
       invalidPhones.forEach((phone) => {
-        const phoneRegex = /^[\d-+()\s]+$/;
-        if (phone.length < 10) {
-          expect(phone.length).toBeLessThan(10);
-        }
+        const isValidFormat = phoneRegex.test(phone);
+        const isValidLength = phone.length >= 10;
+        // 形式が不正か、長さが不足している場合はエラーとなるべき
+        expect(isValidFormat && isValidLength).toBeFalsy();
       });
     });
   });

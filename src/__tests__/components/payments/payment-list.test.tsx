@@ -6,7 +6,7 @@
  * - 金額計算の正確性確認
  * - 期限切れ表示の動作検証
  */
-import { render, screen, fireEvent, waitFor } from '../../utils/test-utils';
+import { render, screen, waitFor } from '../../utils/test-utils';
 import userEvent from '@testing-library/user-event';
 import { PaymentList } from '@/components/features/payments/payment-list';
 import {
