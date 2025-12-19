@@ -52,6 +52,7 @@ export function DealList({ deals }: DealListProps) {
       key: "status",
       label: "ステータス",
       type: "select",
+      quickFilter: true, // インライン表示
       options: Object.entries(DEAL_STATUS_LABELS).map(([value, label]) => ({
         value,
         label,
@@ -175,19 +176,23 @@ export function DealList({ deals }: DealListProps) {
   }) => (
     <button
       className={cn(
-        "flex items-center gap-1 hover:text-primary transition-colors font-medium",
+        "flex items-center gap-1 font-medium transition-colors group",
+        sortField === field ? "text-primary" : "text-gray-600 hover:text-gray-900",
         className
       )}
       onClick={() => handleSort(field)}
     >
       {children}
-      {sortField === field && (
-        sortDirection === "asc" ? (
+      <span className={cn(
+        "transition-opacity",
+        sortField === field ? "opacity-100" : "opacity-0 group-hover:opacity-50"
+      )}>
+        {sortField === field && sortDirection === "asc" ? (
           <ChevronUp className="h-4 w-4" />
         ) : (
           <ChevronDown className="h-4 w-4" />
-        )
-      )}
+        )}
+      </span>
     </button>
   );
 
@@ -211,6 +216,7 @@ export function DealList({ deals }: DealListProps) {
         onFilterRemove={handleFilterRemove}
         onClearAll={handleClearAll}
         resultCount={filteredDeals.length}
+        totalCount={deals.length}
       />
 
       <div className="bg-white rounded-lg border overflow-hidden">
