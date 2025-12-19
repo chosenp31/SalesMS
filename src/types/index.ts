@@ -45,6 +45,39 @@ export type Deal = {
 // 商談ステータス
 export type DealStatus = "active" | "won" | "lost" | "pending";
 
+// 契約ステータス（小分類）
+export type ContractStatus =
+  // 営業フェーズ（商談中）
+  | "日程調整中"
+  | "MTG実施待ち"
+  | "見積提出"
+  | "受注確定"
+  // 契約フェーズ（審査中）
+  | "書類準備中"
+  | "審査結果待ち"
+  | "可決"
+  | "否決"
+  // 工事フェーズ（工事中）
+  | "下見日程調整中"
+  | "下見実施待ち"
+  | "工事日程調整中"
+  | "工事実施待ち"
+  // 入金フェーズ（入金中）
+  | "入金待ち"
+  | "入金済"
+  // 終了ステータス
+  | "失注"
+  | "クローズ";
+
+// 契約フェーズ（大分類）
+export type ContractPhase =
+  | "商談中"
+  | "審査中"
+  | "工事中"
+  | "入金中"
+  | "失注"
+  | "クローズ";
+
 // 契約（個別の契約明細）
 export type Contract = {
   id: string;
@@ -53,6 +86,7 @@ export type Contract = {
   contract_type: "lease" | "rental" | "installment";
   product_category: string | null;
   lease_company: string | null;
+  phase: ContractPhase;
   status: ContractStatus;
   monthly_amount: number | null;
   total_amount: number | null;
@@ -68,38 +102,20 @@ export type Contract = {
   payments?: Payment[];
 };
 
-// 契約ステータス（ワークフロー）
-export type ContractStatus =
-  // 営業フェーズ
-  | "negotiating"        // 商談中
-  | "quote_submitted"    // 見積提出
-  | "accepted"           // 受注確定
-  | "rejected"           // 失注
-  // 契約フェーズ
-  | "document_collection" // 書類収集中
-  | "review_requested"    // 審査依頼中
-  | "review_pending"      // 審査待ち
-  | "review_approved"     // 可決
-  | "review_rejected"     // 否決
-  // 工事フェーズ
-  | "survey_scheduling"       // 下見調整中
-  | "survey_completed"        // 下見完了
-  | "installation_scheduling" // 工事調整中
-  | "installation_completed"  // 工事完了
-  // 完了フェーズ
-  | "delivered"          // 納品完了
-  | "payment_pending"    // 入金待ち
-  | "completed";         // 完了
-
-// 契約フェーズ
-export type ContractPhase = "sales" | "contract" | "installation" | "completion";
+// リース審査ステータス
+export type LeaseApplicationStatus =
+  | "準備中"
+  | "審査結果待ち"
+  | "可決"
+  | "否決"
+  | "条件付可決";
 
 // リース審査
 export type LeaseApplication = {
   id: string;
   contract_id: string;
   lease_company: string;
-  status: "preparing" | "reviewing" | "approved" | "rejected" | "conditionally_approved";
+  status: LeaseApplicationStatus;
   submitted_at: string | null;
   result_at: string | null;
   conditions: string | null;
@@ -108,6 +124,9 @@ export type LeaseApplication = {
   // Relations
   contract?: Contract;
 };
+
+// 入金ステータス
+export type PaymentStatus = "入金予定" | "入金済";
 
 // 入金
 export type Payment = {
@@ -118,7 +137,7 @@ export type Payment = {
   actual_amount: number | null;
   expected_date: string | null;
   actual_date: string | null;
-  status: "pending" | "paid";
+  status: PaymentStatus;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -149,6 +168,9 @@ export type Activity = {
   user?: User;
 };
 
+// タスクステータス
+export type TaskStatus = "未着手" | "進行中" | "完了";
+
 // タスク
 export type Task = {
   id: string;
@@ -158,8 +180,9 @@ export type Task = {
   title: string;
   description: string | null;
   due_date: string | null;
-  status: "not_started" | "in_progress" | "completed";
+  status: TaskStatus;
   priority: "high" | "medium" | "low";
+  company: string | null;
   created_at: string;
   updated_at: string;
   // Relations

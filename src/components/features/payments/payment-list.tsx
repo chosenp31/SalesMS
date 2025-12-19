@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Payment, ContractOption } from "@/types";
+import { Payment, ContractOption, PaymentStatus } from "@/types";
 import { PAYMENT_STATUS_LABELS, PAYMENT_TYPE_LABELS } from "@/constants";
 import {
   Table,
@@ -40,9 +40,9 @@ interface PaymentListProps {
   contracts: ContractOption[];
 }
 
-const statusColors = {
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  paid: "bg-green-100 text-green-800 border-green-200",
+const statusColors: Record<PaymentStatus, string> = {
+  入金予定: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  入金済: "bg-green-100 text-green-800 border-green-200",
 };
 
 type SortField =
@@ -135,7 +135,7 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
     await supabase
       .from("payments")
       .update({
-        status: "paid",
+        status: "入金済",
         actual_date: new Date().toISOString().split("T")[0],
         actual_amount: payment.expected_amount,
       })
@@ -239,8 +239,8 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
     return result;
   }, [payments, searchValue, activeFilters, sortField, sortDirection]);
 
-  const getDateStyle = (date: string | null, status: string) => {
-    if (!date || status === "paid") return "";
+  const getDateStyle = (date: string | null, status: PaymentStatus) => {
+    if (!date || status === "入金済") return "";
     const d = new Date(date);
     if (isPast(d) && !isToday(d)) return "text-red-600 font-medium";
     if (isToday(d)) return "text-orange-600 font-medium";
@@ -276,14 +276,14 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
   // Calculate totals
   const stats = useMemo(() => {
     const totalExpected = payments
-      .filter((p) => p.status === "pending")
+      .filter((p) => p.status === "入金予定")
       .reduce((sum, p) => sum + (p.expected_amount || 0), 0);
     const totalPaid = payments
-      .filter((p) => p.status === "paid")
+      .filter((p) => p.status === "入金済")
       .reduce((sum, p) => sum + (p.actual_amount || 0), 0);
     const overdue = payments.filter(
       (p) =>
-        p.status === "pending" &&
+        p.status === "入金予定" &&
         p.expected_date &&
         isPast(new Date(p.expected_date)) &&
         !isToday(new Date(p.expected_date))
@@ -389,7 +389,7 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
                 key={payment.id}
                 className={cn(
                   "hover:bg-blue-50 transition-colors",
-                  payment.status === "paid" && "bg-gray-50/50"
+                  payment.status === "入金済" && "bg-gray-50/50"
                 )}
               >
                 <TableCell>
@@ -423,7 +423,7 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {payment.status === "pending" &&
+                    {payment.status === "入金予定" &&
                       payment.expected_date &&
                       isPast(new Date(payment.expected_date)) &&
                       !isToday(new Date(payment.expected_date)) && (
@@ -441,7 +441,7 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
                   {formatAmount(payment.expected_amount)}
                 </TableCell>
                 <TableCell className="text-right font-medium">
-                  {payment.status === "paid" ? (
+                  {payment.status === "入金済" ? (
                     <span className="text-green-600">
                       {formatAmount(payment.actual_amount)}
                     </span>
@@ -471,7 +471,7 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-1">
-                    {payment.status === "pending" && (
+                    {payment.status === "入金予定" && (
                       <Button
                         variant="ghost"
                         size="sm"

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Task, User, DealOption } from "@/types";
-import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from "@/constants";
+import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, TASK_COMPANY_OPTIONS } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,8 +40,9 @@ const taskSchema = z.object({
   deal_id: z.string().optional(),
   assigned_user_id: z.string().min(1, "担当者を選択してください"),
   due_date: z.string().optional(),
-  status: z.enum(["not_started", "in_progress", "completed"]),
+  status: z.enum(["未着手", "進行中", "完了"]),
   priority: z.enum(["high", "medium", "low"]),
+  company: z.string().optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -73,8 +74,9 @@ export function TaskDialog({
       deal_id: task?.deal_id || "",
       assigned_user_id: task?.assigned_user_id || currentUserId,
       due_date: task?.due_date || "",
-      status: task?.status || "not_started",
+      status: task?.status || "未着手",
       priority: task?.priority || "medium",
+      company: task?.company || "自社",
     },
   });
 
@@ -90,6 +92,7 @@ export function TaskDialog({
       due_date: data.due_date || null,
       status: data.status,
       priority: data.priority,
+      company: data.company || null,
     };
 
     if (task) {
@@ -173,6 +176,35 @@ export function TaskDialog({
               />
               <FormField
                 control={form.control}
+                name="company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>担当会社</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="担当会社を選択" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {TASK_COMPANY_OPTIONS.map((company) => (
+                          <SelectItem key={company} value={company}>
+                            {company}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
                 name="due_date"
                 render={({ field }) => (
                   <FormItem>
@@ -184,8 +216,6 @@ export function TaskDialog({
                   </FormItem>
                 )}
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="priority"
@@ -215,6 +245,8 @@ export function TaskDialog({
                   </FormItem>
                 )}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="status"
@@ -244,35 +276,35 @@ export function TaskDialog({
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="deal_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>関連案件</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="案件を選択" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">なし</SelectItem>
+                        {deals.map((deal) => (
+                          <SelectItem key={deal.id} value={deal.id}>
+                            {deal.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-            <FormField
-              control={form.control}
-              name="deal_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>関連案件</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="案件を選択（任意）" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="">なし</SelectItem>
-                      {deals.map((deal) => (
-                        <SelectItem key={deal.id} value={deal.id}>
-                          {deal.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <div className="flex justify-end space-x-2 pt-4">
               <Button
                 type="button"

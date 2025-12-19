@@ -32,76 +32,103 @@ export const CONTRACT_TYPE_LABELS = {
   installment: "割賦",
 } as const;
 
-// 契約ステータスラベル（ワークフロー）
+// 契約フェーズ（大分類）
+export const CONTRACT_PHASE_LABELS = {
+  商談中: "商談中",
+  審査中: "審査中",
+  工事中: "工事中",
+  入金中: "入金中",
+  失注: "失注",
+  クローズ: "クローズ",
+} as const;
+
+// 契約ステータス（小分類）ラベル
 export const CONTRACT_STATUS_LABELS: Record<string, string> = {
-  // 営業フェーズ
-  negotiating: "商談中",
-  quote_submitted: "見積提出",
-  accepted: "受注確定",
-  rejected: "失注",
-  // 契約フェーズ
-  document_collection: "書類収集中",
-  review_requested: "審査依頼中",
-  review_pending: "審査待ち",
-  review_approved: "可決",
-  review_rejected: "否決",
-  // 工事フェーズ
-  survey_scheduling: "下見調整中",
-  survey_completed: "下見完了",
-  installation_scheduling: "工事調整中",
-  installation_completed: "工事完了",
-  // 完了フェーズ
-  delivered: "納品完了",
-  payment_pending: "入金待ち",
-  completed: "完了",
+  // 営業フェーズ（商談中）
+  日程調整中: "日程調整中",
+  MTG実施待ち: "MTG実施待ち",
+  見積提出: "見積提出",
+  受注確定: "受注確定",
+  // 契約フェーズ（審査中）
+  書類準備中: "書類準備中",
+  審査結果待ち: "審査結果待ち",
+  可決: "可決",
+  否決: "否決",
+  // 工事フェーズ（工事中）
+  下見日程調整中: "下見日程調整中",
+  下見実施待ち: "下見実施待ち",
+  工事日程調整中: "工事日程調整中",
+  工事実施待ち: "工事実施待ち",
+  // 入金フェーズ（入金中）
+  入金待ち: "入金待ち",
+  入金済: "入金済",
+  // 終了ステータス
+  失注: "失注",
+  クローズ: "クローズ",
 };
 
-// 契約フェーズラベル
-export const CONTRACT_PHASE_LABELS: Record<string, string> = {
-  sales: "営業フェーズ",
-  contract: "契約フェーズ",
-  installation: "工事フェーズ",
-  completion: "完了フェーズ",
-};
-
-// ステータスからフェーズへのマッピング
+// ステータスからフェーズ（大分類）へのマッピング
 export const STATUS_TO_PHASE: Record<string, string> = {
-  // 営業フェーズ
-  negotiating: "sales",
-  quote_submitted: "sales",
-  accepted: "sales",
-  rejected: "sales",
-  // 契約フェーズ
-  document_collection: "contract",
-  review_requested: "contract",
-  review_pending: "contract",
-  review_approved: "contract",
-  review_rejected: "contract",
-  // 工事フェーズ
-  survey_scheduling: "installation",
-  survey_completed: "installation",
-  installation_scheduling: "installation",
-  installation_completed: "installation",
-  // 完了フェーズ
-  delivered: "completion",
-  payment_pending: "completion",
-  completed: "completion",
+  // 営業フェーズ（商談中）
+  日程調整中: "商談中",
+  MTG実施待ち: "商談中",
+  見積提出: "商談中",
+  受注確定: "商談中",
+  // 契約フェーズ（審査中）
+  書類準備中: "審査中",
+  審査結果待ち: "審査中",
+  可決: "審査中",
+  否決: "審査中",
+  // 工事フェーズ（工事中）
+  下見日程調整中: "工事中",
+  下見実施待ち: "工事中",
+  工事日程調整中: "工事中",
+  工事実施待ち: "工事中",
+  // 入金フェーズ（入金中）
+  入金待ち: "入金中",
+  入金済: "入金中",
+  // 終了ステータス
+  失注: "失注",
+  クローズ: "クローズ",
 };
 
 // フェーズ内ステータス一覧（順序付き）
 export const PHASE_STATUSES: Record<string, string[]> = {
-  sales: ["negotiating", "quote_submitted", "accepted", "rejected"],
-  contract: ["document_collection", "review_requested", "review_pending", "review_approved", "review_rejected"],
-  installation: ["survey_scheduling", "survey_completed", "installation_scheduling", "installation_completed"],
-  completion: ["delivered", "payment_pending", "completed"],
+  商談中: ["日程調整中", "MTG実施待ち", "見積提出", "受注確定"],
+  審査中: ["書類準備中", "審査結果待ち", "可決", "否決"],
+  工事中: ["下見日程調整中", "下見実施待ち", "工事日程調整中", "工事実施待ち"],
+  入金中: ["入金待ち", "入金済"],
+  失注: ["失注"],
+  クローズ: ["クローズ"],
 };
 
 // 次のフェーズの最初のステータス
 export const NEXT_PHASE_FIRST_STATUS: Record<string, string> = {
-  sales: "document_collection",
-  contract: "survey_scheduling",
-  installation: "delivered",
+  商談中: "書類準備中",
+  審査中: "下見日程調整中",
+  工事中: "入金待ち",
+  入金中: "クローズ",
 };
+
+// 全ステータス一覧（順序付き）
+export const ALL_CONTRACT_STATUSES = [
+  "日程調整中",
+  "MTG実施待ち",
+  "見積提出",
+  "受注確定",
+  "書類準備中",
+  "審査結果待ち",
+  "可決",
+  "否決",
+  "下見日程調整中",
+  "下見実施待ち",
+  "工事日程調整中",
+  "工事実施待ち",
+  "入金待ち",
+  "入金済",
+  "失注",
+  "クローズ",
+] as const;
 
 // ========================================
 // 活動関連
@@ -122,11 +149,11 @@ export const ACTIVITY_TYPE_LABELS = {
 
 // リース審査ステータスラベル
 export const LEASE_APPLICATION_STATUS_LABELS = {
-  preparing: "申請準備中",
-  reviewing: "審査中",
-  approved: "可決",
-  rejected: "否決",
-  conditionally_approved: "条件付き可決",
+  準備中: "準備中",
+  審査結果待ち: "審査結果待ち",
+  可決: "可決",
+  否決: "否決",
+  条件付可決: "条件付可決",
 } as const;
 
 // リース会社一覧
@@ -143,8 +170,8 @@ export const LEASE_COMPANIES = [
 
 // 入金ステータスラベル
 export const PAYMENT_STATUS_LABELS = {
-  pending: "未入金",
-  paid: "入金済",
+  入金予定: "入金予定",
+  入金済: "入金済",
 } as const;
 
 // 入金種別ラベル
@@ -161,9 +188,9 @@ export const PAYMENT_TYPE_LABELS = {
 
 // タスクステータスラベル
 export const TASK_STATUS_LABELS = {
-  not_started: "未着手",
-  in_progress: "進行中",
-  completed: "完了",
+  未着手: "未着手",
+  進行中: "進行中",
+  完了: "完了",
 } as const;
 
 // タスク優先度ラベル
@@ -172,6 +199,14 @@ export const TASK_PRIORITY_LABELS = {
   medium: "中",
   low: "低",
 } as const;
+
+// タスク担当会社ラベル（デフォルト選択肢）
+export const TASK_COMPANY_OPTIONS = [
+  "自社",
+  "リース会社",
+  "工事業者",
+  "その他",
+] as const;
 
 // ========================================
 // ユーザー関連

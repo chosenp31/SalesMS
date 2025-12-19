@@ -132,7 +132,7 @@ export function ContractDetail({
                   <dd className="mt-1 text-lg font-semibold text-green-600">
                     {formatAmount(
                       payments
-                        .filter((p) => p.status === "paid")
+                        .filter((p) => p.status === "入金済")
                         .reduce((sum, p) => sum + (p.actual_amount || 0), 0)
                     )}
                   </dd>
