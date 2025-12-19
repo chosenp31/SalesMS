@@ -129,7 +129,10 @@ export type Payment = {
     deal?: {
       id: string;
       title: string;
-      customer?: { company_name: string };
+      customer?: {
+        id: string;
+        company_name: string;
+      };
     };
   };
 };

@@ -17,7 +17,7 @@ export default async function PaymentsPage() {
         deal:deals(
           id,
           title,
-          customer:customers(company_name)
+          customer:customers(id, company_name)
         )
       )
     `)
