@@ -2,7 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { Deal } from "@/types";
-import { DEAL_STATUS_LABELS } from "@/constants";
+import {
+  DEAL_STATUS_LABELS,
+  CONTRACT_PHASE_LABELS,
+  CONTRACT_STATUS_LABELS,
+} from "@/constants";
 import {
   Table,
   TableBody,
@@ -29,15 +33,48 @@ interface DealListProps {
   deals: Deal[];
 }
 
-const statusColors: Record<string, string> = {
-  active: "bg-blue-100 text-blue-800 border-blue-200",
-  won: "bg-green-100 text-green-800 border-green-200",
-  lost: "bg-red-100 text-red-800 border-red-200",
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+const phaseColors: Record<string, string> = {
+  商談中: "bg-blue-100 text-blue-800 border-blue-200",
+  審査中: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  工事中: "bg-purple-100 text-purple-800 border-purple-200",
+  入金中: "bg-green-100 text-green-800 border-green-200",
+  失注: "bg-red-100 text-red-800 border-red-200",
+  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
-type SortField = "title" | "customer" | "status" | "contracts" | "total_amount" | "created_at";
+const statusColors: Record<string, string> = {
+  // 商談中
+  日程調整中: "bg-blue-50 text-blue-700 border-blue-200",
+  MTG実施待ち: "bg-blue-50 text-blue-700 border-blue-200",
+  見積提出: "bg-blue-50 text-blue-700 border-blue-200",
+  受注確定: "bg-blue-100 text-blue-800 border-blue-200",
+  // 審査中
+  書類準備中: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  審査結果待ち: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  可決: "bg-green-100 text-green-800 border-green-200",
+  否決: "bg-red-100 text-red-800 border-red-200",
+  // 工事中
+  下見日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
+  下見実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
+  工事日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
+  工事実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
+  // 入金中
+  入金待ち: "bg-green-50 text-green-700 border-green-200",
+  入金済: "bg-green-100 text-green-800 border-green-200",
+  // 終了
+  失注: "bg-red-100 text-red-800 border-red-200",
+  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
+};
+
+type SortField = "title" | "customer" | "phase" | "status" | "contracts" | "total_amount" | "created_at";
 type SortDirection = "asc" | "desc";
+
+// 契約からフェーズとステータスを取得するヘルパー
+const getPrimaryContractInfo = (contracts?: { id: string; title: string; phase?: string; status?: string }[]) => {
+  if (!contracts || contracts.length === 0) return { phase: null, status: null };
+  const primary = contracts[0];
+  return { phase: primary.phase || null, status: primary.status || null };
+};
 
 export function DealList({ deals }: DealListProps) {
   const router = useRouter();
@@ -128,6 +165,8 @@ export function DealList({ deals }: DealListProps) {
     // Apply sort
     result = [...result].sort((a, b) => {
       let comparison = 0;
+      const aContract = getPrimaryContractInfo(a.contracts);
+      const bContract = getPrimaryContractInfo(b.contracts);
       switch (sortField) {
         case "title":
           comparison = a.title.localeCompare(b.title);
@@ -137,8 +176,11 @@ export function DealList({ deals }: DealListProps) {
             b.customer?.company_name || ""
           );
           break;
+        case "phase":
+          comparison = (aContract.phase || "").localeCompare(bContract.phase || "");
+          break;
         case "status":
-          comparison = a.status.localeCompare(b.status);
+          comparison = (aContract.status || "").localeCompare(bContract.status || "");
           break;
         case "contracts":
           comparison = (a.contracts?.length || 0) - (b.contracts?.length || 0);
@@ -217,14 +259,17 @@ export function DealList({ deals }: DealListProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="w-[250px]">
-                <SortHeader field="title">商談名</SortHeader>
+              <TableHead className="w-[200px]">
+                <SortHeader field="title">案件名</SortHeader>
               </TableHead>
               <TableHead>
                 <SortHeader field="customer">顧客</SortHeader>
               </TableHead>
               <TableHead>
-                <SortHeader field="status">ステータス</SortHeader>
+                <SortHeader field="phase">ステータス大分類</SortHeader>
+              </TableHead>
+              <TableHead>
+                <SortHeader field="status">ステータス小分類</SortHeader>
               </TableHead>
               <TableHead>
                 <SortHeader field="contracts">契約</SortHeader>
@@ -242,7 +287,9 @@ export function DealList({ deals }: DealListProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredDeals.map((deal) => (
+            {filteredDeals.map((deal) => {
+              const contractInfo = getPrimaryContractInfo(deal.contracts);
+              return (
               <TableRow
                 key={deal.id}
                 className="cursor-pointer hover:bg-blue-50 transition-colors"
@@ -259,12 +306,28 @@ export function DealList({ deals }: DealListProps) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={cn("border", statusColors[deal.status])}
-                  >
-                    {DEAL_STATUS_LABELS[deal.status] || deal.status}
-                  </Badge>
+                  {contractInfo.phase ? (
+                    <Badge
+                      variant="outline"
+                      className={cn("border", phaseColors[contractInfo.phase])}
+                    >
+                      {CONTRACT_PHASE_LABELS[contractInfo.phase as keyof typeof CONTRACT_PHASE_LABELS]}
+                    </Badge>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {contractInfo.status ? (
+                    <Badge
+                      variant="outline"
+                      className={cn("border", statusColors[contractInfo.status])}
+                    >
+                      {CONTRACT_STATUS_LABELS[contractInfo.status]}
+                    </Badge>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {deal.contracts && deal.contracts.length > 0 ? (
@@ -307,7 +370,8 @@ export function DealList({ deals }: DealListProps) {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
         {filteredDeals.length === 0 && (

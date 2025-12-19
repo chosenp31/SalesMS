@@ -16,6 +16,7 @@ export default async function TasksPage() {
     .select(`
       *,
       deal:deals(id, title, customer:customers(company_name)),
+      contract:contracts(id, title, phase, status),
       assigned_user:users(*)
     `)
     .order("due_date", { ascending: true, nullsFirst: false })
