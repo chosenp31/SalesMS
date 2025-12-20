@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { Menu } from "lucide-react";
+import { useMobileSidebar } from "./mobile-sidebar-context";
 
 interface HeaderProps {
   user: User | null;
@@ -19,6 +21,7 @@ interface HeaderProps {
 
 export function Header({ user }: HeaderProps) {
   const router = useRouter();
+  const { toggle } = useMobileSidebar();
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -37,11 +40,24 @@ export function Header({ user }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 border-b bg-white flex items-center justify-end px-6">
+    <header className="h-16 border-b bg-white flex items-center justify-between px-4 md:px-6">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={toggle}
+        className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 md:hidden"
+        aria-label="メニューを開く"
+      >
+        <Menu className="h-6 w-6" />
+      </button>
+
+      {/* Spacer for desktop */}
+      <div className="hidden md:block" />
+
+      {/* User Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center space-x-3 outline-none">
-            <span className="text-sm font-medium text-gray-700">
+          <button className="flex items-center space-x-2 md:space-x-3 outline-none">
+            <span className="text-sm font-medium text-gray-700 hidden sm:block">
               {user?.name || "ユーザー"}
             </span>
             <Avatar className="h-8 w-8">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Contract, ContractPhase, ContractStatus } from "@/types";
+import { Contract } from "@/types";
 import {
   CONTRACT_PHASE_LABELS,
   CONTRACT_STATUS_LABELS,
@@ -21,11 +21,9 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, Pencil, Search, X, FileText, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
-import { ja } from "date-fns/locale";
 import { cn, formatContractId, formatDealId } from "@/lib/utils";
 
-interface ContractWithRelations extends Contract {
+interface ContractWithRelations extends Omit<Contract, 'deal'> {
   deal?: {
     id: string;
     title: string;
@@ -258,8 +256,8 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
       </div>
 
       {/* テーブル */}
-      <div className="bg-white rounded-lg border overflow-hidden">
-        <Table>
+      <div className="bg-white rounded-lg border overflow-x-auto">
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-[140px]">
