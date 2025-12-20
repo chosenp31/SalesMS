@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Contract, ContractPhase, ContractStatus } from "@/types";
+import { Contract, TaskStatus } from "@/types";
 import {
   CONTRACT_PHASE_LABELS,
   CONTRACT_STATUS_LABELS,
@@ -20,12 +20,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, Search, X, FileText, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
-import { ja } from "date-fns/locale";
+import { Eye, Pencil, Search, X, FileText, ExternalLink, ClipboardList } from "lucide-react";
 import { cn, formatContractId, formatDealId } from "@/lib/utils";
 
-interface ContractWithRelations extends Contract {
+interface ContractTask {
+  id: string;
+  status: TaskStatus;
+}
+
+interface ContractWithRelations extends Omit<Contract, 'deal'> {
   deal?: {
     id: string;
     title: string;
@@ -40,6 +43,7 @@ interface ContractWithRelations extends Contract {
       name: string;
     };
   };
+  tasks?: ContractTask[];
 }
 
 interface ContractListProps {
@@ -80,8 +84,16 @@ const statusColors: Record<string, string> = {
   クローズ: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
-type SortField = "contract_id" | "title" | "contract_type" | "phase" | "status" | "deal" | "monthly_amount" | "created_at";
+type SortField = "contract_id" | "title" | "contract_type" | "phase" | "status" | "deal" | "customer" | "all_tasks" | "incomplete_tasks" | "created_at";
 type SortDirection = "asc" | "desc";
+
+// タスク数を取得するヘルパー
+const getTaskCounts = (tasks?: ContractTask[]) => {
+  if (!tasks || tasks.length === 0) return { total: 0, incomplete: 0 };
+  const total = tasks.length;
+  const incomplete = tasks.filter(t => t.status !== "完了").length;
+  return { total, incomplete };
+};
 
 export function ContractList({ contracts, filterDealId }: ContractListProps) {
   const router = useRouter();
@@ -102,6 +114,17 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
   // Clear filter and go back to all contracts
   const handleClearFilter = () => {
     router.push("/contracts");
+  };
+
+  // Handle task count click - navigate to tasks page with contract filter
+  const handleTaskCountClick = (e: React.MouseEvent, contractId: string, showIncompleteOnly: boolean) => {
+    e.stopPropagation();
+    const params = new URLSearchParams();
+    params.set("contract_id", contractId);
+    if (showIncompleteOnly) {
+      params.set("status", "incomplete");
+    }
+    router.push(`/tasks?${params.toString()}`);
   };
 
   // Filter and sort contracts
@@ -154,10 +177,18 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
           comparison = a.status.localeCompare(b.status);
           break;
         case "deal":
-          comparison = (a.deal?.title || "").localeCompare(b.deal?.title || "");
+          const aDealId = formatDealId(a.deal?.customer?.customer_number, a.deal?.deal_number);
+          const bDealId = formatDealId(b.deal?.customer?.customer_number, b.deal?.deal_number);
+          comparison = aDealId.localeCompare(bDealId);
           break;
-        case "monthly_amount":
-          comparison = (a.monthly_amount || 0) - (b.monthly_amount || 0);
+        case "customer":
+          comparison = (a.deal?.customer?.company_name || "").localeCompare(b.deal?.customer?.company_name || "");
+          break;
+        case "all_tasks":
+          comparison = getTaskCounts(a.tasks).total - getTaskCounts(b.tasks).total;
+          break;
+        case "incomplete_tasks":
+          comparison = getTaskCounts(a.tasks).incomplete - getTaskCounts(b.tasks).incomplete;
           break;
         case "created_at":
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -168,14 +199,6 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
 
     return result;
   }, [contracts, searchValue, sortField, sortDirection]);
-
-  const formatAmount = (amount: number | null) => {
-    if (!amount) return "-";
-    return new Intl.NumberFormat("ja-JP", {
-      style: "currency",
-      currency: "JPY",
-    }).format(amount);
-  };
 
   const SortHeader = ({
     field,
@@ -278,10 +301,16 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                 <SortHeader field="status">小分類</SortHeader>
               </TableHead>
               <TableHead>
-                <SortHeader field="deal">案件名</SortHeader>
+                <SortHeader field="deal">案件ID</SortHeader>
               </TableHead>
-              <TableHead className="text-right">
-                <SortHeader field="monthly_amount" className="justify-end">月額</SortHeader>
+              <TableHead>
+                <SortHeader field="customer">顧客名</SortHeader>
+              </TableHead>
+              <TableHead className="w-[80px]">
+                <SortHeader field="all_tasks">全タスク</SortHeader>
+              </TableHead>
+              <TableHead className="w-[80px]">
+                <SortHeader field="incomplete_tasks">未完了</SortHeader>
               </TableHead>
               <TableHead className="text-right w-[100px]">操作</TableHead>
             </TableRow>
@@ -297,6 +326,7 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                 contract.deal?.customer?.customer_number,
                 contract.deal?.deal_number
               );
+              const taskCounts = getTaskCounts(contract.tasks);
               return (
                 <TableRow
                   key={contract.id}
@@ -337,15 +367,55 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                         className="flex items-center gap-1 text-primary hover:underline text-sm"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <span className="font-mono text-xs text-gray-500">{dealDisplayId}</span>
+                        <span className="font-mono text-xs">{dealDisplayId}</span>
                         <ExternalLink className="h-3 w-3" />
                       </Link>
                     ) : (
                       <span className="text-gray-400">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatAmount(contract.monthly_amount)}
+                  <TableCell>
+                    {contract.deal?.customer ? (
+                      <Link
+                        href={`/customers/${contract.deal.customer.id}`}
+                        className="flex items-center gap-1 text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {contract.deal.customer.company_name}
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {taskCounts.total > 0 ? (
+                      <button
+                        className="flex items-center gap-1 hover:bg-blue-100 rounded px-2 py-1 transition-colors"
+                        onClick={(e) => handleTaskCountClick(e, contract.id, false)}
+                      >
+                        <ClipboardList className="h-4 w-4 text-blue-500" />
+                        <Badge variant="secondary" className="font-medium bg-blue-100 text-blue-700 hover:bg-blue-200">
+                          {taskCounts.total}件
+                        </Badge>
+                      </button>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {taskCounts.incomplete > 0 ? (
+                      <button
+                        className="flex items-center gap-1 hover:bg-orange-100 rounded px-2 py-1 transition-colors"
+                        onClick={(e) => handleTaskCountClick(e, contract.id, true)}
+                      >
+                        <Badge variant="secondary" className="font-medium bg-orange-100 text-orange-700 hover:bg-orange-200">
+                          {taskCounts.incomplete}件
+                        </Badge>
+                      </button>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div

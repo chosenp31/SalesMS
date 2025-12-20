@@ -3,10 +3,6 @@
 import { useState, useMemo } from "react";
 import { Deal } from "@/types";
 import {
-  CONTRACT_PHASE_LABELS,
-  CONTRACT_STATUS_LABELS,
-} from "@/constants";
-import {
   Table,
   TableBody,
   TableCell,
@@ -24,7 +20,7 @@ import {
 } from "@/components/ui/column-filter-header";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, FileText, Search, X } from "lucide-react";
+import { Eye, Pencil, FileText, Search, X, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn, formatDealId } from "@/lib/utils";
@@ -34,56 +30,39 @@ interface DealListProps {
 }
 
 const phaseColors: Record<string, string> = {
-  商談中: "bg-blue-100 text-blue-800 border-blue-200",
-  審査中: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  工事中: "bg-purple-100 text-purple-800 border-purple-200",
-  入金中: "bg-green-100 text-green-800 border-green-200",
-  失注: "bg-red-100 text-red-800 border-red-200",
-  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
+  商談中: "bg-blue-100 text-blue-800",
+  審査中: "bg-yellow-100 text-yellow-800",
+  工事中: "bg-purple-100 text-purple-800",
+  入金中: "bg-green-100 text-green-800",
+  失注: "bg-red-100 text-red-800",
+  クローズ: "bg-gray-100 text-gray-800",
 };
 
-const statusColors: Record<string, string> = {
-  // 商談中
-  日程調整中: "bg-blue-50 text-blue-700 border-blue-200",
-  MTG実施待ち: "bg-blue-50 text-blue-700 border-blue-200",
-  見積提出: "bg-blue-50 text-blue-700 border-blue-200",
-  受注確定: "bg-blue-100 text-blue-800 border-blue-200",
-  // 審査中
-  書類準備中: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  審査結果待ち: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  可決: "bg-green-100 text-green-800 border-green-200",
-  否決: "bg-red-100 text-red-800 border-red-200",
-  // 工事中
-  下見日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
-  下見実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
-  工事日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
-  工事実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
-  // 入金中
-  入金待ち: "bg-green-50 text-green-700 border-green-200",
-  入金済: "bg-green-100 text-green-800 border-green-200",
-  // 終了
-  失注: "bg-red-100 text-red-800 border-red-200",
-  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
-};
-
-type SortField = "deal_id" | "customer" | "product" | "phase" | "status" | "contracts" | "assigned_user" | "created_at";
+type SortField = "deal_id" | "customer" | "product" | "phase_breakdown" | "contracts" | "assigned_user" | "created_at";
 type SortDirection = "asc" | "desc";
 
-// 契約からフェーズとステータスを取得するヘルパー
-const getPrimaryContractInfo = (contracts?: { id: string; title: string; phase?: string; status?: string; product_category?: string }[]) => {
-  if (!contracts || contracts.length === 0) return { phase: null, status: null, product: null };
-  const primary = contracts[0];
-  return {
-    phase: primary.phase || null,
-    status: primary.status || null,
-    product: primary.product_category || null
-  };
+// 契約のフェーズ内訳を取得するヘルパー
+const getPhaseBreakdown = (contracts?: { id: string; title: string; phase?: string; status?: string; product_category?: string | null }[]): string => {
+  if (!contracts || contracts.length === 0) return "-";
+
+  // フェーズごとにカウント
+  const phaseCounts: Record<string, number> = {};
+  contracts.forEach(contract => {
+    const phase = contract.phase || "不明";
+    phaseCounts[phase] = (phaseCounts[phase] || 0) + 1;
+  });
+
+  // "1件:審査中, 1件:工事中" 形式で出力
+  return Object.entries(phaseCounts)
+    .map(([phase, count]) => `${count}件:${phase}`)
+    .join(", ");
 };
 
 // 商材一覧を取得するヘルパー
 const getProductCategories = (contracts?: { product_category?: string | null }[]): string[] => {
   if (!contracts || contracts.length === 0) return [];
-  return [...new Set(contracts.map(c => c.product_category).filter((p): p is string => !!p))];
+  const categories = contracts.map(c => c.product_category).filter((p): p is string => !!p);
+  return Array.from(new Set(categories));
 };
 
 export function DealList({ deals }: DealListProps) {
@@ -129,28 +108,6 @@ export function DealList({ deals }: DealListProps) {
   };
 
   // Generate filter options from data
-  const phaseOptions = useMemo(() => {
-    const phases = deals
-      .map((d) => getPrimaryContractInfo(d.contracts).phase)
-      .filter((p): p is string => p !== null);
-    return generateFilterOptions(
-      phases.map((p) => ({ phase: p })),
-      (item) => item.phase,
-      (item) => CONTRACT_PHASE_LABELS[item.phase as keyof typeof CONTRACT_PHASE_LABELS] || item.phase
-    );
-  }, [deals]);
-
-  const statusOptions = useMemo(() => {
-    const statuses = deals
-      .map((d) => getPrimaryContractInfo(d.contracts).status)
-      .filter((s): s is string => s !== null);
-    return generateFilterOptions(
-      statuses.map((s) => ({ status: s })),
-      (item) => item.status,
-      (item) => CONTRACT_STATUS_LABELS[item.status] || item.status
-    );
-  }, [deals]);
-
   const customerOptions = useMemo(() => {
     return generateFilterOptions(
       deals.filter((d) => d.customer?.company_name),
@@ -202,12 +159,7 @@ export function DealList({ deals }: DealListProps) {
       }
       if (filter.values && filter.values.length > 0) {
         result = result.filter((deal) => {
-          const contractInfo = getPrimaryContractInfo(deal.contracts);
           switch (column) {
-            case "phase":
-              return filter.values.includes(contractInfo.phase || "");
-            case "status":
-              return filter.values.includes(contractInfo.status || "");
             case "customer":
               return filter.values.includes(deal.customer?.company_name || "");
             case "assigned_user":
@@ -222,8 +174,6 @@ export function DealList({ deals }: DealListProps) {
     // Apply sort
     result = [...result].sort((a, b) => {
       let comparison = 0;
-      const aContract = getPrimaryContractInfo(a.contracts);
-      const bContract = getPrimaryContractInfo(b.contracts);
       switch (sortField) {
         case "deal_id":
           const aId = formatDealId(a.customer?.customer_number, a.deal_number);
@@ -236,16 +186,15 @@ export function DealList({ deals }: DealListProps) {
           );
           break;
         case "product":
-          comparison = (aContract.product || "").localeCompare(bContract.product || "");
-          break;
-        case "phase":
-          comparison = (aContract.phase || "").localeCompare(bContract.phase || "");
-          break;
-        case "status":
-          comparison = (aContract.status || "").localeCompare(bContract.status || "");
+          const aProducts = getProductCategories(a.contracts).join(",");
+          const bProducts = getProductCategories(b.contracts).join(",");
+          comparison = aProducts.localeCompare(bProducts);
           break;
         case "contracts":
           comparison = (a.contracts?.length || 0) - (b.contracts?.length || 0);
+          break;
+        case "phase_breakdown":
+          comparison = getPhaseBreakdown(a.contracts).localeCompare(getPhaseBreakdown(b.contracts));
           break;
         case "assigned_user":
           comparison = (a.assigned_user?.name || "").localeCompare(
@@ -363,30 +312,15 @@ export function DealList({ deals }: DealListProps) {
                   filterable={false}
                 />
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[200px]">
                 <ColumnFilterHeader
-                  column="phase"
-                  label="大分類"
+                  column="phase_breakdown"
+                  label="契約数内訳"
                   sortField={sortField}
                   sortDirection={sortDirection}
-                  onSort={() => handleSort("phase")}
-                  filterable
-                  filterOptions={phaseOptions}
-                  activeFilter={columnFilters["phase"]}
-                  onFilterChange={(f) => handleColumnFilterChange("phase", f)}
-                />
-              </TableHead>
-              <TableHead>
-                <ColumnFilterHeader
-                  column="status"
-                  label="小分類"
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                  onSort={() => handleSort("status")}
-                  filterable
-                  filterOptions={statusOptions}
-                  activeFilter={columnFilters["status"]}
-                  onFilterChange={(f) => handleColumnFilterChange("status", f)}
+                  onSort={() => handleSort("phase_breakdown")}
+                  sortable
+                  filterable={false}
                 />
               </TableHead>
               <TableHead>
@@ -418,9 +352,9 @@ export function DealList({ deals }: DealListProps) {
           </TableHeader>
           <TableBody>
             {filteredDeals.map((deal) => {
-              const contractInfo = getPrimaryContractInfo(deal.contracts);
               const products = getProductCategories(deal.contracts);
               const dealDisplayId = formatDealId(deal.customer?.customer_number, deal.deal_number);
+              const phaseBreakdown = getPhaseBreakdown(deal.contracts);
               return (
               <TableRow
                 key={deal.id}
@@ -431,9 +365,14 @@ export function DealList({ deals }: DealListProps) {
                   {dealDisplayId}
                 </TableCell>
                 <TableCell>
-                  <span className="text-gray-700">
+                  <Link
+                    href={`/customers/${deal.customer_id}`}
+                    className="flex items-center gap-1 text-primary hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {deal.customer?.company_name || "-"}
-                  </span>
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
                 </TableCell>
                 <TableCell>
                   {products.length > 0 ? (
@@ -469,25 +408,21 @@ export function DealList({ deals }: DealListProps) {
                   )}
                 </TableCell>
                 <TableCell>
-                  {contractInfo.phase ? (
-                    <Badge
-                      variant="outline"
-                      className={cn("border", phaseColors[contractInfo.phase])}
-                    >
-                      {CONTRACT_PHASE_LABELS[contractInfo.phase as keyof typeof CONTRACT_PHASE_LABELS]}
-                    </Badge>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {contractInfo.status ? (
-                    <Badge
-                      variant="outline"
-                      className={cn("border", statusColors[contractInfo.status])}
-                    >
-                      {CONTRACT_STATUS_LABELS[contractInfo.status]}
-                    </Badge>
+                  {phaseBreakdown !== "-" ? (
+                    <div className="flex flex-wrap gap-1">
+                      {phaseBreakdown.split(", ").map((item, idx) => {
+                        const [, phase] = item.split(":");
+                        return (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className={cn("text-xs border", phaseColors[phase] || "bg-gray-100")}
+                          >
+                            {item}
+                          </Badge>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}

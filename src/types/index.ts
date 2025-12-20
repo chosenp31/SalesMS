@@ -33,6 +33,7 @@ export type DealContract = {
   phase?: string;
   status?: string;
   monthly_amount?: number | null;
+  product_category?: string | null;
 };
 
 // 商談（顧客への提案全体）
@@ -204,7 +205,7 @@ export type Task = {
     id: string;
     title: string;
     deal_number?: number;
-    customer?: { company_name: string; customer_number?: number };
+    customer?: { id: string; company_name: string; customer_number?: number };
   } | null;
   contract?: {
     id: string;

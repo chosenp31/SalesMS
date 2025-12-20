@@ -26,10 +26,10 @@ import {
 } from "@/components/ui/search-filter-bar";
 import { format, isPast, isToday } from "date-fns";
 import { ja } from "date-fns/locale";
-import { cn, formatTaskId, formatDealId, formatContractId } from "@/lib/utils";
+import { cn, formatDealId, formatContractId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, Building2, ExternalLink } from "lucide-react";
+import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, Building2, ExternalLink, X } from "lucide-react";
 import { TaskDialog } from "./task-dialog";
 import Link from "next/link";
 
@@ -38,6 +38,8 @@ interface TaskListProps {
   users: User[];
   deals: DealOption[];
   currentUserId: string;
+  filterContractId?: string;
+  filterStatus?: string;
 }
 
 const priorityColors = {
@@ -85,10 +87,10 @@ const statusColors: Record<TaskStatus, string> = {
   完了: "bg-green-100 text-green-800 border-green-200",
 };
 
-type SortField = "task_id" | "title" | "phase" | "contractStatus" | "customer" | "deal" | "contract" | "company" | "assigned_user" | "priority" | "status" | "due_date";
+type SortField = "title" | "phase" | "contractStatus" | "customer" | "deal" | "contract" | "company" | "assigned_user" | "priority" | "status" | "due_date";
 type SortDirection = "asc" | "desc";
 
-export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) {
+export function TaskList({ tasks, users, deals, currentUserId, filterContractId, filterStatus }: TaskListProps) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
@@ -162,6 +164,11 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
     setActiveFilters([]);
   };
 
+  // Clear URL-based filters
+  const handleClearUrlFilters = () => {
+    router.push("/tasks");
+  };
+
   // Handle sort
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -188,16 +195,6 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
     const supabase = createClient();
     await supabase.from("tasks").delete().eq("id", taskId);
     router.refresh();
-  };
-
-  // Helper to get task display ID
-  const getTaskDisplayId = (task: Task) => {
-    return formatTaskId(
-      task.deal?.customer?.customer_number,
-      task.deal?.deal_number,
-      task.contract?.contract_number,
-      task.task_number
-    );
   };
 
   // Helper to get deal display ID
@@ -232,8 +229,7 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
           task.deal?.customer?.company_name?.toLowerCase().includes(lowerSearch) ||
           task.contract?.title?.toLowerCase().includes(lowerSearch) ||
           task.assigned_user?.name?.toLowerCase().includes(lowerSearch) ||
-          task.company?.toLowerCase().includes(lowerSearch) ||
-          getTaskDisplayId(task).toLowerCase().includes(lowerSearch)
+          task.company?.toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -255,9 +251,6 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
     result = [...result].sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
-        case "task_id":
-          comparison = getTaskDisplayId(a).localeCompare(getTaskDisplayId(b));
-          break;
         case "title":
           comparison = a.title.localeCompare(b.title);
           break;
@@ -391,8 +384,20 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
         </div>
       </div>
 
+      {/* URL-based filter display */}
+      {(filterContractId || filterStatus) && (
+        <div className="flex items-center gap-2 mb-2">
+          <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
+            <span>フィルタ適用中</span>
+            <button onClick={handleClearUrlFilters} className="ml-1 hover:text-red-500">
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        </div>
+      )}
+
       <SearchFilterBar
-        placeholder="タスクID、タスク名、顧客名、案件名、契約名、担当者で検索..."
+        placeholder="タスク名、顧客名、案件名、契約名、担当者で検索..."
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         filters={filterOptions}
@@ -410,10 +415,7 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
             <TableHeader>
               <TableRow className="bg-gray-50">
                 <TableHead className="w-12"></TableHead>
-                <TableHead className="w-[140px]">
-                  <SortHeader field="task_id">タスクID</SortHeader>
-                </TableHead>
-                <TableHead className="w-[160px]">
+                <TableHead className="w-[180px]">
                   <SortHeader field="title">タスク名</SortHeader>
                 </TableHead>
                 <TableHead>
@@ -426,10 +428,10 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
                   <SortHeader field="customer">顧客</SortHeader>
                 </TableHead>
                 <TableHead>
-                  <SortHeader field="deal">案件名</SortHeader>
+                  <SortHeader field="deal">案件ID</SortHeader>
                 </TableHead>
                 <TableHead>
-                  <SortHeader field="contract">契約名</SortHeader>
+                  <SortHeader field="contract">契約ID</SortHeader>
                 </TableHead>
                 <TableHead>
                   <SortHeader field="company">担当会社</SortHeader>
@@ -451,7 +453,6 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
             </TableHeader>
             <TableBody>
               {filteredTasks.map((task) => {
-                const taskDisplayId = getTaskDisplayId(task);
                 const dealDisplayId = getDealDisplayId(task);
                 const contractDisplayId = getContractDisplayId(task);
                 return (
@@ -470,9 +471,6 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
                           handleStatusToggle(task, e);
                         }}
                       />
-                    </TableCell>
-                    <TableCell className="font-mono text-sm font-medium text-blue-600">
-                      {taskDisplayId}
                     </TableCell>
                     <TableCell
                       className={cn(
@@ -521,8 +519,19 @@ export function TaskList({ tasks, users, deals, currentUserId }: TaskListProps) 
                         <span className="text-gray-400">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-700">
-                      {task.deal?.customer?.company_name || "-"}
+                    <TableCell>
+                      {task.deal?.customer ? (
+                        <Link
+                          href={`/customers/${task.deal.customer.id}`}
+                          className="flex items-center gap-1 text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {task.deal.customer.company_name}
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {task.deal ? (

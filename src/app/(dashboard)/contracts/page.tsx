@@ -20,7 +20,8 @@ export default async function ContractsPage({ searchParams }: ContractsPageProps
         deal_number,
         customer:customers(id, company_name, customer_number),
         assigned_user:users(id, name)
-      )
+      ),
+      tasks(id, status)
     `)
     .order("created_at", { ascending: false });
 
