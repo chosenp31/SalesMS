@@ -59,7 +59,7 @@ const getPhaseBreakdown = (contracts?: { id: string; title: string; phase?: stri
 };
 
 // 商材一覧を取得するヘルパー
-const getProductCategories = (contracts?: { product_category?: string | null }[]): string[] => {
+const getProductCategories = (contracts?: Deal['contracts']): string[] => {
   if (!contracts || contracts.length === 0) return [];
   const categories = contracts.map(c => c.product_category).filter((p): p is string => !!p);
   return Array.from(new Set(categories));
@@ -261,8 +261,8 @@ export function DealList({ deals }: DealListProps) {
       </div>
 
       {/* テーブル */}
-      <div className="bg-white rounded-lg border overflow-hidden">
-        <Table>
+      <div className="bg-white rounded-lg border overflow-x-auto">
+        <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-[120px]">

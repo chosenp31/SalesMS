@@ -34,6 +34,7 @@ export type DealContract = {
   status?: string;
   monthly_amount?: number | null;
   product_category?: string | null;
+  contract_number?: number;
 };
 
 // 商談（顧客への提案全体）

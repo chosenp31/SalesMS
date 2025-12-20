@@ -28,6 +28,7 @@ interface ContractTask {
   status: TaskStatus;
 }
 
+
 interface ContractWithRelations extends Omit<Contract, 'deal'> {
   deal?: {
     id: string;
@@ -281,8 +282,8 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
       </div>
 
       {/* テーブル */}
-      <div className="bg-white rounded-lg border overflow-hidden">
-        <Table>
+      <div className="bg-white rounded-lg border overflow-x-auto">
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-[140px]">
