@@ -224,15 +224,15 @@ export function DealList({ deals }: DealListProps) {
   return (
     <div className="space-y-4">
       {/* 検索バー */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 md:gap-3">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="案件ID、顧客名、主担当者で検索..."
+            placeholder="検索..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            className="pl-10 pr-10 h-10 bg-white"
+            className="pl-10 pr-10 h-10 bg-white w-full"
           />
           {searchValue && (
             <button
@@ -244,25 +244,27 @@ export function DealList({ deals }: DealListProps) {
           )}
         </div>
 
-        {hasActiveFilters && (
-          <Button variant="outline" size="sm" onClick={handleClearAll}>
-            <X className="h-4 w-4 mr-1" />
-            フィルタをクリア
-          </Button>
-        )}
-
-        <div className="text-sm text-gray-500">
-          {filteredDeals.length !== deals.length ? (
-            <span>{filteredDeals.length} / {deals.length} 件</span>
-          ) : (
-            <span>{deals.length} 件</span>
+        <div className="flex items-center justify-between sm:justify-start gap-2">
+          {hasActiveFilters && (
+            <Button variant="outline" size="sm" onClick={handleClearAll}>
+              <X className="h-4 w-4 mr-1" />
+              クリア
+            </Button>
           )}
+
+          <div className="text-sm text-gray-500">
+            {filteredDeals.length !== deals.length ? (
+              <span>{filteredDeals.length}/{deals.length}件</span>
+            ) : (
+              <span>{deals.length}件</span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* テーブル */}
-      <div className="bg-white rounded-lg border overflow-x-auto">
-        <Table className="min-w-[900px]">
+      <div className="bg-white rounded-lg border overflow-x-auto -mx-4 md:mx-0">
+        <Table className="min-w-[700px]">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-[120px]">

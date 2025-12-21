@@ -245,23 +245,23 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
   return (
     <div className="space-y-4">
       {/* フィルター表示 & 検索バー */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 md:gap-3">
         {filterDealId && (
-          <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
+          <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1 self-start">
             <span>案件でフィルタ中</span>
             <button onClick={handleClearFilter} className="ml-1 hover:text-red-500">
               <X className="h-3 w-3" />
             </button>
           </Badge>
         )}
-        <div className="relative flex-1 min-w-[200px] max-w-md">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="契約ID、契約名、案件名、顧客名で検索..."
+            placeholder="検索..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            className="pl-10 pr-10 h-10 bg-white"
+            className="pl-10 pr-10 h-10 bg-white w-full"
           />
           {searchValue && (
             <button
@@ -272,18 +272,18 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
             </button>
           )}
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 self-center">
           {filteredContracts.length !== contracts.length ? (
-            <span>{filteredContracts.length} / {contracts.length} 件</span>
+            <span>{filteredContracts.length}/{contracts.length}件</span>
           ) : (
-            <span>{contracts.length} 件</span>
+            <span>{contracts.length}件</span>
           )}
         </div>
       </div>
 
       {/* テーブル */}
-      <div className="bg-white rounded-lg border overflow-x-auto">
-        <Table className="min-w-[800px]">
+      <div className="bg-white rounded-lg border overflow-x-auto -mx-4 md:mx-0">
+        <Table className="min-w-[650px]">
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-[140px]">
