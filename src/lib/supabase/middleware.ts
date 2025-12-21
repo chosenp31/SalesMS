@@ -29,11 +29,12 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  // 認証情報を取得（セッション維持のため）
+  await supabase.auth.getUser();
 
-  // 認証情報を取得
+  // デモモード: 認証チェックを無効化
+  // TODO: 本番運用時は以下のコメントを解除して認証を有効化
+  /*
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -57,9 +58,17 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/deals";
     return NextResponse.redirect(url);
   }
+  */
 
   // ルートへのアクセスは案件一覧にリダイレクト
   if (request.nextUrl.pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/deals";
+    return NextResponse.redirect(url);
+  }
+
+  // ログインページへのアクセスも案件一覧にリダイレクト（デモモード）
+  if (request.nextUrl.pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/deals";
     return NextResponse.redirect(url);
