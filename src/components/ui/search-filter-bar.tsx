@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -169,7 +170,7 @@ export function SearchFilterBar({
           )}
         </div>
 
-        {/* クイックフィルタ（インライン表示） */}
+        {/* クイックフィルタ（デスクトップ：インライン表示、モバイル：ポップオーバー内） */}
         {quickFilters.map((filter) => (
           <div key={filter.key} className="hidden sm:block">
             {filter.type === "select" && filter.options && (
@@ -240,6 +241,104 @@ export function SearchFilterBar({
             )}
           </div>
         ))}
+
+        {/* モバイル用フィルタボタン（クイックフィルタ含む） */}
+        {(quickFilters.length > 0 || advancedFilters.length > 0) && (
+          <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-10 gap-2 bg-white border-gray-200 sm:hidden",
+                  activeFilters.length > 0 && "border-primary text-primary"
+                )}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                フィルタ
+                {activeFilters.length > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 h-5 px-1.5 bg-primary/10 text-primary"
+                  >
+                    {activeFilters.length}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">フィルタ</span>
+                  {activeFilters.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-gray-500"
+                      onClick={() => {
+                        filters.forEach((f) => onFilterRemove?.(f.key));
+                      }}
+                    >
+                      すべてクリア
+                    </Button>
+                  )}
+                </div>
+                {filters.map((filter) => (
+                  <div key={filter.key} className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      {filter.label}
+                    </label>
+                    {filter.type === "select" && filter.options && (
+                      <Select
+                        value={
+                          activeFilters.find((f) => f.key === filter.key)
+                            ?.value || ""
+                        }
+                        onValueChange={(value) =>
+                          onFilterChange?.(filter.key, value)
+                        }
+                      >
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="すべて" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__all__">すべて</SelectItem>
+                          {filter.options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {filter.type === "datePreset" && (
+                      <Select
+                        value={
+                          activeFilters.find((f) => f.key === filter.key)
+                            ?.value || ""
+                        }
+                        onValueChange={(value) =>
+                          onFilterChange?.(filter.key, value)
+                        }
+                      >
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="期間を選択" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__all__">すべての期間</SelectItem>
+                          {DATE_PRESETS.map((preset) => (
+                            <SelectItem key={preset.value} value={preset.value}>
+                              {preset.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
 
         {/* 詳細フィルタボタン */}
         {advancedFilters.length > 0 && (
@@ -429,10 +528,14 @@ export function SearchFilterBar({
 export function useSearchFilter<T>(
   items: T[],
   searchFields: (keyof T)[],
-  filterConfigs?: { key: keyof T; match: (item: T, value: string) => boolean }[]
+  filterConfigs?: { key: keyof T; match: (item: T, value: string) => boolean }[],
+  options?: { debounceMs?: number }
 ) {
   const [searchValue, setSearchValue] = useState("");
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
+
+  // デバウンスされた検索値（デフォルト300ms）
+  const debouncedSearchValue = useDebounce(searchValue, options?.debounceMs ?? 300);
 
   const handleFilterChange = useCallback(
     (key: string, value: string, label: string, displayValue: string) => {
@@ -466,9 +569,9 @@ export function useSearchFilter<T>(
   const filteredItems = useMemo(() => {
     let result = items;
 
-    // Apply search
-    if (searchValue) {
-      const lowerSearch = searchValue.toLowerCase();
+    // Apply search (using debounced value for performance)
+    if (debouncedSearchValue) {
+      const lowerSearch = debouncedSearchValue.toLowerCase();
       result = result.filter((item) =>
         searchFields.some((field) => {
           const value = item[field];
@@ -494,7 +597,7 @@ export function useSearchFilter<T>(
     }
 
     return result;
-  }, [items, searchValue, activeFilters, searchFields, filterConfigs]);
+  }, [items, debouncedSearchValue, activeFilters, searchFields, filterConfigs]);
 
   return {
     searchValue,

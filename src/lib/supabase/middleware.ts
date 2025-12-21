@@ -33,21 +33,33 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  // 認証情報を取得（セッション維持のため）
-  await supabase.auth.getUser();
+  // 認証情報を取得
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // 認証チェックを一時的に無効化（デモ用）
-  // TODO: 本番運用時は認証を有効化すること
+  // 公開ページのパス（認証不要）
+  const publicPaths = ["/login", "/auth/callback"];
+  const isPublicPath = publicPaths.some((path) =>
+    request.nextUrl.pathname.startsWith(path)
+  );
 
-  // ルートへのアクセスは案件一覧にリダイレクト
-  if (request.nextUrl.pathname === "/") {
+  // 未認証ユーザーが保護されたページにアクセスした場合
+  if (!user && !isPublicPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  // 認証済みユーザーがログインページにアクセスした場合
+  if (user && request.nextUrl.pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/deals";
     return NextResponse.redirect(url);
   }
 
-  // ログインページへのアクセスも案件一覧にリダイレクト
-  if (request.nextUrl.pathname === "/login") {
+  // ルートへのアクセスは案件一覧にリダイレクト
+  if (request.nextUrl.pathname === "/") {
     const url = request.nextUrl.clone();
     url.pathname = "/deals";
     return NextResponse.redirect(url);
