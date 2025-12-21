@@ -8,6 +8,7 @@ import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Customer } from "@/types";
 import { BUSINESS_TYPE_LABELS } from "@/constants";
+import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,7 +46,9 @@ interface CustomerFormProps {
 
 export function CustomerForm({ customer }: CustomerFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -61,43 +64,68 @@ export function CustomerForm({ customer }: CustomerFormProps) {
 
   const onSubmit = async (data: CustomerFormValues) => {
     setLoading(true);
-    const supabase = createClient();
+    setError(null);
 
-    const customerData = {
-      ...data,
-      email: data.email || null,
-      phone: data.phone || null,
-      address: data.address || null,
-    };
+    try {
+      const supabase = createClient();
 
-    if (customer) {
-      const { error } = await supabase
-        .from("customers")
-        .update(customerData)
-        .eq("id", customer.id);
+      const customerData = {
+        ...data,
+        email: data.email || null,
+        phone: data.phone || null,
+        address: data.address || null,
+      };
 
-      if (error) {
-        console.error("Error updating customer:", error);
-        setLoading(false);
-        return;
+      if (customer) {
+        const { error: updateError } = await supabase
+          .from("customers")
+          .update(customerData)
+          .eq("id", customer.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        toast({
+          title: "顧客情報を更新しました",
+          description: `${data.company_name}の情報を更新しました`,
+        });
+      } else {
+        const { error: insertError } = await supabase.from("customers").insert(customerData);
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        toast({
+          title: "顧客を登録しました",
+          description: `${data.company_name}を新規登録しました`,
+        });
       }
-    } else {
-      const { error } = await supabase.from("customers").insert(customerData);
 
-      if (error) {
-        console.error("Error creating customer:", error);
-        setLoading(false);
-        return;
-      }
+      router.push("/customers");
+      router.refresh();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "保存中にエラーが発生しました";
+      setError(errorMessage);
+      toast({
+        title: "エラーが発生しました",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/customers");
-    router.refresh();
   };
 
   return (
     <Card>
       <CardContent className="pt-6">
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -31,7 +31,9 @@ import {
   ChevronDown,
   CreditCard,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
+import { useToast } from "@/lib/hooks/use-toast";
 import { PaymentDialog } from "./payment-dialog";
 import Link from "next/link";
 
@@ -58,10 +60,12 @@ type SortDirection = "asc" | "desc";
 
 export function PaymentList({ payments, contracts }: PaymentListProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [searchValue, setSearchValue] = useState("");
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [sortField, setSortField] = useState<SortField>("expected_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   // Filter options
   const filterOptions: FilterOption[] = [
@@ -131,25 +135,69 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
 
   const handleMarkAsPaid = async (payment: Payment, e: React.MouseEvent) => {
     e.stopPropagation();
-    const supabase = createClient();
-    await supabase
-      .from("payments")
-      .update({
-        status: "入金済",
-        actual_date: new Date().toISOString().split("T")[0],
-        actual_amount: payment.expected_amount,
-      })
-      .eq("id", payment.id);
-    router.refresh();
+    if (processingId) return; // 処理中は無視
+
+    setProcessingId(payment.id);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("payments")
+        .update({
+          status: "入金済",
+          actual_date: new Date().toISOString().split("T")[0],
+          actual_amount: payment.expected_amount,
+        })
+        .eq("id", payment.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "入金済みに更新しました",
+        description: `${payment.contract?.title || "入金"}を入金済みに変更しました`,
+      });
+      router.refresh();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "更新中にエラーが発生しました";
+      toast({
+        title: "エラーが発生しました",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleDelete = async (paymentId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (processingId) return; // 処理中は無視
     if (!confirm("この入金情報を削除しますか？")) return;
 
-    const supabase = createClient();
-    await supabase.from("payments").delete().eq("id", paymentId);
-    router.refresh();
+    setProcessingId(paymentId);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("payments").delete().eq("id", paymentId);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "入金情報を削除しました",
+      });
+      router.refresh();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "削除中にエラーが発生しました";
+      toast({
+        title: "エラーが発生しました",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const formatAmount = (amount: number | null) => {
@@ -476,16 +524,21 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => handleMarkAsPaid(payment, e)}
+                        disabled={processingId === payment.id}
                         title="入金済みにする"
                       >
-                        <Check className="h-4 w-4 text-green-500" />
+                        {processingId === payment.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4 text-green-500" />
+                        )}
                       </Button>
                     )}
                     <PaymentDialog
                       payment={payment}
                       contracts={contracts}
                       trigger={
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" disabled={!!processingId}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                       }
@@ -494,8 +547,13 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
                       variant="ghost"
                       size="sm"
                       onClick={(e) => handleDelete(payment.id, e)}
+                      disabled={processingId === payment.id}
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      {processingId === payment.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      )}
                     </Button>
                   </div>
                 </TableCell>

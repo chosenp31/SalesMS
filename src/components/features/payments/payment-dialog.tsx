@@ -8,6 +8,7 @@ import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Payment, ContractOption } from "@/types";
 import { PAYMENT_STATUS_LABELS, PAYMENT_TYPE_LABELS } from "@/constants";
+import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,10 +38,22 @@ import {
 const paymentSchema = z.object({
   contract_id: z.string().min(1, "契約を選択してください"),
   payment_type: z.enum(["initial", "monthly", "final", "other"]),
-  expected_amount: z.string().optional(),
-  actual_amount: z.string().optional(),
-  expected_date: z.string().optional(),
-  actual_date: z.string().optional(),
+  expected_amount: z.string().optional().refine(
+    (val) => !val || parseFloat(val) >= 0,
+    { message: "予定金額は0以上で入力してください" }
+  ),
+  actual_amount: z.string().optional().refine(
+    (val) => !val || parseFloat(val) >= 0,
+    { message: "実績金額は0以上で入力してください" }
+  ),
+  expected_date: z.string().optional().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    { message: "有効な日付を入力してください" }
+  ),
+  actual_date: z.string().optional().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    { message: "有効な日付を入力してください" }
+  ),
   status: z.enum(["入金予定", "入金済"]),
   notes: z.string().optional(),
 });
@@ -55,56 +68,88 @@ interface PaymentDialogProps {
 
 export function PaymentDialog({ payment, contracts, trigger }: PaymentDialogProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const getDefaultValues = () => ({
+    contract_id: payment?.contract_id || "",
+    payment_type: payment?.payment_type || "initial" as const,
+    expected_amount: payment?.expected_amount?.toString() || "",
+    actual_amount: payment?.actual_amount?.toString() || "",
+    expected_date: payment?.expected_date || "",
+    actual_date: payment?.actual_date || "",
+    status: payment?.status || "入金予定" as const,
+    notes: payment?.notes || "",
+  });
+
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: {
-      contract_id: payment?.contract_id || "",
-      payment_type: payment?.payment_type || "initial",
-      expected_amount: payment?.expected_amount?.toString() || "",
-      actual_amount: payment?.actual_amount?.toString() || "",
-      expected_date: payment?.expected_date || "",
-      actual_date: payment?.actual_date || "",
-      status: payment?.status || "入金予定",
-      notes: payment?.notes || "",
-    },
+    defaultValues: getDefaultValues(),
   });
+
+  // ダイアログが閉じる時にフォームをリセット
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      form.reset(getDefaultValues());
+    }
+  };
 
   const onSubmit = async (data: PaymentFormValues) => {
     setLoading(true);
-    const supabase = createClient();
 
-    const paymentData = {
-      contract_id: data.contract_id,
-      payment_type: data.payment_type,
-      expected_amount: data.expected_amount
-        ? parseFloat(data.expected_amount)
-        : null,
-      actual_amount: data.actual_amount
-        ? parseFloat(data.actual_amount)
-        : null,
-      expected_date: data.expected_date || null,
-      actual_date: data.actual_date || null,
-      status: data.status,
-      notes: data.notes || null,
-    };
+    try {
+      const supabase = createClient();
 
-    if (payment) {
-      await supabase.from("payments").update(paymentData).eq("id", payment.id);
-    } else {
-      await supabase.from("payments").insert(paymentData);
+      const paymentData = {
+        contract_id: data.contract_id,
+        payment_type: data.payment_type,
+        expected_amount: data.expected_amount
+          ? parseFloat(data.expected_amount)
+          : null,
+        actual_amount: data.actual_amount
+          ? parseFloat(data.actual_amount)
+          : null,
+        expected_date: data.expected_date || null,
+        actual_date: data.actual_date || null,
+        status: data.status,
+        notes: data.notes || null,
+      };
+
+      if (payment) {
+        const { error } = await supabase.from("payments").update(paymentData).eq("id", payment.id);
+        if (error) throw error;
+
+        toast({
+          title: "入金情報を更新しました",
+        });
+      } else {
+        const { error } = await supabase.from("payments").insert(paymentData);
+        if (error) throw error;
+
+        toast({
+          title: "入金情報を登録しました",
+        });
+      }
+
+      setOpen(false);
+      form.reset(getDefaultValues());
+      router.refresh();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "保存中にエラーが発生しました";
+      toast({
+        title: "エラーが発生しました",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-    setOpen(false);
-    form.reset();
-    router.refresh();
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>

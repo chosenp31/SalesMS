@@ -8,6 +8,7 @@ import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Task, User, DealOption } from "@/types";
 import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, TASK_COMPANY_OPTIONS } from "@/constants";
+import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,7 +40,10 @@ const taskSchema = z.object({
   description: z.string().optional(),
   deal_id: z.string().optional(),
   assigned_user_id: z.string().min(1, "担当者を選択してください"),
-  due_date: z.string().optional(),
+  due_date: z.string().optional().refine(
+    (val) => !val || !isNaN(Date.parse(val)),
+    { message: "有効な日付を入力してください" }
+  ),
   status: z.enum(["未着手", "進行中", "完了"]),
   priority: z.enum(["high", "medium", "low"]),
   company: z.string().optional(),
@@ -63,52 +67,86 @@ export function TaskDialog({
   trigger,
 }: TaskDialogProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const getDefaultValues = () => ({
+    title: task?.title || "",
+    description: task?.description || "",
+    deal_id: task?.deal_id || "__none__",
+    assigned_user_id: task?.assigned_user_id || currentUserId,
+    due_date: task?.due_date || "",
+    status: task?.status || "未着手" as const,
+    priority: task?.priority || "medium" as const,
+    company: task?.company || "自社",
+  });
+
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
-    defaultValues: {
-      title: task?.title || "",
-      description: task?.description || "",
-      deal_id: task?.deal_id || "",
-      assigned_user_id: task?.assigned_user_id || currentUserId,
-      due_date: task?.due_date || "",
-      status: task?.status || "未着手",
-      priority: task?.priority || "medium",
-      company: task?.company || "自社",
-    },
+    defaultValues: getDefaultValues(),
   });
+
+  // ダイアログが閉じる時にフォームをリセット
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      form.reset(getDefaultValues());
+    }
+  };
 
   const onSubmit = async (data: TaskFormValues) => {
     setLoading(true);
-    const supabase = createClient();
 
-    const taskData = {
-      title: data.title,
-      description: data.description || null,
-      deal_id: data.deal_id || null,
-      assigned_user_id: data.assigned_user_id,
-      due_date: data.due_date || null,
-      status: data.status,
-      priority: data.priority,
-      company: data.company || null,
-    };
+    try {
+      const supabase = createClient();
 
-    if (task) {
-      await supabase.from("tasks").update(taskData).eq("id", task.id);
-    } else {
-      await supabase.from("tasks").insert(taskData);
+      const taskData = {
+        title: data.title,
+        description: data.description || null,
+        deal_id: data.deal_id === "__none__" ? null : (data.deal_id || null),
+        assigned_user_id: data.assigned_user_id,
+        due_date: data.due_date || null,
+        status: data.status,
+        priority: data.priority,
+        company: data.company || null,
+      };
+
+      if (task) {
+        const { error } = await supabase.from("tasks").update(taskData).eq("id", task.id);
+        if (error) throw error;
+
+        toast({
+          title: "タスクを更新しました",
+          description: `${data.title}を更新しました`,
+        });
+      } else {
+        const { error } = await supabase.from("tasks").insert(taskData);
+        if (error) throw error;
+
+        toast({
+          title: "タスクを作成しました",
+          description: `${data.title}を作成しました`,
+        });
+      }
+
+      setOpen(false);
+      form.reset(getDefaultValues());
+      router.refresh();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "保存中にエラーが発生しました";
+      toast({
+        title: "エラーが発生しました",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-    setOpen(false);
-    form.reset();
-    router.refresh();
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
@@ -292,7 +330,7 @@ export function TaskDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">なし</SelectItem>
+                        <SelectItem value="__none__">なし</SelectItem>
                         {deals.map((deal) => (
                           <SelectItem key={deal.id} value={deal.id}>
                             {deal.title}

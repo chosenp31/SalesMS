@@ -8,6 +8,7 @@ import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Customer, Deal, User, DealStatus } from "@/types";
 import { DEAL_STATUS_LABELS } from "@/constants";
+import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +35,10 @@ const dealSchema = z.object({
   assigned_user_id: z.string().min(1, "担当者を選択してください"),
   status: z.enum(["active", "won", "lost", "pending"]),
   description: z.string().optional(),
-  total_amount: z.string().optional(),
+  total_amount: z.string().optional().refine(
+    (val) => !val || parseFloat(val) >= 0,
+    { message: "合計金額は0以上で入力してください" }
+  ),
 });
 
 type DealFormValues = z.infer<typeof dealSchema>;
@@ -55,7 +59,9 @@ export function DealForm({
   currentUserId,
 }: DealFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<DealFormValues>({
     resolver: zodResolver(dealSchema),
@@ -71,47 +77,72 @@ export function DealForm({
 
   const onSubmit = async (data: DealFormValues) => {
     setLoading(true);
-    const supabase = createClient();
+    setError(null);
 
-    const dealData = {
-      title: data.title,
-      customer_id: data.customer_id,
-      assigned_user_id: data.assigned_user_id,
-      status: data.status as DealStatus,
-      description: data.description || null,
-      total_amount: data.total_amount
-        ? parseFloat(data.total_amount)
-        : null,
-    };
+    try {
+      const supabase = createClient();
 
-    if (deal) {
-      const { error } = await supabase
-        .from("deals")
-        .update(dealData)
-        .eq("id", deal.id);
+      const dealData = {
+        title: data.title,
+        customer_id: data.customer_id,
+        assigned_user_id: data.assigned_user_id,
+        status: data.status as DealStatus,
+        description: data.description || null,
+        total_amount: data.total_amount
+          ? parseFloat(data.total_amount)
+          : null,
+      };
 
-      if (error) {
-        console.error("Error updating deal:", error);
-        setLoading(false);
-        return;
+      if (deal) {
+        const { error: updateError } = await supabase
+          .from("deals")
+          .update(dealData)
+          .eq("id", deal.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        toast({
+          title: "案件を更新しました",
+          description: `${data.title}の情報を更新しました`,
+        });
+      } else {
+        const { error: insertError } = await supabase.from("deals").insert(dealData);
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        toast({
+          title: "案件を登録しました",
+          description: `${data.title}を新規登録しました`,
+        });
       }
-    } else {
-      const { error } = await supabase.from("deals").insert(dealData);
 
-      if (error) {
-        console.error("Error creating deal:", error);
-        setLoading(false);
-        return;
-      }
+      router.push("/deals");
+      router.refresh();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "保存中にエラーが発生しました";
+      setError(errorMessage);
+      toast({
+        title: "エラーが発生しました",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/deals");
-    router.refresh();
   };
 
   return (
     <Card>
       <CardContent className="pt-6">
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
