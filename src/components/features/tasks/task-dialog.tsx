@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Task, User, DealOption } from "@/types";
-import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, TASK_COMPANY_OPTIONS } from "@/constants";
+import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,6 @@ const taskSchema = z.object({
   ),
   status: z.enum(["未着手", "進行中", "完了"]),
   priority: z.enum(["high", "medium", "low"]),
-  company: z.string().optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -79,7 +78,6 @@ export function TaskDialog({
     due_date: task?.due_date || "",
     status: task?.status || "未着手" as const,
     priority: task?.priority || "medium" as const,
-    company: task?.company || "自社",
   });
 
   const form = useForm<TaskFormValues>({
@@ -109,7 +107,6 @@ export function TaskDialog({
         due_date: data.due_date || null,
         status: data.status,
         priority: data.priority,
-        company: data.company || null,
       };
 
       if (task) {
@@ -184,62 +181,33 @@ export function TaskDialog({
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="assigned_user_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>担当者 *</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="担当者を選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>担当会社</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="担当会社を選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {TASK_COMPANY_OPTIONS.map((company) => (
-                          <SelectItem key={company} value={company}>
-                            {company}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="assigned_user_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>担当者 *</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="担当者を選択" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}

@@ -22,7 +22,8 @@ export default async function ContractDetailPage({
       deal:deals(
         id,
         title,
-        customer:customers(id, company_name)
+        deal_number,
+        customer:customers(id, company_name, customer_number)
       )
     `)
     .eq("id", id)
@@ -32,19 +33,37 @@ export default async function ContractDetailPage({
     notFound();
   }
 
-  // Get lease applications for this contract
-  const { data: leaseApplications } = await supabase
-    .from("lease_applications")
-    .select("*")
-    .eq("contract_id", id)
-    .order("created_at", { ascending: false });
-
   // Get payments for this contract
   const { data: payments } = await supabase
     .from("payments")
     .select("*")
     .eq("contract_id", id)
     .order("expected_date", { ascending: true });
+
+  // Get tasks for this contract
+  const { data: tasks } = await supabase
+    .from("tasks")
+    .select(`
+      *,
+      assigned_user:users(*),
+      deal:deals(
+        id,
+        title,
+        customer:customers(id, company_name)
+      ),
+      contract:contracts(id, title, status, phase)
+    `)
+    .eq("contract_id", id)
+    .order("due_date", { ascending: true });
+
+  // Get users for task assignment
+  const { data: users } = await supabase
+    .from("users")
+    .select("*")
+    .order("name");
+
+  // 仮のcurrentUserId（認証が無効化されているため最初のユーザーを使用）
+  const currentUserId = users?.[0]?.id || "";
 
   return (
     <div className="space-y-6">
@@ -70,8 +89,10 @@ export default async function ContractDetailPage({
       </div>
       <ContractDetail
         contract={contract}
-        leaseApplications={leaseApplications || []}
         payments={payments || []}
+        tasks={tasks || []}
+        users={users || []}
+        currentUserId={currentUserId}
       />
     </div>
   );

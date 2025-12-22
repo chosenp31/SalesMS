@@ -7,12 +7,28 @@ import {
   CONTRACT_PHASE_LABELS,
   STATUS_TO_PHASE,
   PHASE_STATUSES,
+  STATUS_DETAILS,
+  STATUS_COMPLETION_MESSAGES,
 } from "@/constants";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, ChevronRight, Info } from "lucide-react";
 
 // StatusWorkflowが必要とする最小限の契約情報
 interface ContractForWorkflow {
@@ -109,9 +125,52 @@ const phaseColors: Record<string, { bg: string; border: string; text: string; ac
   },
 };
 
+// ステータスツールチップコンポーネント
+function StatusTooltip({ status, children }: { status: string; children: React.ReactNode }) {
+  const details = STATUS_DETAILS[status];
+
+  if (!details) {
+    return <>{children}</>;
+  }
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {children}
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs p-3">
+          <div className="space-y-2">
+            <p className="font-medium text-sm">{CONTRACT_STATUS_LABELS[status] || status}</p>
+            <p className="text-xs text-gray-600">{details.description}</p>
+            {details.note && (
+              <p className="text-xs text-gray-500 italic">{details.note}</p>
+            )}
+            <div className="pt-1 border-t">
+              <p className="text-xs">
+                <span className="font-medium text-primary">次のアクション:</span>{" "}
+                {details.action}
+              </p>
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function StatusWorkflow({ contract }: StatusWorkflowProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    targetStatus: string;
+    message: string;
+  }>({
+    open: false,
+    targetStatus: "",
+    message: "",
+  });
 
   // 現在のフェーズを取得（旧フェーズの場合はマッピングする）
   let currentPhase = STATUS_TO_PHASE[contract.status] || "商談中";
@@ -123,6 +182,7 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
   const currentPhaseStatuses = PHASE_STATUSES[currentPhase] || [];
   const colors = phaseColors[currentPhase] || phaseColors["商談中"];
 
+  // ステータス更新処理
   const updateStatus = async (newStatus: string) => {
     setLoading(true);
     const supabase = createClient();
@@ -140,142 +200,227 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
     }
 
     setLoading(false);
+    setConfirmDialog({ open: false, targetStatus: "", message: "" });
     router.refresh();
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>契約ステータス</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Phase Progress */}
-        <div className="flex items-center justify-between mb-6 overflow-x-auto">
-          {phaseOrder.map((phase, index) => {
-            const isCompleted = index < currentPhaseIndex;
-            const isCurrent = index === currentPhaseIndex;
-            const phaseColor = phaseColors[phase] || phaseColors["商談中"];
+  // 確認ダイアログを開く
+  const openConfirmDialog = (targetStatus: string) => {
+    const message = STATUS_COMPLETION_MESSAGES[contract.status] || `${CONTRACT_STATUS_LABELS[targetStatus] || targetStatus}に進みますか？`;
+    setConfirmDialog({
+      open: true,
+      targetStatus,
+      message,
+    });
+  };
 
-            return (
-              <div key={phase} className="flex items-center flex-1 min-w-[80px]">
-                <div className="flex flex-col items-center flex-1">
-                  <div
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center border-2",
-                      isCompleted && `${phaseColor.active} border-transparent`,
-                      isCurrent && `${phaseColor.bg} ${phaseColor.border}`,
-                      !isCompleted && !isCurrent && "bg-gray-100 border-gray-200"
-                    )}
-                  >
-                    {isCompleted ? (
-                      <Check className="h-5 w-5 text-white" />
-                    ) : (
-                      <span
+  // 現在のステータスの次のステータスを取得
+  const getNextStatus = () => {
+    const currentStatusIndex = currentPhaseStatuses.indexOf(contract.status);
+
+    // 現在のフェーズ内に次のステータスがある場合
+    if (currentStatusIndex >= 0 && currentStatusIndex < currentPhaseStatuses.length - 1) {
+      return currentPhaseStatuses[currentStatusIndex + 1];
+    }
+
+    // 次のフェーズの最初のステータス
+    if (currentPhaseIndex >= 0 && currentPhaseIndex < phaseOrder.length - 1) {
+      const nextPhase = phaseOrder[currentPhaseIndex + 1];
+      const nextPhaseStatuses = PHASE_STATUSES[nextPhase];
+      if (nextPhaseStatuses && nextPhaseStatuses.length > 0) {
+        return nextPhaseStatuses[0];
+      }
+    }
+
+    return null;
+  };
+
+  const nextStatus = getNextStatus();
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            契約ステータス
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  <p className="text-xs">各ステータスにカーソルを合わせると詳細が表示されます</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Phase Progress */}
+          <div className="flex items-center justify-between mb-6 overflow-x-auto">
+            {phaseOrder.map((phase, index) => {
+              const isCompleted = index < currentPhaseIndex;
+              const isCurrent = index === currentPhaseIndex;
+              const phaseColor = phaseColors[phase] || phaseColors["商談中"];
+
+              return (
+                <div key={phase} className="flex items-center flex-1 min-w-[80px]">
+                  <div className="flex flex-col items-center flex-1">
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center border-2",
+                        isCompleted && `${phaseColor.active} border-transparent`,
+                        isCurrent && `${phaseColor.bg} ${phaseColor.border}`,
+                        !isCompleted && !isCurrent && "bg-gray-100 border-gray-200"
+                      )}
+                    >
+                      {isCompleted ? (
+                        <Check className="h-5 w-5 text-white" />
+                      ) : (
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            isCurrent ? phaseColor.text : "text-gray-400"
+                          )}
+                        >
+                          {index + 1}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={cn(
+                        "mt-2 text-xs font-medium text-center",
+                        isCurrent ? phaseColor.text : "text-gray-500"
+                      )}
+                    >
+                      {CONTRACT_PHASE_LABELS[phase] || phase}
+                    </span>
+                  </div>
+                  {index < phaseOrder.length - 1 && (
+                    <ChevronRight className="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Current Phase Statuses */}
+          {currentPhaseStatuses.length > 0 && (
+            <div className={cn("p-4 rounded-lg", colors.bg)}>
+              <h4 className={cn("text-sm font-medium mb-3", colors.text)}>
+                {CONTRACT_PHASE_LABELS[currentPhase] || currentPhase}のステータス
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {currentPhaseStatuses.map((status) => {
+                  const isCurrentStatus = contract.status === status;
+                  return (
+                    <StatusTooltip key={status} status={status}>
+                      <Button
+                        variant={isCurrentStatus ? "default" : "outline"}
+                        size="sm"
+                        disabled={loading || isCurrentStatus}
+                        onClick={() => {
+                          if (!isCurrentStatus) {
+                            openConfirmDialog(status);
+                          }
+                        }}
                         className={cn(
-                          "text-sm font-medium",
-                          isCurrent ? phaseColor.text : "text-gray-400"
+                          isCurrentStatus && colors.active,
+                          "cursor-pointer"
                         )}
                       >
-                        {index + 1}
-                      </span>
-                    )}
-                  </div>
-                  <span
-                    className={cn(
-                      "mt-2 text-xs font-medium text-center",
-                      isCurrent ? phaseColor.text : "text-gray-500"
-                    )}
-                  >
-                    {CONTRACT_PHASE_LABELS[phase] || phase}
-                  </span>
-                </div>
-                {index < phaseOrder.length - 1 && (
-                  <ChevronRight className="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" />
-                )}
+                        {CONTRACT_STATUS_LABELS[status] || status}
+                      </Button>
+                    </StatusTooltip>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-
-        {/* Current Phase Statuses */}
-        {currentPhaseStatuses.length > 0 && (
-          <div className={cn("p-4 rounded-lg", colors.bg)}>
-            <h4 className={cn("text-sm font-medium mb-3", colors.text)}>
-              {CONTRACT_PHASE_LABELS[currentPhase] || currentPhase}のステータス
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {currentPhaseStatuses.map((status) => {
-                const isCurrentStatus = contract.status === status;
-                return (
-                  <Button
-                    key={status}
-                    variant={isCurrentStatus ? "default" : "outline"}
-                    size="sm"
-                    disabled={loading || isCurrentStatus}
-                    onClick={() => updateStatus(status)}
-                    className={cn(
-                      isCurrentStatus && colors.active
-                    )}
-                  >
-                    {CONTRACT_STATUS_LABELS[status] || status}
-                  </Button>
-                );
-              })}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Quick Phase Change */}
-        {currentPhaseIndex >= 0 && currentPhaseIndex < phaseOrder.length - 1 && (
+          {/* Next Status Button */}
+          {nextStatus && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-gray-500 mb-2">
+                次のステータスに進む場合は、以下のボタンをクリックしてください。
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loading}
+                onClick={() => openConfirmDialog(nextStatus)}
+              >
+                {CONTRACT_STATUS_LABELS[nextStatus] || nextStatus}へ進む
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+
+          {/* 否決へ変更 */}
           <div className="mt-4 pt-4 border-t">
             <p className="text-sm text-gray-500 mb-2">
-              次のフェーズに進む場合は、以下のボタンをクリックしてください。
+              否決の場合
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={loading}
-              onClick={() => {
-                const nextPhase = phaseOrder[currentPhaseIndex + 1];
-                const nextPhaseStatuses = PHASE_STATUSES[nextPhase];
-                if (nextPhaseStatuses && nextPhaseStatuses.length > 0) {
-                  updateStatus(nextPhaseStatuses[0]);
-                }
-              }}
-            >
-              {CONTRACT_PHASE_LABELS[phaseOrder[currentPhaseIndex + 1]] || phaseOrder[currentPhaseIndex + 1]}へ進む
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+            <div className="flex gap-2">
+              <StatusTooltip status="対応検討中">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={loading || contract.status === "対応検討中"}
+                  onClick={() => openConfirmDialog("対応検討中")}
+                  className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                >
+                  対応検討中
+                </Button>
+              </StatusTooltip>
+              <StatusTooltip status="失注">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={loading || contract.status === "失注"}
+                  onClick={() => openConfirmDialog("失注")}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  失注
+                </Button>
+              </StatusTooltip>
+            </div>
           </div>
-        )}
+        </CardContent>
+      </Card>
 
-        {/* 否決へ変更 */}
-        <div className="mt-4 pt-4 border-t">
-          <p className="text-sm text-gray-500 mb-2">
-            否決の場合
-          </p>
-          <div className="flex gap-2">
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDialog({ open: false, targetStatus: "", message: "" });
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>ステータス変更の確認</DialogTitle>
+            <DialogDescription className="pt-2">
+              {confirmDialog.message}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              size="sm"
-              disabled={loading || contract.status === "対応検討中"}
-              onClick={() => updateStatus("対応検討中")}
-              className="text-orange-600 border-orange-200 hover:bg-orange-50"
+              onClick={() => setConfirmDialog({ open: false, targetStatus: "", message: "" })}
             >
-              対応検討中
+              キャンセル
             </Button>
             <Button
-              variant="outline"
-              size="sm"
-              disabled={loading || contract.status === "失注"}
-              onClick={() => updateStatus("失注")}
-              className="text-red-600 border-red-200 hover:bg-red-50"
+              onClick={() => updateStatus(confirmDialog.targetStatus)}
+              disabled={loading}
             >
-              失注
+              {loading ? "更新中..." : "完了"}
             </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

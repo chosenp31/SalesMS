@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,13 +21,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -37,7 +30,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Plus, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+// 新しい契約種類のみ（旧タイプを除外）
+const NEW_CONTRACT_TYPES: ContractType[] = ["property", "line", "maintenance"];
 
 // 契約選択の型
 type ContractSelection = {
@@ -86,8 +103,32 @@ export function DealForm({
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
   const [customerLoading, setCustomerLoading] = useState(false);
 
+  // オートコンプリート用の状態
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [userOpen, setUserOpen] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+
   // 契約選択状態
   const [contractSelections, setContractSelections] = useState<ContractSelection[]>([]);
+
+  // フィルタされた顧客リスト
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearch) return customers;
+    const search = customerSearch.toLowerCase();
+    return customers.filter(
+      (customer) =>
+        customer.company_name.toLowerCase().includes(search) ||
+        customer.representative_name?.toLowerCase().includes(search)
+    );
+  }, [customers, customerSearch]);
+
+  // フィルタされたユーザーリスト
+  const filteredUsers = useMemo(() => {
+    if (!userSearch) return users;
+    const search = userSearch.toLowerCase();
+    return users.filter((user) => user.name.toLowerCase().includes(search));
+  }, [users, userSearch]);
 
   const form = useForm<DealFormValues>({
     resolver: zodResolver(dealSchema),
@@ -303,31 +344,74 @@ export function DealForm({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 顧客選択 */}
+                {/* 顧客選択（オートコンプリート） */}
                 <FormField
                   control={form.control}
                   name="customer_id"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>顧客名 *</FormLabel>
                       <div className="flex gap-2">
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="顧客を選択" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {customers.map((customer) => (
-                              <SelectItem key={customer.id} value={customer.id}>
-                                {customer.company_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={customerOpen}
+                                className={cn(
+                                  "flex-1 justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value
+                                  ? customers.find((c) => c.id === field.value)?.company_name
+                                  : "顧客名を入力して検索..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0" align="start">
+                            <Command shouldFilter={false}>
+                              <CommandInput
+                                placeholder="顧客名で検索..."
+                                value={customerSearch}
+                                onValueChange={setCustomerSearch}
+                              />
+                              <CommandList>
+                                <CommandEmpty>顧客が見つかりません</CommandEmpty>
+                                <CommandGroup>
+                                  {filteredCustomers.slice(0, 50).map((customer) => (
+                                    <CommandItem
+                                      key={customer.id}
+                                      value={customer.id}
+                                      onSelect={() => {
+                                        field.onChange(customer.id);
+                                        setCustomerOpen(false);
+                                        setCustomerSearch("");
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value === customer.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <div className="flex flex-col">
+                                        <span>{customer.company_name}</span>
+                                        {customer.representative_name && (
+                                          <span className="text-xs text-muted-foreground">
+                                            {customer.representative_name}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <Button
                           type="button"
                           variant="outline"
@@ -342,30 +426,66 @@ export function DealForm({
                   )}
                 />
 
-                {/* 管理者選択 */}
+                {/* 管理者選択（オートコンプリート） */}
                 <FormField
                   control={form.control}
                   name="assigned_user_id"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>管理者 *</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="管理者を選択" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {users.map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={userOpen} onOpenChange={setUserOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={userOpen}
+                              className={cn(
+                                "justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? users.find((u) => u.id === field.value)?.name
+                                : "管理者名を入力して検索..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command shouldFilter={false}>
+                            <CommandInput
+                              placeholder="管理者名で検索..."
+                              value={userSearch}
+                              onValueChange={setUserSearch}
+                            />
+                            <CommandList>
+                              <CommandEmpty>管理者が見つかりません</CommandEmpty>
+                              <CommandGroup>
+                                {filteredUsers.map((user) => (
+                                  <CommandItem
+                                    key={user.id}
+                                    value={user.id}
+                                    onSelect={() => {
+                                      field.onChange(user.id);
+                                      setUserOpen(false);
+                                      setUserSearch("");
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value === user.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {user.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -377,7 +497,7 @@ export function DealForm({
                 <div className="space-y-4">
                   <FormLabel>契約種類 *（複数選択可）</FormLabel>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {(Object.keys(CONTRACT_TYPE_LABELS) as ContractType[]).map((type) => (
+                    {NEW_CONTRACT_TYPES.map((type) => (
                       <div key={type} className="border rounded-lg p-4 space-y-3">
                         <div className="flex items-center space-x-2">
                           <Checkbox
