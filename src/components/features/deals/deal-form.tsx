@@ -11,7 +11,6 @@ import { CONTRACT_TYPE_LABELS, PRODUCT_CATEGORIES_BY_CONTRACT_TYPE } from "@/con
 import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
@@ -65,7 +64,6 @@ type ContractSelection = {
 const dealSchema = z.object({
   customer_id: z.string().min(1, "顧客を選択してください"),
   assigned_user_id: z.string().min(1, "管理者を選択してください"),
-  description: z.string().optional(),
 });
 
 const customerSchema = z.object({
@@ -138,7 +136,6 @@ export function DealForm({
     defaultValues: {
       customer_id: deal?.customer_id || defaultCustomerId || "",
       assigned_user_id: deal?.assigned_user_id || effectiveUserId,
-      description: deal?.description || "",
     },
   });
 
@@ -258,7 +255,6 @@ export function DealForm({
         customer_id: data.customer_id,
         assigned_user_id: data.assigned_user_id,
         status: "active" as const,
-        description: data.description || null,
         total_amount: null,
       };
 
@@ -547,25 +543,6 @@ export function DealForm({
                   </div>
                 </div>
               )}
-
-              {/* 備考 */}
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>備考</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="案件に関するメモを入力..."
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <div className="flex justify-end space-x-4">
                 <Button
