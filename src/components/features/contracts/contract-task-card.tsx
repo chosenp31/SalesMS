@@ -131,9 +131,6 @@ function NewTaskDialog({
     try {
       const supabase = createClient();
 
-      // フェーズを取得
-      const phase = STATUS_TO_PHASE[contract.status] || "商談中";
-
       const taskData = {
         title: data.title,
         description: null,
@@ -143,8 +140,6 @@ function NewTaskDialog({
         due_date: data.due_date || null,
         status: data.status,
         priority: data.priority,
-        phase: phase,
-        contract_status: contract.status,
       };
 
       const { error } = await supabase.from("tasks").insert(taskData);
