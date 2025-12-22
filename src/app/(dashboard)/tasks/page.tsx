@@ -1,8 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { TaskList } from "@/components/features/tasks/task-list";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { TaskDialog } from "@/components/features/tasks/task-dialog";
+import { NewTaskMessageDialog } from "@/components/features/tasks/new-task-message-dialog";
 
 interface TasksPageProps {
   searchParams: Promise<{ contract_id?: string; status?: string }>;
@@ -83,17 +81,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
           <h1 className="text-2xl font-bold text-gray-900">タスク管理</h1>
           <p className="text-sm text-gray-500">{filterDescription}</p>
         </div>
-        <TaskDialog
-          users={users || []}
-          deals={deals || []}
-          currentUserId={authUser?.id || ""}
-          trigger={
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              新規タスク
-            </Button>
-          }
-        />
+<NewTaskMessageDialog />
       </div>
       <TaskList
         tasks={tasks || []}
