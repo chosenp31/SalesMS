@@ -30,12 +30,20 @@ interface DealListProps {
 }
 
 const phaseColors: Record<string, string> = {
-  商談中: "bg-blue-100 text-blue-800",
-  審査中: "bg-yellow-100 text-yellow-800",
-  工事中: "bg-purple-100 text-purple-800",
-  入金中: "bg-green-100 text-green-800",
-  失注: "bg-red-100 text-red-800",
-  クローズ: "bg-gray-100 text-gray-800",
+  // 新スキーマのフェーズ
+  商談中: "bg-blue-100 text-blue-800 border-blue-200",
+  "審査・申込中": "bg-yellow-100 text-yellow-800 border-yellow-200",
+  "下見・工事中": "bg-purple-100 text-purple-800 border-purple-200",
+  契約中: "bg-indigo-100 text-indigo-800 border-indigo-200",
+  入金中: "bg-green-100 text-green-800 border-green-200",
+  請求中: "bg-teal-100 text-teal-800 border-teal-200",
+  完了: "bg-gray-100 text-gray-800 border-gray-200",
+  否決: "bg-red-100 text-red-800 border-red-200",
+  // 旧スキーマ（後方互換性）
+  審査中: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  工事中: "bg-purple-100 text-purple-800 border-purple-200",
+  失注: "bg-red-100 text-red-800 border-red-200",
+  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
 type SortField = "deal_id" | "customer" | "product" | "phase_breakdown" | "contracts" | "assigned_user" | "created_at";
