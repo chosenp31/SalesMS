@@ -1,6 +1,6 @@
 "use client";
 
-import { LeaseApplication, Payment } from "@/types";
+import { Payment, Task, User } from "@/types";
 import { Tables } from "@/types/database";
 import {
   CONTRACT_TYPE_LABELS,
@@ -11,32 +11,37 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { StatusWorkflow } from "../deals/status-workflow";
-import { LeaseApplications } from "../deals/lease-applications";
-import Link from "next/link";
-import { Building2, Calendar, CreditCard, FileText } from "lucide-react";
+import { ContractTaskCard } from "./contract-task-card";
+import { Calendar, CreditCard, FileText } from "lucide-react";
 
 // 契約詳細ページ用の型（部分的なdeal情報を含む）
 type ContractWithPartialDeal = Tables<"contracts"> & {
   deal?: {
     id: string;
     title: string;
+    deal_number?: number;
     customer?: {
       id: string;
       company_name: string;
+      customer_number?: number;
     };
   };
 };
 
 interface ContractDetailProps {
   contract: ContractWithPartialDeal;
-  leaseApplications: LeaseApplication[];
   payments: Payment[];
+  tasks: Task[];
+  users: User[];
+  currentUserId: string;
 }
 
 export function ContractDetail({
   contract,
-  leaseApplications,
   payments,
+  tasks,
+  users,
+  currentUserId,
 }: ContractDetailProps) {
   const formatAmount = (amount: number | null) => {
     if (!amount) return "-";
@@ -202,51 +207,13 @@ export function ContractDetail({
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Lease Applications */}
-          <LeaseApplications
-            contractId={contract.id}
-            applications={leaseApplications}
+          {/* Task Card */}
+          <ContractTaskCard
+            contract={contract}
+            tasks={tasks}
+            users={users}
+            currentUserId={currentUserId}
           />
-
-          {/* Deal Info */}
-          {contract.deal && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Building2 className="h-5 w-5 mr-2" />
-                  商談情報
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">商談名</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      <Link
-                        href={`/deals/${contract.deal.id}`}
-                        className="text-primary hover:underline"
-                      >
-                        {contract.deal.title}
-                      </Link>
-                    </dd>
-                  </div>
-                  {contract.deal.customer && (
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">顧客</dt>
-                      <dd className="mt-1 text-sm text-gray-900">
-                        <Link
-                          href={`/customers/${contract.deal.customer.id}`}
-                          className="text-primary hover:underline"
-                        >
-                          {contract.deal.customer.company_name}
-                        </Link>
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>

@@ -29,7 +29,7 @@ import { ja } from "date-fns/locale";
 import { cn, formatDealId, formatContractId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, Building2, ExternalLink, X } from "lucide-react";
+import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, ExternalLink, X } from "lucide-react";
 import { TaskDialog } from "./task-dialog";
 import Link from "next/link";
 
@@ -109,7 +109,7 @@ const statusColors: Record<TaskStatus, string> = {
   完了: "bg-green-100 text-green-800 border-green-200",
 };
 
-type SortField = "title" | "phase" | "contractStatus" | "customer" | "deal" | "contract" | "company" | "assigned_user" | "priority" | "status" | "due_date";
+type SortField = "title" | "phase" | "contractStatus" | "customer" | "deal" | "contract" | "assigned_user" | "priority" | "status" | "due_date";
 type SortDirection = "asc" | "desc";
 
 export function TaskList({ tasks, users, deals, currentUserId, filterContractId, filterStatus }: TaskListProps) {
@@ -250,8 +250,7 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
           task.deal?.title?.toLowerCase().includes(lowerSearch) ||
           task.deal?.customer?.company_name?.toLowerCase().includes(lowerSearch) ||
           task.contract?.title?.toLowerCase().includes(lowerSearch) ||
-          task.assigned_user?.name?.toLowerCase().includes(lowerSearch) ||
-          task.company?.toLowerCase().includes(lowerSearch)
+          task.assigned_user?.name?.toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -290,9 +289,6 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
           break;
         case "contract":
           comparison = (a.contract?.title || "").localeCompare(b.contract?.title || "");
-          break;
-        case "company":
-          comparison = (a.company || "").localeCompare(b.company || "");
           break;
         case "assigned_user":
           comparison = (a.assigned_user?.name || "").localeCompare(b.assigned_user?.name || "");
@@ -456,9 +452,6 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
                   <SortHeader field="contract">契約ID</SortHeader>
                 </TableHead>
                 <TableHead>
-                  <SortHeader field="company">担当会社</SortHeader>
-                </TableHead>
-                <TableHead>
                   <SortHeader field="assigned_user">担当者</SortHeader>
                 </TableHead>
                 <TableHead>
@@ -579,16 +572,6 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
                           <span className="font-mono text-xs text-gray-500">{contractDisplayId}</span>
                           <ExternalLink className="h-3 w-3" />
                         </Link>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {task.company ? (
-                        <div className="flex items-center gap-1.5 text-gray-600">
-                          <Building2 className="h-3.5 w-3.5" />
-                          <span className="text-sm">{task.company}</span>
-                        </div>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
