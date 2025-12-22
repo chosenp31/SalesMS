@@ -43,6 +43,16 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
+  // Get users for demo mode fallback
+  const { data: users } = await supabase
+    .from("users")
+    .select("id")
+    .order("name")
+    .limit(1);
+
+  // デモモード時のデフォルトユーザーID（認証無効時は最初のユーザーを使用）
+  const defaultUserId = authUser?.id || users?.[0]?.id || "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -68,7 +78,7 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
       <DealDetail
         deal={deal}
         activities={activities || []}
-        currentUserId={authUser?.id || ""}
+        currentUserId={defaultUserId}
       />
     </div>
   );

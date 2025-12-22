@@ -26,6 +26,9 @@ export default async function NewDealPage({ searchParams }: NewDealPageProps) {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
+  // デモモード時のデフォルトユーザーID（認証無効時は最初のユーザーを使用）
+  const defaultUserId = authUser?.id || users?.[0]?.id;
+
   return (
     <div className="space-y-6">
       <div>
@@ -36,7 +39,7 @@ export default async function NewDealPage({ searchParams }: NewDealPageProps) {
         customers={customers || []}
         users={users || []}
         defaultCustomerId={customer_id}
-        currentUserId={authUser?.id}
+        currentUserId={defaultUserId}
       />
     </div>
   );

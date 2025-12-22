@@ -76,6 +76,9 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
     filterDescription = "未完了タスクの一覧";
   }
 
+  // デモモード時のデフォルトユーザーID（認証無効時は最初のユーザーを使用）
+  const defaultUserId = authUser?.id || users?.[0]?.id || "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -86,7 +89,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         <TaskDialog
           users={users || []}
           deals={deals || []}
-          currentUserId={authUser?.id || ""}
+          currentUserId={defaultUserId}
           trigger={
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -99,7 +102,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         tasks={tasks || []}
         users={users || []}
         deals={deals || []}
-        currentUserId={authUser?.id || ""}
+        currentUserId={defaultUserId}
         filterContractId={contractIdFilter}
         filterStatus={statusFilter}
       />
