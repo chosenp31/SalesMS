@@ -130,11 +130,14 @@ export function DealForm({
     return users.filter((user) => user.name.toLowerCase().includes(search));
   }, [users, userSearch]);
 
+  // デフォルトユーザーIDを確保（currentUserIdが空の場合はユーザーリストの最初を使用）
+  const effectiveUserId = currentUserId || users[0]?.id || "";
+
   const form = useForm<DealFormValues>({
     resolver: zodResolver(dealSchema),
     defaultValues: {
       customer_id: deal?.customer_id || defaultCustomerId || "",
-      assigned_user_id: deal?.assigned_user_id || currentUserId || "",
+      assigned_user_id: deal?.assigned_user_id || effectiveUserId,
       description: deal?.description || "",
     },
   });
@@ -314,7 +317,8 @@ export function DealForm({
       router.push("/deals");
       router.refresh();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "保存中にエラーが発生しました";
+      console.error("案件登録エラー:", err);
+      const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
       setError(errorMessage);
       toast({
         title: "エラーが発生しました",
