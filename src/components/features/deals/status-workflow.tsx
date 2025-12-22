@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ContractStatus } from "@/types";
 import {
   CONTRACT_STATUS_LABELS,
   CONTRACT_PHASE_LABELS,
@@ -18,14 +17,21 @@ import { Check, ChevronRight } from "lucide-react";
 // StatusWorkflowが必要とする最小限の契約情報
 interface ContractForWorkflow {
   id: string;
-  status: ContractStatus;
+  status: string;  // 新旧両方の値に対応
 }
 
 interface StatusWorkflowProps {
   contract: ContractForWorkflow;
 }
 
-const phaseOrder = ["商談中", "審査中", "工事中", "入金中"];
+// 新しいフェーズ順序
+const phaseOrder = ["商談中", "審査・申込中", "下見・工事中", "契約中", "入金中", "請求中"];
+
+// 旧フェーズから新フェーズへのマッピング
+const phaseMapping: Record<string, string> = {
+  審査中: "審査・申込中",
+  工事中: "下見・工事中",
+};
 
 const phaseColors: Record<string, { bg: string; border: string; text: string; active: string }> = {
   商談中: {
@@ -34,6 +40,49 @@ const phaseColors: Record<string, { bg: string; border: string; text: string; ac
     text: "text-blue-800",
     active: "bg-blue-500",
   },
+  "審査・申込中": {
+    bg: "bg-yellow-50",
+    border: "border-yellow-200",
+    text: "text-yellow-800",
+    active: "bg-yellow-500",
+  },
+  "下見・工事中": {
+    bg: "bg-purple-50",
+    border: "border-purple-200",
+    text: "text-purple-800",
+    active: "bg-purple-500",
+  },
+  契約中: {
+    bg: "bg-indigo-50",
+    border: "border-indigo-200",
+    text: "text-indigo-800",
+    active: "bg-indigo-500",
+  },
+  入金中: {
+    bg: "bg-green-50",
+    border: "border-green-200",
+    text: "text-green-800",
+    active: "bg-green-500",
+  },
+  請求中: {
+    bg: "bg-teal-50",
+    border: "border-teal-200",
+    text: "text-teal-800",
+    active: "bg-teal-500",
+  },
+  完了: {
+    bg: "bg-gray-50",
+    border: "border-gray-200",
+    text: "text-gray-800",
+    active: "bg-gray-500",
+  },
+  否決: {
+    bg: "bg-red-50",
+    border: "border-red-200",
+    text: "text-red-800",
+    active: "bg-red-500",
+  },
+  // 旧フェーズ（後方互換性）
   審査中: {
     bg: "bg-yellow-50",
     border: "border-yellow-200",
@@ -45,12 +94,6 @@ const phaseColors: Record<string, { bg: string; border: string; text: string; ac
     border: "border-purple-200",
     text: "text-purple-800",
     active: "bg-purple-500",
-  },
-  入金中: {
-    bg: "bg-green-50",
-    border: "border-green-200",
-    text: "text-green-800",
-    active: "bg-green-500",
   },
   失注: {
     bg: "bg-red-50",
@@ -69,16 +112,27 @@ const phaseColors: Record<string, { bg: string; border: string; text: string; ac
 export function StatusWorkflow({ contract }: StatusWorkflowProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const currentPhase = STATUS_TO_PHASE[contract.status];
-  const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
 
-  const updateStatus = async (newStatus: ContractStatus) => {
+  // 現在のフェーズを取得（旧フェーズの場合はマッピングする）
+  let currentPhase = STATUS_TO_PHASE[contract.status] || "商談中";
+  if (phaseMapping[currentPhase]) {
+    currentPhase = phaseMapping[currentPhase];
+  }
+
+  const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
+  const currentPhaseStatuses = PHASE_STATUSES[currentPhase] || [];
+  const colors = phaseColors[currentPhase] || phaseColors["商談中"];
+
+  const updateStatus = async (newStatus: string) => {
     setLoading(true);
     const supabase = createClient();
 
+    // 新しいフェーズを取得
+    const newPhase = STATUS_TO_PHASE[newStatus] || currentPhase;
+
     const { error } = await supabase
       .from("contracts")
-      .update({ status: newStatus })
+      .update({ status: newStatus, phase: newPhase })
       .eq("id", contract.id);
 
     if (error) {
@@ -96,20 +150,20 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
       </CardHeader>
       <CardContent>
         {/* Phase Progress */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 overflow-x-auto">
           {phaseOrder.map((phase, index) => {
             const isCompleted = index < currentPhaseIndex;
             const isCurrent = index === currentPhaseIndex;
-            const colors = phaseColors[phase];
+            const phaseColor = phaseColors[phase] || phaseColors["商談中"];
 
             return (
-              <div key={phase} className="flex items-center flex-1">
+              <div key={phase} className="flex items-center flex-1 min-w-[80px]">
                 <div className="flex flex-col items-center flex-1">
                   <div
                     className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center border-2",
-                      isCompleted && `${colors.active} border-transparent`,
-                      isCurrent && `${colors.bg} ${colors.border}`,
+                      isCompleted && `${phaseColor.active} border-transparent`,
+                      isCurrent && `${phaseColor.bg} ${phaseColor.border}`,
                       !isCompleted && !isCurrent && "bg-gray-100 border-gray-200"
                     )}
                   >
@@ -119,7 +173,7 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
                       <span
                         className={cn(
                           "text-sm font-medium",
-                          isCurrent ? colors.text : "text-gray-400"
+                          isCurrent ? phaseColor.text : "text-gray-400"
                         )}
                       >
                         {index + 1}
@@ -128,15 +182,15 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
                   </div>
                   <span
                     className={cn(
-                      "mt-2 text-xs font-medium",
-                      isCurrent ? colors.text : "text-gray-500"
+                      "mt-2 text-xs font-medium text-center",
+                      isCurrent ? phaseColor.text : "text-gray-500"
                     )}
                   >
-                    {CONTRACT_PHASE_LABELS[phase as keyof typeof CONTRACT_PHASE_LABELS]}
+                    {CONTRACT_PHASE_LABELS[phase] || phase}
                   </span>
                 </div>
                 {index < phaseOrder.length - 1 && (
-                  <ChevronRight className="h-5 w-5 text-gray-300 mx-2" />
+                  <ChevronRight className="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" />
                 )}
               </div>
             );
@@ -144,33 +198,35 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
         </div>
 
         {/* Current Phase Statuses */}
-        <div className={cn("p-4 rounded-lg", phaseColors[currentPhase].bg)}>
-          <h4 className={cn("text-sm font-medium mb-3", phaseColors[currentPhase]?.text)}>
-            {CONTRACT_PHASE_LABELS[currentPhase as keyof typeof CONTRACT_PHASE_LABELS]}のステータス
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {PHASE_STATUSES[currentPhase].map((status) => {
-              const isCurrentStatus = contract.status === status;
-              return (
-                <Button
-                  key={status}
-                  variant={isCurrentStatus ? "default" : "outline"}
-                  size="sm"
-                  disabled={loading || isCurrentStatus}
-                  onClick={() => updateStatus(status as ContractStatus)}
-                  className={cn(
-                    isCurrentStatus && phaseColors[currentPhase].active
-                  )}
-                >
-                  {CONTRACT_STATUS_LABELS[status]}
-                </Button>
-              );
-            })}
+        {currentPhaseStatuses.length > 0 && (
+          <div className={cn("p-4 rounded-lg", colors.bg)}>
+            <h4 className={cn("text-sm font-medium mb-3", colors.text)}>
+              {CONTRACT_PHASE_LABELS[currentPhase] || currentPhase}のステータス
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {currentPhaseStatuses.map((status) => {
+                const isCurrentStatus = contract.status === status;
+                return (
+                  <Button
+                    key={status}
+                    variant={isCurrentStatus ? "default" : "outline"}
+                    size="sm"
+                    disabled={loading || isCurrentStatus}
+                    onClick={() => updateStatus(status)}
+                    className={cn(
+                      isCurrentStatus && colors.active
+                    )}
+                  >
+                    {CONTRACT_STATUS_LABELS[status] || status}
+                  </Button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Quick Phase Change */}
-        {currentPhaseIndex < phaseOrder.length - 1 && (
+        {currentPhaseIndex >= 0 && currentPhaseIndex < phaseOrder.length - 1 && (
           <div className="mt-4 pt-4 border-t">
             <p className="text-sm text-gray-500 mb-2">
               次のフェーズに進む場合は、以下のボタンをクリックしてください。
@@ -181,15 +237,44 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
               disabled={loading}
               onClick={() => {
                 const nextPhase = phaseOrder[currentPhaseIndex + 1];
-                const firstStatus = PHASE_STATUSES[nextPhase][0] as ContractStatus;
-                updateStatus(firstStatus);
+                const nextPhaseStatuses = PHASE_STATUSES[nextPhase];
+                if (nextPhaseStatuses && nextPhaseStatuses.length > 0) {
+                  updateStatus(nextPhaseStatuses[0]);
+                }
               }}
             >
-              {CONTRACT_PHASE_LABELS[phaseOrder[currentPhaseIndex + 1] as keyof typeof CONTRACT_PHASE_LABELS]}へ進む
+              {CONTRACT_PHASE_LABELS[phaseOrder[currentPhaseIndex + 1]] || phaseOrder[currentPhaseIndex + 1]}へ進む
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
         )}
+
+        {/* 否決へ変更 */}
+        <div className="mt-4 pt-4 border-t">
+          <p className="text-sm text-gray-500 mb-2">
+            否決の場合
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || contract.status === "対応検討中"}
+              onClick={() => updateStatus("対応検討中")}
+              className="text-orange-600 border-orange-200 hover:bg-orange-50"
+            >
+              対応検討中
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || contract.status === "失注"}
+              onClick={() => updateStatus("失注")}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              失注
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

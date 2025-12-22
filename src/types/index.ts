@@ -25,11 +25,17 @@ export type Customer = {
   updated_at: string;
 };
 
-// 商談内の契約（一覧表示用）
+// 契約種類（新）
+export type ContractType = "property" | "line" | "maintenance";
+
+// 契約種類（旧）- 後方互換性のため残す
+export type LegacyContractType = "lease" | "rental" | "installment";
+
+// 商談内の契約（一覧表示用）- 新旧両方の値に対応
 export type DealContract = {
   id: string;
   title: string;
-  contract_type?: "lease" | "rental" | "installment";
+  contract_type?: string;  // 新旧両方の値に対応
   phase?: string;
   status?: string;
   monthly_amount?: number | null;
@@ -61,47 +67,54 @@ export type DealStatus = "active" | "won" | "lost" | "pending";
 
 // 契約ステータス（小分類）
 export type ContractStatus =
-  // 営業フェーズ（商談中）
-  | "日程調整中"
-  | "MTG実施待ち"
-  | "見積提出"
-  | "受注確定"
-  // 契約フェーズ（審査中）
-  | "書類準備中"
-  | "審査結果待ち"
-  | "可決"
-  | "否決"
-  // 工事フェーズ（工事中）
-  | "下見日程調整中"
+  // 商談中
+  | "商談待ち"
+  | "商談日程調整中"
+  // 審査・申込中
+  | "審査・申込対応中"
+  | "審査・申込待ち"
+  // 下見・工事中
+  | "下見調整中"
   | "下見実施待ち"
   | "工事日程調整中"
   | "工事実施待ち"
-  // 入金フェーズ（入金中）
+  // 契約中
+  | "検収確認中"
+  | "契約書提出対応中"
+  | "契約書確認待ち"
+  // 入金中
   | "入金待ち"
   | "入金済"
-  // 終了ステータス
-  | "失注"
-  | "クローズ";
+  // 請求中
+  | "初回請求確認待ち"
+  | "請求処理対応中"
+  // 完了
+  | "クローズ"
+  // 否決
+  | "対応検討中"
+  | "失注";
 
 // 契約フェーズ（大分類）
 export type ContractPhase =
   | "商談中"
-  | "審査中"
-  | "工事中"
+  | "審査・申込中"
+  | "下見・工事中"
+  | "契約中"
   | "入金中"
-  | "失注"
-  | "クローズ";
+  | "請求中"
+  | "完了"
+  | "否決";
 
-// 契約（個別の契約明細）
+// 契約（個別の契約明細）- 新旧両方の値に対応
 export type Contract = {
   id: string;
   deal_id: string;
   title: string;
-  contract_type: "lease" | "rental" | "installment";
+  contract_type: string;  // 新旧両方の値に対応
   product_category: string | null;
   lease_company: string | null;
-  phase: ContractPhase;
-  status: ContractStatus;
+  phase: string;  // 新旧両方の値に対応
+  status: string;  // 新旧両方の値に対応
   monthly_amount: number | null;
   total_amount: number | null;
   contract_months: number | null;
@@ -212,8 +225,8 @@ export type Task = {
     id: string;
     title: string;
     contract_number?: number;
-    phase?: ContractPhase;
-    status?: ContractStatus;
+    phase?: string;  // 新旧両方の値に対応
+    status?: string;  // 新旧両方の値に対応
   } | null;
   assigned_user?: User;
 };

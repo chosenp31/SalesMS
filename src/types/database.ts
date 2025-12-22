@@ -6,33 +6,14 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-// 契約ステータス（小分類）の型
-export type ContractStatusType =
-  | "日程調整中"
-  | "MTG実施待ち"
-  | "見積提出"
-  | "受注確定"
-  | "書類準備中"
-  | "審査結果待ち"
-  | "可決"
-  | "否決"
-  | "下見日程調整中"
-  | "下見実施待ち"
-  | "工事日程調整中"
-  | "工事実施待ち"
-  | "入金待ち"
-  | "入金済"
-  | "失注"
-  | "クローズ";
+// 契約ステータス（小分類）の型 - string型で新旧両方の値に対応
+export type ContractStatusType = string;
 
-// 契約フェーズ（大分類）の型
-export type ContractPhaseType =
-  | "商談中"
-  | "審査中"
-  | "工事中"
-  | "入金中"
-  | "失注"
-  | "クローズ";
+// 契約フェーズ（大分類）の型 - string型で新旧両方の値に対応
+export type ContractPhaseType = string;
+
+// 契約種別の型 - string型で新旧両方の値に対応
+export type ContractTypeValue = string;
 
 // リース審査ステータスの型
 export type LeaseApplicationStatusType =
@@ -175,7 +156,7 @@ export type Database = {
           id: string;
           deal_id: string;
           title: string;
-          contract_type: "lease" | "rental" | "installment";
+          contract_type: ContractTypeValue;
           product_category: string | null;
           lease_company: string | null;
           phase: ContractPhaseType;
@@ -194,7 +175,7 @@ export type Database = {
           id?: string;
           deal_id: string;
           title: string;
-          contract_type: "lease" | "rental" | "installment";
+          contract_type: ContractTypeValue;
           product_category?: string | null;
           lease_company?: string | null;
           phase?: ContractPhaseType;
@@ -213,7 +194,7 @@ export type Database = {
           id?: string;
           deal_id?: string;
           title?: string;
-          contract_type?: "lease" | "rental" | "installment";
+          contract_type?: ContractTypeValue;
           product_category?: string | null;
           lease_company?: string | null;
           phase?: ContractPhaseType;

@@ -6,8 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { ContractStatus } from "@/types";
-import { Tables, ContractPhaseType } from "@/types/database";
+import { Tables } from "@/types/database";
 import {
   CONTRACT_TYPE_LABELS,
   CONTRACT_STATUS_LABELS,
@@ -39,7 +38,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const contractSchema = z.object({
   title: z.string().min(1, "契約名は必須です"),
-  contract_type: z.enum(["lease", "rental", "installment"]),
+  contract_type: z.string().min(1, "契約種別を選択してください"),
   product_category: z.string().optional(),
   lease_company: z.string().optional(),
   status: z.string().min(1, "ステータスを選択してください"),
@@ -109,7 +108,7 @@ export function ContractForm({ dealId, contract }: ContractFormProps) {
       const supabase = createClient();
 
       // ステータスからフェーズを自動計算
-      const phase = (STATUS_TO_PHASE[data.status] || "商談中") as ContractPhaseType;
+      const phase = STATUS_TO_PHASE[data.status] || "商談中";
 
       const contractData = {
         deal_id: dealId,
@@ -118,7 +117,7 @@ export function ContractForm({ dealId, contract }: ContractFormProps) {
         product_category: data.product_category || null,
         lease_company: data.lease_company || null,
         phase: phase,
-        status: data.status as ContractStatus,
+        status: data.status,
         monthly_amount: data.monthly_amount
           ? parseFloat(data.monthly_amount)
           : null,

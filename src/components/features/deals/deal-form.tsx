@@ -6,12 +6,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { Customer, Deal, User, DealStatus } from "@/types";
-import { DEAL_STATUS_LABELS } from "@/constants";
+import { Customer, Deal, User, ContractType } from "@/types";
+import { CONTRACT_TYPE_LABELS, PRODUCT_CATEGORIES_BY_CONTRACT_TYPE } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -28,20 +29,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
+
+// 契約選択の型
+type ContractSelection = {
+  type: ContractType;
+  products: string[];
+};
 
 const dealSchema = z.object({
-  title: z.string().min(1, "商談名は必須です"),
   customer_id: z.string().min(1, "顧客を選択してください"),
-  assigned_user_id: z.string().min(1, "担当者を選択してください"),
-  status: z.enum(["active", "won", "lost", "pending"]),
+  assigned_user_id: z.string().min(1, "管理者を選択してください"),
   description: z.string().optional(),
-  total_amount: z.string().optional().refine(
-    (val) => !val || parseFloat(val) >= 0,
-    { message: "合計金額は0以上で入力してください" }
-  ),
+});
+
+const customerSchema = z.object({
+  company_name: z.string().min(1, "会社名は必須です"),
+  representative_name: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email("有効なメールアドレスを入力してください").optional().or(z.literal("")),
+  address: z.string().optional(),
+  business_type: z.enum(["corporation", "sole_proprietor", "new_corporation"]),
 });
 
 type DealFormValues = z.infer<typeof dealSchema>;
+type CustomerFormValues = z.infer<typeof customerSchema>;
 
 interface DealFormProps {
   deal?: Deal;
@@ -53,7 +73,7 @@ interface DealFormProps {
 
 export function DealForm({
   deal,
-  customers,
+  customers: initialCustomers,
   users,
   defaultCustomerId,
   currentUserId,
@@ -62,61 +82,191 @@ export function DealForm({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+  const [customerLoading, setCustomerLoading] = useState(false);
+
+  // 契約選択状態
+  const [contractSelections, setContractSelections] = useState<ContractSelection[]>([]);
 
   const form = useForm<DealFormValues>({
     resolver: zodResolver(dealSchema),
     defaultValues: {
-      title: deal?.title || "",
       customer_id: deal?.customer_id || defaultCustomerId || "",
       assigned_user_id: deal?.assigned_user_id || currentUserId || "",
-      status: deal?.status || "active",
       description: deal?.description || "",
-      total_amount: deal?.total_amount?.toString() || "",
     },
   });
 
+  const customerForm = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerSchema),
+    defaultValues: {
+      company_name: "",
+      representative_name: "",
+      phone: "",
+      email: "",
+      address: "",
+      business_type: "corporation",
+    },
+  });
+
+  // 契約種類のチェックボックス変更
+  const handleContractTypeChange = (type: ContractType, checked: boolean) => {
+    if (checked) {
+      setContractSelections((prev) => [...prev, { type, products: [] }]);
+    } else {
+      setContractSelections((prev) => prev.filter((c) => c.type !== type));
+    }
+  };
+
+  // 商材のチェックボックス変更
+  const handleProductChange = (contractType: ContractType, product: string, checked: boolean) => {
+    setContractSelections((prev) =>
+      prev.map((c) => {
+        if (c.type === contractType) {
+          return {
+            ...c,
+            products: checked
+              ? [...c.products, product]
+              : c.products.filter((p) => p !== product),
+          };
+        }
+        return c;
+      })
+    );
+  };
+
+  // 顧客登録
+  const handleCustomerSubmit = async (data: CustomerFormValues) => {
+    setCustomerLoading(true);
+    try {
+      const supabase = createClient();
+      const customerData = {
+        company_name: data.company_name,
+        representative_name: data.representative_name || "",
+        phone: data.phone || null,
+        email: data.email || null,
+        address: data.address || null,
+        business_type: data.business_type,
+      };
+
+      const { data: newCustomer, error: insertError } = await supabase
+        .from("customers")
+        .insert(customerData)
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // 顧客リストを更新
+      setCustomers((prev) => [...prev, newCustomer as Customer]);
+      // フォームに新しい顧客を設定
+      form.setValue("customer_id", newCustomer.id);
+
+      toast({
+        title: "顧客を登録しました",
+        description: `${data.company_name}を新規登録しました`,
+      });
+
+      setIsCustomerDialogOpen(false);
+      customerForm.reset();
+    } catch (err) {
+      toast({
+        title: "エラーが発生しました",
+        description: err instanceof Error ? err.message : "顧客登録中にエラーが発生しました",
+        variant: "destructive",
+      });
+    } finally {
+      setCustomerLoading(false);
+    }
+  };
+
   const onSubmit = async (data: DealFormValues) => {
+    // バリデーション: 新規登録時は契約が必須
+    if (!deal && contractSelections.length === 0) {
+      setError("契約種類を1つ以上選択してください");
+      return;
+    }
+
+    // バリデーション: 選択した契約には商材が必要
+    if (!deal) {
+      const missingProducts = contractSelections.filter((c) => c.products.length === 0);
+      if (missingProducts.length > 0) {
+        const types = missingProducts.map((c) => CONTRACT_TYPE_LABELS[c.type]).join("、");
+        setError(`${types}の商材を選択してください`);
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const supabase = createClient();
+      const selectedCustomer = customers.find((c) => c.id === data.customer_id);
+
+      // 案件タイトルを自動生成（顧客名 + 契約種類）
+      const contractTypeNames = contractSelections.map((c) => CONTRACT_TYPE_LABELS[c.type]).join("・");
+      const dealTitle = deal?.title || `${selectedCustomer?.company_name || ""}${contractTypeNames ? ` ${contractTypeNames}` : ""}`;
 
       const dealData = {
-        title: data.title,
+        title: dealTitle,
         customer_id: data.customer_id,
         assigned_user_id: data.assigned_user_id,
-        status: data.status as DealStatus,
+        status: "active" as const,
         description: data.description || null,
-        total_amount: data.total_amount
-          ? parseFloat(data.total_amount)
-          : null,
+        total_amount: null,
       };
 
       if (deal) {
+        // 更新
         const { error: updateError } = await supabase
           .from("deals")
           .update(dealData)
           .eq("id", deal.id);
 
-        if (updateError) {
-          throw updateError;
-        }
+        if (updateError) throw updateError;
 
         toast({
           title: "案件を更新しました",
-          description: `${data.title}の情報を更新しました`,
+          description: `${dealTitle}の情報を更新しました`,
         });
       } else {
-        const { error: insertError } = await supabase.from("deals").insert(dealData);
+        // 新規登録
+        const { data: newDeal, error: insertError } = await supabase
+          .from("deals")
+          .insert(dealData)
+          .select()
+          .single();
 
-        if (insertError) {
-          throw insertError;
-        }
+        if (insertError) throw insertError;
+
+        // 契約レコードを作成
+        const contractsToInsert = contractSelections.map((selection) => ({
+          deal_id: newDeal.id,
+          title: `${selectedCustomer?.company_name || ""} ${CONTRACT_TYPE_LABELS[selection.type]}`,
+          contract_type: selection.type,
+          product_category: selection.products.join("、"),
+          phase: "商談中" as const,
+          status: "商談待ち" as const,
+          lease_company: null,
+          monthly_amount: null,
+          total_amount: null,
+          contract_months: null,
+          start_date: null,
+          end_date: null,
+          notes: null,
+        }));
+
+        const { error: contractError } = await supabase
+          .from("contracts")
+          .insert(contractsToInsert);
+
+        if (contractError) throw contractError;
 
         toast({
           title: "案件を登録しました",
-          description: `${data.title}を新規登録しました`,
+          description: `${dealTitle}と${contractSelections.length}件の契約を登録しました`,
         });
       }
 
@@ -135,123 +285,156 @@ export function DealForm({
     }
   };
 
+  const isContractTypeSelected = (type: ContractType) =>
+    contractSelections.some((c) => c.type === type);
+
+  const getSelectedProducts = (type: ContractType) =>
+    contractSelections.find((c) => c.type === type)?.products || [];
+
   return (
-    <Card>
-      <CardContent className="pt-6">
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>商談名 *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="OA機器導入商談" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="customer_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>顧客 *</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="顧客を選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.company_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="assigned_user_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>担当者 *</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="担当者を選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ステータス *</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="ステータスを選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.entries(DEAL_STATUS_LABELS).map(
-                          ([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
+    <>
+      <Card>
+        <CardContent className="pt-6">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 顧客選択 */}
+                <FormField
+                  control={form.control}
+                  name="customer_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>顧客名 *</FormLabel>
+                      <div className="flex gap-2">
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="顧客を選択" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {customers.map((customer) => (
+                              <SelectItem key={customer.id} value={customer.id}>
+                                {customer.company_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setIsCustomerDialogOpen(true)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* 管理者選択 */}
+                <FormField
+                  control={form.control}
+                  name="assigned_user_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>管理者 *</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="管理者を選択" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name}
                             </SelectItem>
-                          )
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* 契約種類選択（新規登録時のみ） */}
+              {!deal && (
+                <div className="space-y-4">
+                  <FormLabel>契約種類 *（複数選択可）</FormLabel>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {(Object.keys(CONTRACT_TYPE_LABELS) as ContractType[]).map((type) => (
+                      <div key={type} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`contract-${type}`}
+                            checked={isContractTypeSelected(type)}
+                            onCheckedChange={(checked) =>
+                              handleContractTypeChange(type, checked as boolean)
+                            }
+                          />
+                          <label
+                            htmlFor={`contract-${type}`}
+                            className="text-sm font-medium leading-none cursor-pointer"
+                          >
+                            {CONTRACT_TYPE_LABELS[type]}
+                          </label>
+                        </div>
+
+                        {/* 商材選択 */}
+                        {isContractTypeSelected(type) && (
+                          <div className="ml-6 space-y-2">
+                            <p className="text-xs text-muted-foreground">商材を選択</p>
+                            {PRODUCT_CATEGORIES_BY_CONTRACT_TYPE[type].map((product) => (
+                              <div key={product} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`product-${type}-${product}`}
+                                  checked={getSelectedProducts(type).includes(product)}
+                                  onCheckedChange={(checked) =>
+                                    handleProductChange(type, product, checked as boolean)
+                                  }
+                                />
+                                <label
+                                  htmlFor={`product-${type}-${product}`}
+                                  className="text-sm leading-none cursor-pointer"
+                                >
+                                  {product}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
                         )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 備考 */}
               <FormField
                 control={form.control}
-                name="total_amount"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>合計金額</FormLabel>
+                    <FormLabel>備考</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="1000000"
+                      <Textarea
+                        placeholder="案件に関するメモを入力..."
+                        className="min-h-[100px]"
                         {...field}
                       />
                     </FormControl>
@@ -259,39 +442,120 @@ export function DealForm({
                   </FormItem>
                 )}
               />
+
+              <div className="flex justify-end space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                >
+                  キャンセル
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "保存中..." : deal ? "更新" : "登録"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      {/* 顧客登録ダイアログ */}
+      <Dialog open={isCustomerDialogOpen} onOpenChange={setIsCustomerDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>顧客を新規登録</DialogTitle>
+            <DialogDescription>
+              新しい顧客情報を入力してください。
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={customerForm.handleSubmit(handleCustomerSubmit)} className="space-y-4">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">会社名 *</label>
+                <Input
+                  {...customerForm.register("company_name")}
+                  placeholder="株式会社サンプル"
+                />
+                {customerForm.formState.errors.company_name && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {customerForm.formState.errors.company_name.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium">代表者名</label>
+                <Input
+                  {...customerForm.register("representative_name")}
+                  placeholder="山田 太郎"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">電話番号</label>
+                  <Input
+                    {...customerForm.register("phone")}
+                    placeholder="03-1234-5678"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">メールアドレス</label>
+                  <Input
+                    {...customerForm.register("email")}
+                    type="email"
+                    placeholder="info@example.com"
+                  />
+                  {customerForm.formState.errors.email && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {customerForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">住所</label>
+                <Input
+                  {...customerForm.register("address")}
+                  placeholder="東京都千代田区..."
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">事業形態</label>
+                <Select
+                  onValueChange={(value) =>
+                    customerForm.setValue("business_type", value as "corporation" | "sole_proprietor" | "new_corporation")
+                  }
+                  defaultValue="corporation"
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="事業形態を選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="corporation">法人</SelectItem>
+                    <SelectItem value="sole_proprietor">個人事業主</SelectItem>
+                    <SelectItem value="new_corporation">新設法人</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>備考</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="商談に関するメモを入力..."
-                      className="min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end space-x-4">
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.back()}
+                onClick={() => {
+                  setIsCustomerDialogOpen(false);
+                  customerForm.reset();
+                }}
               >
                 キャンセル
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "保存中..." : deal ? "更新" : "登録"}
+              <Button type="submit" disabled={customerLoading}>
+                {customerLoading ? "登録中..." : "登録"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
-        </Form>
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
