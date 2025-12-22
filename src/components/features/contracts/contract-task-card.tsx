@@ -20,6 +20,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -376,85 +384,101 @@ export function ContractTaskCard({
           }
         />
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         {contractTasks.length === 0 ? (
           <p className="text-sm text-gray-500 text-center py-4">
             タスクがありません
           </p>
         ) : (
-          <div className="space-y-3">
-            {contractTasks.map((task) => (
-              <div
-                key={task.id}
-                className={cn(
-                  "flex items-start justify-between p-3 bg-gray-50 rounded-lg",
-                  task.status === "完了" && "opacity-60"
-                )}
-              >
-                <div className="flex items-start gap-3 flex-1">
-                  <Checkbox
-                    checked={task.status === "完了"}
-                    onCheckedChange={() => handleStatusToggle(task)}
-                    className="mt-0.5"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {task.status !== "完了" &&
-                        task.due_date &&
-                        isPast(new Date(task.due_date)) &&
-                        !isToday(new Date(task.due_date)) && (
-                          <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-                        )}
-                      <span
-                        className={cn(
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="min-w-[120px]">タスク名</TableHead>
+                  <TableHead>大分類</TableHead>
+                  <TableHead>小分類</TableHead>
+                  <TableHead>担当者</TableHead>
+                  <TableHead>優先度</TableHead>
+                  <TableHead>ステータス</TableHead>
+                  <TableHead>期限</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {contractTasks.map((task) => (
+                  <TableRow
+                    key={task.id}
+                    className={cn(task.status === "完了" && "opacity-60 bg-gray-50")}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={task.status === "完了"}
+                        onCheckedChange={() => handleStatusToggle(task)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {task.status !== "完了" &&
+                          task.due_date &&
+                          isPast(new Date(task.due_date)) &&
+                          !isToday(new Date(task.due_date)) && (
+                            <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                          )}
+                        <span className={cn(
                           "font-medium text-sm",
                           task.status === "完了" && "line-through"
-                        )}
-                      >
-                        {task.title}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        )}>
+                          {task.title}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-gray-600">
+                      {STATUS_TO_PHASE[contract.status] || "-"}
+                    </TableCell>
+                    <TableCell className="text-xs text-gray-600">
+                      {contract.status || "-"}
+                    </TableCell>
+                    <TableCell className="text-xs text-gray-600">
+                      {task.assigned_user?.name || "-"}
+                    </TableCell>
+                    <TableCell>
                       <Badge
                         variant="outline"
                         className={cn("text-xs", priorityColors[task.priority])}
                       >
                         {TASK_PRIORITY_LABELS[task.priority]}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
                       <Badge
                         variant="secondary"
                         className={cn("text-xs", statusColors[task.status])}
                       >
                         {TASK_STATUS_LABELS[task.status]}
                       </Badge>
-                      {task.due_date && (
-                        <span
-                          className={cn(
-                            "text-xs text-gray-500",
-                            getDueDateStyle(task.due_date, task.status)
-                          )}
-                        >
-                          {format(new Date(task.due_date), "MM/dd", { locale: ja })}
-                        </span>
-                      )}
-                      {task.assigned_user && (
-                        <span className="text-xs text-gray-500">
-                          {task.assigned_user.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(task.id)}
-                  className="flex-shrink-0"
-                >
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
-              </div>
-            ))}
+                    </TableCell>
+                    <TableCell className={cn(
+                      "text-xs",
+                      getDueDateStyle(task.due_date, task.status)
+                    )}>
+                      {task.due_date
+                        ? format(new Date(task.due_date), "MM/dd", { locale: ja })
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(task.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>
