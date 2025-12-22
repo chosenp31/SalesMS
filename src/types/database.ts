@@ -429,6 +429,58 @@ export type Database = {
           }
         ];
       };
+      // ステータス変更履歴
+      contract_status_history: {
+        Row: {
+          id: string;
+          contract_id: string;
+          changed_by_user_id: string;
+          previous_status: string;
+          new_status: string;
+          previous_phase: string | null;
+          new_phase: string | null;
+          changed_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          contract_id: string;
+          changed_by_user_id: string;
+          previous_status: string;
+          new_status: string;
+          previous_phase?: string | null;
+          new_phase?: string | null;
+          changed_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          contract_id?: string;
+          changed_by_user_id?: string;
+          previous_status?: string;
+          new_status?: string;
+          previous_phase?: string | null;
+          new_phase?: string | null;
+          changed_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contract_status_history_contract_id_fkey";
+            columns: ["contract_id"];
+            isOneToOne: false;
+            referencedRelation: "contracts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contract_status_history_changed_by_user_id_fkey";
+            columns: ["changed_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

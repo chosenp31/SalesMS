@@ -38,6 +38,7 @@ interface ContractForWorkflow {
 
 interface StatusWorkflowProps {
   contract: ContractForWorkflow;
+  currentUserId: string;
 }
 
 // 新しいフェーズ順序
@@ -159,7 +160,7 @@ function StatusTooltip({ status, children }: { status: string; children: React.R
   );
 }
 
-export function StatusWorkflow({ contract }: StatusWorkflowProps) {
+export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -189,7 +190,10 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
 
     // 新しいフェーズを取得
     const newPhase = STATUS_TO_PHASE[newStatus] || currentPhase;
+    const previousStatus = contract.status;
+    const previousPhase = currentPhase;
 
+    // 契約ステータスを更新
     const { error } = await supabase
       .from("contracts")
       .update({ status: newStatus, phase: newPhase })
@@ -197,6 +201,22 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
 
     if (error) {
       console.error("Error updating status:", error);
+    } else {
+      // ステータス変更履歴を記録
+      const { error: historyError } = await supabase
+        .from("contract_status_history")
+        .insert({
+          contract_id: contract.id,
+          changed_by_user_id: currentUserId,
+          previous_status: previousStatus,
+          new_status: newStatus,
+          previous_phase: previousPhase,
+          new_phase: newPhase,
+        });
+
+      if (historyError) {
+        console.error("Error recording status history:", historyError);
+      }
     }
 
     setLoading(false);
@@ -338,8 +358,8 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
             </div>
           )}
 
-          {/* Next Status Button */}
-          {nextStatus && (
+          {/* Next Status Button - 請求中フェーズでは次のフェーズへの進行をブロック */}
+          {nextStatus && currentPhase !== "請求中" && (
             <div className="mt-4 pt-4 border-t">
               <p className="text-sm text-gray-500 mb-2">
                 次のステータスに進む場合は、以下のボタンをクリックしてください。
@@ -353,6 +373,15 @@ export function StatusWorkflow({ contract }: StatusWorkflowProps) {
                 {CONTRACT_STATUS_LABELS[nextStatus] || nextStatus}へ進む
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
+            </div>
+          )}
+
+          {/* 請求中フェーズの案内 */}
+          {currentPhase === "請求中" && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-gray-500">
+                請求中フェーズでは、ステータスの自動進行はできません。管理者にお問い合わせください。
+              </p>
             </div>
           )}
 

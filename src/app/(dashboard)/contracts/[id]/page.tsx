@@ -62,6 +62,16 @@ export default async function ContractDetailPage({
     .select("*")
     .order("name");
 
+  // Get status history for this contract
+  const { data: statusHistory } = await supabase
+    .from("contract_status_history")
+    .select(`
+      *,
+      changed_by_user:users(name)
+    `)
+    .eq("contract_id", id)
+    .order("changed_at", { ascending: false });
+
   // 仮のcurrentUserId（認証が無効化されているため最初のユーザーを使用）
   const currentUserId = users?.[0]?.id || "";
 
@@ -92,6 +102,7 @@ export default async function ContractDetailPage({
         payments={payments || []}
         tasks={tasks || []}
         users={users || []}
+        statusHistory={statusHistory || []}
         currentUserId={currentUserId}
       />
     </div>

@@ -36,6 +36,18 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 
+// 金額をフォーマット（カンマ区切り）
+const formatAmount = (value: string): string => {
+  const num = value.replace(/[^\d]/g, "");
+  if (!num) return "";
+  return new Intl.NumberFormat("ja-JP").format(parseInt(num));
+};
+
+// カンマを除去して数値文字列に変換
+const parseAmount = (value: string): string => {
+  return value.replace(/[^\d]/g, "");
+};
+
 const contractSchema = z.object({
   title: z.string().min(1, "契約名は必須です"),
   contract_type: z.string().min(1, "契約種別を選択してください"),
@@ -350,7 +362,14 @@ export function ContractForm({ dealId, contract }: ContractFormProps) {
                   <FormItem>
                     <FormLabel>月額</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="50000" {...field} />
+                      <Input
+                        placeholder="50,000"
+                        value={formatAmount(field.value || "")}
+                        onChange={(e) => {
+                          const raw = parseAmount(e.target.value);
+                          field.onChange(raw);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -363,7 +382,14 @@ export function ContractForm({ dealId, contract }: ContractFormProps) {
                   <FormItem>
                     <FormLabel>合計金額</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="3000000" {...field} />
+                      <Input
+                        placeholder="3,000,000"
+                        value={formatAmount(field.value || "")}
+                        onChange={(e) => {
+                          const raw = parseAmount(e.target.value);
+                          field.onChange(raw);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

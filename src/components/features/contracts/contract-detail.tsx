@@ -12,7 +12,13 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { StatusWorkflow } from "../deals/status-workflow";
 import { ContractTaskCard } from "./contract-task-card";
+import { StatusHistoryCard } from "./status-history-card";
 import { Calendar, CreditCard, FileText } from "lucide-react";
+
+// ステータス履歴の型
+type StatusHistory = Tables<"contract_status_history"> & {
+  changed_by_user?: { name: string } | null;
+};
 
 // 契約詳細ページ用の型（部分的なdeal情報を含む）
 type ContractWithPartialDeal = Tables<"contracts"> & {
@@ -33,6 +39,7 @@ interface ContractDetailProps {
   payments: Payment[];
   tasks: Task[];
   users: User[];
+  statusHistory: StatusHistory[];
   currentUserId: string;
 }
 
@@ -41,6 +48,7 @@ export function ContractDetail({
   payments,
   tasks,
   users,
+  statusHistory,
   currentUserId,
 }: ContractDetailProps) {
   const formatAmount = (amount: number | null) => {
@@ -54,7 +62,7 @@ export function ContractDetail({
   return (
     <div className="space-y-6">
       {/* Status Workflow */}
-      <StatusWorkflow contract={contract} />
+      <StatusWorkflow contract={contract} currentUserId={currentUserId} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Contract Information */}
@@ -68,10 +76,6 @@ export function ContractDetail({
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">契約名</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{contract.title}</dd>
-                </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">契約種別</dt>
                   <dd className="mt-1">
@@ -214,6 +218,9 @@ export function ContractDetail({
             users={users}
             currentUserId={currentUserId}
           />
+
+          {/* Status History Card */}
+          <StatusHistoryCard history={statusHistory} />
         </div>
       </div>
     </div>

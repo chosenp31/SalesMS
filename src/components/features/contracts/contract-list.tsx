@@ -124,7 +124,7 @@ const statusColors: Record<string, string> = {
   下見日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
 };
 
-type SortField = "contract_id" | "title" | "contract_type" | "phase" | "status" | "deal" | "customer" | "all_tasks" | "incomplete_tasks" | "created_at";
+type SortField = "contract_id" | "contract_type" | "product_category" | "customer" | "phase" | "status" | "deal" | "all_tasks" | "incomplete_tasks" | "created_at";
 type SortDirection = "asc" | "desc";
 
 // タスク数を取得するヘルパー
@@ -204,11 +204,14 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
           );
           comparison = aId.localeCompare(bId);
           break;
-        case "title":
-          comparison = a.title.localeCompare(b.title);
-          break;
         case "contract_type":
           comparison = a.contract_type.localeCompare(b.contract_type);
+          break;
+        case "product_category":
+          comparison = (a.product_category || "").localeCompare(b.product_category || "");
+          break;
+        case "customer":
+          comparison = (a.deal?.customer?.company_name || "").localeCompare(b.deal?.customer?.company_name || "");
           break;
         case "phase":
           comparison = a.phase.localeCompare(b.phase);
@@ -220,9 +223,6 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
           const aDealId = formatDealId(a.deal?.customer?.customer_number, a.deal?.deal_number);
           const bDealId = formatDealId(b.deal?.customer?.customer_number, b.deal?.deal_number);
           comparison = aDealId.localeCompare(bDealId);
-          break;
-        case "customer":
-          comparison = (a.deal?.customer?.company_name || "").localeCompare(b.deal?.customer?.company_name || "");
           break;
         case "all_tasks":
           comparison = getTaskCounts(a.tasks).total - getTaskCounts(b.tasks).total;
@@ -329,10 +329,13 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                 <SortHeader field="contract_id">契約ID</SortHeader>
               </TableHead>
               <TableHead>
-                <SortHeader field="title">契約名</SortHeader>
+                <SortHeader field="contract_type">種別</SortHeader>
               </TableHead>
               <TableHead>
-                <SortHeader field="contract_type">種別</SortHeader>
+                <SortHeader field="product_category">商材</SortHeader>
+              </TableHead>
+              <TableHead>
+                <SortHeader field="customer">顧客名</SortHeader>
               </TableHead>
               <TableHead>
                 <SortHeader field="phase">大分類</SortHeader>
@@ -342,9 +345,6 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
               </TableHead>
               <TableHead>
                 <SortHeader field="deal">案件ID</SortHeader>
-              </TableHead>
-              <TableHead>
-                <SortHeader field="customer">顧客名</SortHeader>
               </TableHead>
               <TableHead className="w-[80px]">
                 <SortHeader field="all_tasks">全タスク</SortHeader>
@@ -376,13 +376,27 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                   <TableCell className="font-mono text-sm font-medium text-blue-600">
                     {contractDisplayId}
                   </TableCell>
-                  <TableCell className="font-medium">
-                    {contract.title}
-                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">
                       {CONTRACT_TYPE_LABELS[contract.contract_type]}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-600">
+                    {contract.product_category || "-"}
+                  </TableCell>
+                  <TableCell>
+                    {contract.deal?.customer ? (
+                      <Link
+                        href={`/customers/${contract.deal.customer.id}`}
+                        className="flex items-center gap-1 text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {contract.deal.customer.company_name}
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -408,20 +422,6 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <span className="font-mono text-xs">{dealDisplayId}</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </Link>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {contract.deal?.customer ? (
-                      <Link
-                        href={`/customers/${contract.deal.customer.id}`}
-                        className="flex items-center gap-1 text-primary hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {contract.deal.customer.company_name}
                         <ExternalLink className="h-3 w-3" />
                       </Link>
                     ) : (
