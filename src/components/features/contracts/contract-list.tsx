@@ -17,10 +17,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  SearchFilterBar,
+  FilterOption,
+  ActiveFilter,
+} from "@/components/ui/search-filter-bar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, Search, X, FileText, ExternalLink, ClipboardList } from "lucide-react";
+import { Eye, Pencil, FileText, ExternalLink, ClipboardList, ChevronUp, ChevronDown } from "lucide-react";
 import { cn, formatContractId, formatDealId } from "@/lib/utils";
 
 interface ContractTask {
@@ -138,8 +142,76 @@ const getTaskCounts = (tasks?: ContractTask[]) => {
 export function ContractList({ contracts, filterDealId }: ContractListProps) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
+  const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  // Filter options
+  const filterOptions: FilterOption[] = [
+    {
+      key: "phase",
+      label: "大分類",
+      type: "select",
+      quickFilter: true,
+      options: Object.entries(CONTRACT_PHASE_LABELS).map(([value, label]) => ({
+        value,
+        label,
+      })),
+    },
+    {
+      key: "contract_type",
+      label: "種別",
+      type: "select",
+      quickFilter: true,
+      options: Object.entries(CONTRACT_TYPE_LABELS).map(([value, label]) => ({
+        value,
+        label,
+      })),
+    },
+    {
+      key: "status",
+      label: "小分類",
+      type: "select",
+      options: Object.entries(CONTRACT_STATUS_LABELS).map(([value, label]) => ({
+        value,
+        label,
+      })),
+    },
+  ];
+
+  // Handle filter change
+  const handleFilterChange = (key: string, value: string) => {
+    if (value === "__all__" || value === "") {
+      setActiveFilters((prev) => prev.filter((f) => f.key !== key));
+    } else {
+      const filterOption = filterOptions.find((f) => f.key === key);
+      const option = filterOption?.options?.find((o) => o.value === value);
+      setActiveFilters((prev) => {
+        const existing = prev.findIndex((f) => f.key === key);
+        const newFilter = {
+          key,
+          value,
+          label: filterOption?.label || key,
+          displayValue: option?.label || value,
+        };
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = newFilter;
+          return updated;
+        }
+        return [...prev, newFilter];
+      });
+    }
+  };
+
+  const handleFilterRemove = (key: string) => {
+    setActiveFilters((prev) => prev.filter((f) => f.key !== key));
+  };
+
+  const handleClearAll = () => {
+    setSearchValue("");
+    setActiveFilters([]);
+  };
 
   // Handle sort
   const handleSort = (field: SortField) => {
@@ -179,12 +251,24 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
           contract.title.toLowerCase().includes(lowerSearch) ||
           contract.deal?.title?.toLowerCase().includes(lowerSearch) ||
           contract.deal?.customer?.company_name?.toLowerCase().includes(lowerSearch) ||
+          contract.product_category?.toLowerCase().includes(lowerSearch) ||
           formatContractId(
             contract.deal?.customer?.customer_number,
             contract.deal?.deal_number,
             contract.contract_number
           ).toLowerCase().includes(lowerSearch)
       );
+    }
+
+    // Apply filters
+    for (const filter of activeFilters) {
+      if (filter.key === "phase") {
+        result = result.filter((contract) => contract.phase === filter.value);
+      } else if (filter.key === "status") {
+        result = result.filter((contract) => contract.status === filter.value);
+      } else if (filter.key === "contract_type") {
+        result = result.filter((contract) => contract.contract_type === filter.value);
+      }
     }
 
     // Apply sort
@@ -238,7 +322,7 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
     });
 
     return result;
-  }, [contracts, searchValue, sortField, sortDirection]);
+  }, [contracts, searchValue, activeFilters, sortField, sortDirection]);
 
   const SortHeader = ({
     field,
@@ -283,42 +367,31 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
 
   return (
     <div className="space-y-4">
-      {/* フィルター表示 & 検索バー */}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 md:gap-3">
-        {filterDealId && (
-          <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1 self-start">
+      {/* フィルター表示 */}
+      {filterDealId && (
+        <div className="flex items-center gap-2 mb-2">
+          <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
             <span>案件でフィルタ中</span>
             <button onClick={handleClearFilter} className="ml-1 hover:text-red-500">
-              <X className="h-3 w-3" />
+              <FileText className="h-3 w-3" />
             </button>
           </Badge>
-        )}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="検索..."
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            className="pl-10 pr-10 h-10 bg-white w-full"
-          />
-          {searchValue && (
-            <button
-              onClick={() => setSearchValue("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
         </div>
-        <div className="text-sm text-gray-500 self-center">
-          {filteredContracts.length !== contracts.length ? (
-            <span>{filteredContracts.length}/{contracts.length}件</span>
-          ) : (
-            <span>{contracts.length}件</span>
-          )}
-        </div>
-      </div>
+      )}
+
+      {/* 検索バー & フィルタ */}
+      <SearchFilterBar
+        placeholder="契約ID、顧客名、商材、案件名で検索..."
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        filters={filterOptions}
+        activeFilters={activeFilters}
+        onFilterChange={handleFilterChange}
+        onFilterRemove={handleFilterRemove}
+        onClearAll={handleClearAll}
+        resultCount={filteredContracts.length}
+        totalCount={contracts.length}
+      />
 
       {/* テーブル */}
       <div className="bg-white rounded-lg border overflow-x-auto -mx-4 md:mx-0">
