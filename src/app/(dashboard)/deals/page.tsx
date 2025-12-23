@@ -13,7 +13,7 @@ export default async function DealsPage() {
       *,
       customer:customers(*, customer_number),
       assigned_user:users(*),
-      contracts(id, title, phase, status, product_category, contract_number)
+      contracts(id, title, contract_type, phase, status, product_category, contract_number)
     `)
     .order("created_at", { ascending: false });
 
