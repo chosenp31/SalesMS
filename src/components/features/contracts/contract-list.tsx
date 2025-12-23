@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/search-filter-bar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, FileText, ExternalLink, ClipboardList, ChevronUp, ChevronDown } from "lucide-react";
+import { Eye, Pencil, FileText, ExternalLink, ClipboardList } from "lucide-react";
 import { cn, formatContractId, formatDealId } from "@/lib/utils";
 
 interface ContractTask {
