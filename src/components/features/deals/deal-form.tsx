@@ -6,12 +6,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { Customer, Deal, User, ContractType } from "@/types";
-import { CONTRACT_TYPE_LABELS, PRODUCT_CATEGORIES_BY_CONTRACT_TYPE } from "@/constants";
+import { Customer, Deal, User } from "@/types";
 import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -51,15 +49,6 @@ import {
 } from "@/components/ui/popover";
 import { Plus, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// 新しい契約種類のみ（旧タイプを除外）
-const NEW_CONTRACT_TYPES: ContractType[] = ["property", "line", "maintenance"];
-
-// 契約選択の型
-type ContractSelection = {
-  type: ContractType;
-  products: string[];
-};
 
 const dealSchema = z.object({
   customer_id: z.string().min(1, "顧客を選択してください"),
@@ -107,9 +96,6 @@ export function DealForm({
   const [userOpen, setUserOpen] = useState(false);
   const [userSearch, setUserSearch] = useState("");
 
-  // 契約選択状態
-  const [contractSelections, setContractSelections] = useState<ContractSelection[]>([]);
-
   // フィルタされた顧客リスト
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers;
@@ -150,32 +136,6 @@ export function DealForm({
       business_type: "corporation",
     },
   });
-
-  // 契約種類のチェックボックス変更
-  const handleContractTypeChange = (type: ContractType, checked: boolean) => {
-    if (checked) {
-      setContractSelections((prev) => [...prev, { type, products: [] }]);
-    } else {
-      setContractSelections((prev) => prev.filter((c) => c.type !== type));
-    }
-  };
-
-  // 商材のチェックボックス変更
-  const handleProductChange = (contractType: ContractType, product: string, checked: boolean) => {
-    setContractSelections((prev) =>
-      prev.map((c) => {
-        if (c.type === contractType) {
-          return {
-            ...c,
-            products: checked
-              ? [...c.products, product]
-              : c.products.filter((p) => p !== product),
-          };
-        }
-        return c;
-      })
-    );
-  };
 
   // 顧客登録
   const handleCustomerSubmit = async (data: CustomerFormValues) => {
@@ -223,22 +183,6 @@ export function DealForm({
   };
 
   const onSubmit = async (data: DealFormValues) => {
-    // バリデーション: 新規登録時は契約が必須
-    if (!deal && contractSelections.length === 0) {
-      setError("契約種類を1つ以上選択してください");
-      return;
-    }
-
-    // バリデーション: 選択した契約には商材が必要
-    if (!deal) {
-      const missingProducts = contractSelections.filter((c) => c.products.length === 0);
-      if (missingProducts.length > 0) {
-        const types = missingProducts.map((c) => CONTRACT_TYPE_LABELS[c.type]).join("、");
-        setError(`${types}の商材を選択してください`);
-        return;
-      }
-    }
-
     setLoading(true);
     setError(null);
 
@@ -246,9 +190,8 @@ export function DealForm({
       const supabase = createClient();
       const selectedCustomer = customers.find((c) => c.id === data.customer_id);
 
-      // 案件タイトルを自動生成（顧客名 + 契約種類）
-      const contractTypeNames = contractSelections.map((c) => CONTRACT_TYPE_LABELS[c.type]).join("・");
-      const dealTitle = deal?.title || `${selectedCustomer?.company_name || ""}${contractTypeNames ? ` ${contractTypeNames}` : ""}`;
+      // 案件タイトルを自動生成（顧客名）
+      const dealTitle = deal?.title || selectedCustomer?.company_name || "";
 
       const dealData = {
         title: dealTitle,
@@ -271,6 +214,8 @@ export function DealForm({
           title: "案件を更新しました",
           description: `${dealTitle}の情報を更新しました`,
         });
+
+        router.push(`/deals/${deal.id}`);
       } else {
         // 新規登録
         const { data: newDeal, error: insertError } = await supabase
@@ -281,36 +226,15 @@ export function DealForm({
 
         if (insertError) throw insertError;
 
-        // 契約レコードを作成
-        const contractsToInsert = contractSelections.map((selection) => ({
-          deal_id: newDeal.id,
-          title: `${selectedCustomer?.company_name || ""} ${CONTRACT_TYPE_LABELS[selection.type]}`,
-          contract_type: selection.type,
-          product_category: selection.products.join("、"),
-          phase: "商談中" as const,
-          status: "商談待ち" as const,
-          lease_company: null,
-          monthly_amount: null,
-          total_amount: null,
-          contract_months: null,
-          start_date: null,
-          end_date: null,
-          notes: null,
-        }));
-
-        const { error: contractError } = await supabase
-          .from("contracts")
-          .insert(contractsToInsert);
-
-        if (contractError) throw contractError;
-
         toast({
           title: "案件を登録しました",
-          description: `${dealTitle}と${contractSelections.length}件の契約を登録しました`,
+          description: `${dealTitle}を登録しました`,
         });
+
+        // 案件詳細ページに遷移
+        router.push(`/deals/${newDeal.id}`);
       }
 
-      router.push("/deals");
       router.refresh();
     } catch (err) {
       console.error("案件登録エラー:", err);
@@ -325,12 +249,6 @@ export function DealForm({
       setLoading(false);
     }
   };
-
-  const isContractTypeSelected = (type: ContractType) =>
-    contractSelections.some((c) => c.type === type);
-
-  const getSelectedProducts = (type: ContractType) =>
-    contractSelections.find((c) => c.type === type)?.products || [];
 
   return (
     <>
@@ -491,58 +409,6 @@ export function DealForm({
                   )}
                 />
               </div>
-
-              {/* 契約種類選択（新規登録時のみ） */}
-              {!deal && (
-                <div className="space-y-4">
-                  <FormLabel>契約種類 *（複数選択可）</FormLabel>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {NEW_CONTRACT_TYPES.map((type) => (
-                      <div key={type} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`contract-${type}`}
-                            checked={isContractTypeSelected(type)}
-                            onCheckedChange={(checked) =>
-                              handleContractTypeChange(type, checked as boolean)
-                            }
-                          />
-                          <label
-                            htmlFor={`contract-${type}`}
-                            className="text-sm font-medium leading-none cursor-pointer"
-                          >
-                            {CONTRACT_TYPE_LABELS[type]}
-                          </label>
-                        </div>
-
-                        {/* 商材選択 */}
-                        {isContractTypeSelected(type) && (
-                          <div className="ml-6 space-y-2">
-                            <p className="text-xs text-muted-foreground">商材を選択</p>
-                            {PRODUCT_CATEGORIES_BY_CONTRACT_TYPE[type].map((product) => (
-                              <div key={product} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`product-${type}-${product}`}
-                                  checked={getSelectedProducts(type).includes(product)}
-                                  onCheckedChange={(checked) =>
-                                    handleProductChange(type, product, checked as boolean)
-                                  }
-                                />
-                                <label
-                                  htmlFor={`product-${type}-${product}`}
-                                  className="text-sm leading-none cursor-pointer"
-                                >
-                                  {product}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <div className="flex justify-end space-x-4">
                 <Button

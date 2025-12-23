@@ -13,7 +13,9 @@ import { ja } from "date-fns/locale";
 import { StatusWorkflow } from "../deals/status-workflow";
 import { ContractTaskCard } from "./contract-task-card";
 import { StatusHistoryCard } from "./status-history-card";
-import { Calendar, CreditCard, FileText } from "lucide-react";
+import { Calendar, CreditCard, FileText, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { formatDealId } from "@/lib/utils";
 
 // ステータス履歴の型
 type StatusHistory = Tables<"contract_status_history"> & {
@@ -77,6 +79,24 @@ export function ContractDetail({
             <CardContent>
               <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
+                  <dt className="text-sm font-medium text-gray-500">案件ID</dt>
+                  <dd className="mt-1 text-sm">
+                    {contract.deal ? (
+                      <Link
+                        href={`/deals/${contract.deal.id}`}
+                        className="flex items-center gap-1 text-primary hover:underline"
+                      >
+                        <span className="font-mono text-xs">
+                          {formatDealId(contract.deal.customer?.customer_number, contract.deal.deal_number)}
+                        </span>
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </dd>
+                </div>
+                <div>
                   <dt className="text-sm font-medium text-gray-500">契約種別</dt>
                   <dd className="mt-1">
                     <Badge variant="outline">
@@ -88,12 +108,6 @@ export function ContractDetail({
                   <dt className="text-sm font-medium text-gray-500">商品カテゴリ</dt>
                   <dd className="mt-1 text-sm text-gray-900">
                     {contract.product_category || "-"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">リース会社</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {contract.lease_company || "-"}
                   </dd>
                 </div>
                 <div>
@@ -211,18 +225,18 @@ export function ContractDetail({
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Task Card */}
-          <ContractTaskCard
-            contract={contract}
-            tasks={tasks}
-            users={users}
-            currentUserId={currentUserId}
-          />
-
           {/* Status History Card */}
           <StatusHistoryCard history={statusHistory} />
         </div>
       </div>
+
+      {/* Task Card - メインコンテンツエリアに配置 */}
+      <ContractTaskCard
+        contract={contract}
+        tasks={tasks}
+        users={users}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 }

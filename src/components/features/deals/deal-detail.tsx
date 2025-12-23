@@ -22,8 +22,9 @@ import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { ActivityList } from "../activities/activity-list";
 import { ActivityForm } from "../activities/activity-form";
+import { NewContractDialog } from "./new-contract-dialog";
 import Link from "next/link";
-import { Eye, Plus } from "lucide-react";
+import { Eye } from "lucide-react";
 
 interface DealDetailProps {
   deal: Deal;
@@ -136,12 +137,7 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>契約一覧</CardTitle>
-              <Button size="sm" asChild>
-                <Link href={`/deals/${deal.id}/contracts/new`}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  新規契約
-                </Link>
-              </Button>
+              <NewContractDialog deal={deal} />
             </CardHeader>
             <CardContent>
               {!deal.contracts || deal.contracts.length === 0 ? (
