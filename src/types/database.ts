@@ -320,6 +320,7 @@ export type Database = {
         Row: {
           id: string;
           deal_id: string;
+          contract_id: string | null;
           user_id: string;
           activity_type: "phone" | "visit" | "email" | "online_meeting" | "other";
           content: string;
@@ -328,6 +329,7 @@ export type Database = {
         Insert: {
           id?: string;
           deal_id: string;
+          contract_id?: string | null;
           user_id: string;
           activity_type: "phone" | "visit" | "email" | "online_meeting" | "other";
           content: string;
@@ -336,6 +338,7 @@ export type Database = {
         Update: {
           id?: string;
           deal_id?: string;
+          contract_id?: string | null;
           user_id?: string;
           activity_type?: "phone" | "visit" | "email" | "online_meeting" | "other";
           content?: string;
@@ -347,6 +350,13 @@ export type Database = {
             columns: ["deal_id"];
             isOneToOne: false;
             referencedRelation: "deals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "activities_contract_id_fkey";
+            columns: ["contract_id"];
+            isOneToOne: false;
+            referencedRelation: "contracts";
             referencedColumns: ["id"];
           },
           {

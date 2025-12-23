@@ -5,7 +5,7 @@ import { ACTIVITY_TYPE_LABELS } from "@/constants";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Phone, User, Mail, Video, MoreHorizontal } from "lucide-react";
+import { Phone, User, Mail, Video, MoreHorizontal, FileText } from "lucide-react";
 
 interface ActivityListProps {
   activities: Activity[];
@@ -53,11 +53,17 @@ export function ActivityList({ activities }: ActivityListProps) {
               <Icon className="h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center space-x-2 flex-wrap gap-1">
                   <Badge variant="secondary">
                     {ACTIVITY_TYPE_LABELS[activity.activity_type]}
                   </Badge>
+                  {activity.contract && (
+                    <Badge variant="outline" className="text-xs">
+                      <FileText className="h-3 w-3 mr-1" />
+                      {activity.contract.title}
+                    </Badge>
+                  )}
                   <span className="text-sm text-gray-500">
                     {activity.user?.name || "不明"}
                   </span>
@@ -68,7 +74,7 @@ export function ActivityList({ activities }: ActivityListProps) {
                   })}
                 </span>
               </div>
-              <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">
+              <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                 {activity.content}
               </p>
             </div>

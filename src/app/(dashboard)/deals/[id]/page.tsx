@@ -33,7 +33,8 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
     .from("activities")
     .select(`
       *,
-      user:users(*)
+      user:users(*),
+      contract:contracts(id, title)
     `)
     .eq("deal_id", id)
     .order("created_at", { ascending: false });

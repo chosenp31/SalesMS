@@ -193,7 +193,11 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
               <CardTitle>活動履歴</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <ActivityForm dealId={deal.id} userId={currentUserId} />
+              <ActivityForm
+                dealId={deal.id}
+                userId={currentUserId}
+                contracts={deal.contracts?.map((c) => ({ id: c.id, title: c.title })) || []}
+              />
               <ActivityList activities={activities} />
             </CardContent>
           </Card>

@@ -188,12 +188,17 @@ export type Payment = {
 export type Activity = {
   id: string;
   deal_id: string;
+  contract_id: string | null;
   user_id: string;
   activity_type: "phone" | "visit" | "email" | "online_meeting" | "other";
   content: string;
   created_at: string;
   // Relations
   user?: User;
+  contract?: {
+    id: string;
+    title: string;
+  } | null;
 };
 
 // タスクステータス
