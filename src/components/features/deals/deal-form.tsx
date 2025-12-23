@@ -307,6 +307,7 @@ export function DealForm({
         customer_id: data.customer_id,
         assigned_user_id: data.assigned_user_id,
         status: "active" as const,
+        contract_type: "rental" as const,
       };
 
       if (deal) {
