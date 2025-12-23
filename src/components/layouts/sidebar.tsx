@@ -22,7 +22,7 @@ const navigation = [
   { name: "契約管理", href: "/contracts", icon: FileSignature },
   { name: "顧客管理", href: "/customers", icon: Users },
   { name: "タスク", href: "/tasks", icon: ClipboardList },
-  { name: "入金管理", href: "/payments", icon: CreditCard },
+  { name: "入金管理", href: "/payments", icon: CreditCard, badge: "作成中" },
 ];
 
 function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
@@ -55,6 +55,11 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
             >
               <item.icon className="h-5 w-5 mr-3" />
               {item.name}
+              {item.badge && (
+                <span className="ml-auto text-xs bg-yellow-500 text-yellow-900 px-1.5 py-0.5 rounded font-medium">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           );
         })}
