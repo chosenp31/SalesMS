@@ -1,19 +1,46 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { CustomerList } from "@/components/features/customers/customer-list";
+import { CustomerDialog } from "@/components/features/customers/customer-dialog";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
+import { Customer } from "@/types";
 
-export default async function CustomersPage() {
-  const supabase = await createClient();
+export default function CustomersPage() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data: customers, error } = await supabase
-    .from("customers")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const fetchCustomers = useCallback(async () => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("customers")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching customers:", error);
+    if (error) {
+      console.error("Error fetching customers:", error);
+    }
+    setCustomers(data || []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  const handleCustomerCreated = (newCustomer: Customer) => {
+    setCustomers((prev) => [newCustomer, ...prev]);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
   }
 
   return (
@@ -25,14 +52,17 @@ export default async function CustomersPage() {
             顧客情報の一覧と管理
           </p>
         </div>
-        <Button asChild>
-          <Link href="/customers/new">
-            <Plus className="h-4 w-4 mr-2" />
-            新規顧客
-          </Link>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          新規顧客
         </Button>
       </div>
-      <CustomerList customers={customers || []} />
+      <CustomerList customers={customers} />
+      <CustomerDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={handleCustomerCreated}
+      />
     </div>
   );
 }
