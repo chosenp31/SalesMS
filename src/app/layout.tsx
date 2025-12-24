@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -26,6 +27,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         <Analytics />
+        <GoogleAnalytics gaId="G-ZSHT739WXN" />
       </body>
     </html>
   );
