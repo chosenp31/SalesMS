@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +30,25 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
       setLoading(false);
+    } else {
+      router.push("/deals");
+      router.refresh();
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError(null);
+    setDemoLoading(true);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: "demo@example.com",
+      password: "demo1234",
+    });
+
+    if (error) {
+      setError("デモログインに失敗しました: " + error.message);
+      setDemoLoading(false);
     } else {
       router.push("/deals");
       router.refresh();
@@ -72,10 +92,27 @@ export default function LoginPage() {
             {error && (
               <div className="text-sm text-red-500 text-center">{error}</div>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || demoLoading}>
               {loading ? "ログイン中..." : "ログイン"}
             </Button>
           </form>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">または</span>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleDemoLogin}
+            disabled={loading || demoLoading}
+          >
+            {demoLoading ? "ログイン中..." : "デモで試す"}
+          </Button>
         </CardContent>
       </Card>
     </div>
