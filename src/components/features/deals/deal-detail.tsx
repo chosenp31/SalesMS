@@ -16,15 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, formatDealId, formatContractId } from "@/lib/utils";
 import { ActivityList } from "../activities/activity-list";
 import { ActivityForm } from "../activities/activity-form";
 import { NewContractDialog } from "./new-contract-dialog";
 import Link from "next/link";
-import { Eye } from "lucide-react";
 
 interface DealDetailProps {
   deal: Deal;
@@ -50,18 +48,20 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
         {/* Deal Information */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>商談情報</CardTitle>
+              <CardTitle>案件情報</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">商談名</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{deal.title}</dd>
+                  <dt className="text-sm font-medium text-gray-500">案件ID</dt>
+                  <dd className="mt-1 text-sm text-gray-900 font-mono">
+                    {formatDealId(deal.customer?.customer_number, deal.deal_number)}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">顧客</dt>
@@ -148,18 +148,23 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>契約名</TableHead>
+                      <TableHead>契約ID</TableHead>
                       <TableHead>契約種別</TableHead>
                       <TableHead>ステータス</TableHead>
                       <TableHead>月額</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {deal.contracts.map((contract) => (
-                      <TableRow key={contract.id}>
-                        <TableCell className="font-medium">
-                          {contract.title}
+                      <TableRow
+                        key={contract.id}
+                        className="cursor-pointer hover:bg-blue-50 transition-colors"
+                        onClick={() => window.location.href = `/contracts/${contract.id}`}
+                      >
+                        <TableCell className="font-medium font-mono text-blue-600">
+                          <Link href={`/contracts/${contract.id}`} className="hover:underline">
+                            {formatContractId(deal.customer?.customer_number, deal.deal_number, contract.contract_number)}
+                          </Link>
                         </TableCell>
                         <TableCell>
                           {contract.contract_type ? CONTRACT_TYPE_LABELS[contract.contract_type] : "-"}
@@ -171,13 +176,6 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
                         </TableCell>
                         <TableCell>
                           {formatAmount(contract.monthly_amount ?? null)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/contracts/${contract.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -199,51 +197,6 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
                 contracts={deal.contracts?.map((c) => ({ id: c.id, title: c.title })) || []}
               />
               <ActivityList activities={activities} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>顧客情報</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {deal.customer ? (
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">会社名</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {deal.customer.company_name}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">
-                      代表者名
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {deal.customer.representative_name}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">
-                      電話番号
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {deal.customer.phone || "-"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">メール</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {deal.customer.email || "-"}
-                    </dd>
-                  </div>
-                </dl>
-              ) : (
-                <p className="text-sm text-gray-500">顧客情報がありません</p>
-              )}
             </CardContent>
           </Card>
         </div>

@@ -66,7 +66,7 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{deal.title}</h1>
-            <p className="text-sm text-gray-500">商談詳細</p>
+            <p className="text-sm text-gray-500">案件詳細</p>
           </div>
         </div>
         <Button asChild>
