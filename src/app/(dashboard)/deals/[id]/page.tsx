@@ -64,10 +64,7 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
               戻る
             </Link>
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{deal.title}</h1>
-            <p className="text-sm text-gray-500">案件詳細</p>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">案件詳細</h1>
         </div>
         <Button asChild>
           <Link href={`/deals/${id}/edit`}>
