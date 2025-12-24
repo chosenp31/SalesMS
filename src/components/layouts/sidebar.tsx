@@ -23,7 +23,7 @@ const navigation = [
   { name: "契約管理", href: "/contracts", icon: FileSignature },
   { name: "顧客管理", href: "/customers", icon: Users },
   { name: "タスク", href: "/tasks", icon: ClipboardList },
-  { name: "入金管理", href: "/payments", icon: CreditCard, badge: "作成中" },
+  { name: "入金管理", href: "/payments", icon: CreditCard },
 ];
 
 function SidebarContent({
@@ -64,14 +64,7 @@ function SidebarContent({
             >
               <item.icon className={cn("h-5 w-5 flex-shrink-0", isExpanded && "mr-3")} />
               {isExpanded && (
-                <>
-                  <span className="whitespace-nowrap">{item.name}</span>
-                  {item.badge && (
-                    <span className="ml-auto text-xs bg-yellow-500 text-yellow-900 px-1.5 py-0.5 rounded font-medium">
-                      {item.badge}
-                    </span>
-                  )}
-                </>
+                <span className="whitespace-nowrap">{item.name}</span>
               )}
             </Link>
           );
@@ -105,14 +98,14 @@ export function Sidebar() {
       <div
         className={cn(
           "hidden md:flex md:flex-col h-full bg-gray-900 text-white transition-all duration-300 ease-in-out",
-          isHovered ? "w-64" : "w-16"
+          isHovered ? "w-36" : "w-14"
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className={cn(
           "flex items-center h-16 border-b border-gray-800",
-          isHovered ? "px-6" : "px-3 justify-center"
+          isHovered ? "px-3" : "px-3 justify-center"
         )}>
           <LayoutDashboard className="h-6 w-6 flex-shrink-0" />
           {isHovered && (
