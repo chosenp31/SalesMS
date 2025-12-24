@@ -9,7 +9,12 @@ const envVars: Record<string, string> = {};
 envContent.split("\n").forEach(line => {
   const [key, ...valueParts] = line.split("=");
   if (key && valueParts.length > 0) {
-    envVars[key.trim()] = valueParts.join("=").trim();
+    let value = valueParts.join("=").trim();
+    // クォートを除去
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    envVars[key.trim()] = value;
   }
 });
 
@@ -29,77 +34,117 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // 日本人の名前
 const lastNames = [
   "田中", "鈴木", "佐藤", "高橋", "伊藤", "渡辺", "山本", "中村", "小林", "加藤",
-  "吉田", "山田", "佐々木", "山口", "松本", "井上", "木村", "林", "斎藤", "清水",
-  "森", "池田", "橋本", "阿部", "石川", "前田", "藤田", "後藤", "岡田", "長谷川"
+  "吉田", "山田", "佐々木", "山口", "松本", "井上", "木村", "林", "斎藤", "清水"
 ];
 
 const firstNames = [
   "太郎", "一郎", "健太", "大輔", "翔太", "裕介", "和也", "直樹", "拓也", "誠",
-  "真一", "浩二", "正義", "康弘", "英樹", "秀雄", "勝", "進", "修", "豊",
   "美咲", "陽子", "裕子", "真由美", "恵子", "智子", "由美子", "久美子", "京子", "幸子"
 ];
 
-// 会社名パターン
-const companyPrefixes = [
-  "東京", "大阪", "名古屋", "横浜", "神戸", "京都", "福岡", "札幌", "仙台", "広島",
-  "日本", "全国", "関東", "関西", "東海", "九州", "北海道", "中部", "北陸", "東北",
-  "田中", "鈴木", "佐藤", "山田", "高橋", "伊藤", "渡辺", "山本", "中村", "小林",
-  "サンライズ", "グローバル", "テクノ", "アドバンス", "フューチャー", "ネクスト"
-];
-
-const companyTypes = [
-  "建設", "不動産", "運輸", "物流", "製造", "食品", "IT", "システム", "設備", "電機",
-  "機械", "自動車", "医療", "介護", "教育", "飲食", "小売", "卸売", "印刷", "広告",
-  "商事", "工業", "産業", "サービス", "ソリューションズ", "テクノロジー", "コーポレーション"
+// 会社名パターン（様々な業種）
+const companyData = [
+  // IT・通信系
+  { name: "テックソリューションズ", suffix: "株式会社" },
+  { name: "デジタルイノベーション", suffix: "株式会社" },
+  { name: "クラウドシステムズ", suffix: "株式会社" },
+  { name: "サイバーネット", suffix: "株式会社" },
+  { name: "AIテクノロジー", suffix: "株式会社" },
+  { name: "ネクストウェブ", suffix: "合同会社" },
+  { name: "スマートシステムズ", suffix: "株式会社" },
+  // 小売・サービス系
+  { name: "グルメダイニング", suffix: "株式会社" },
+  { name: "ビューティーサロン田中", suffix: "" },
+  { name: "ファッションプラス", suffix: "株式会社" },
+  { name: "リテールマート", suffix: "株式会社" },
+  { name: "カフェ・ド・パリ", suffix: "" },
+  { name: "レストラン山田", suffix: "" },
+  { name: "美容室ミラクル", suffix: "" },
+  { name: "居酒屋さくら", suffix: "" },
+  // 製造・建設系
+  { name: "精密機械工業", suffix: "株式会社" },
+  { name: "建設コーポレーション", suffix: "株式会社" },
+  { name: "東海マニュファクチャリング", suffix: "株式会社" },
+  { name: "プラント工業", suffix: "株式会社" },
+  { name: "メタルワークス", suffix: "有限会社" },
+  { name: "木村建設", suffix: "株式会社" },
+  { name: "中央製作所", suffix: "株式会社" },
+  { name: "関東建材", suffix: "株式会社" },
+  { name: "大和工務店", suffix: "有限会社" },
+  // 医療・介護系
+  { name: "メディカルサービス", suffix: "株式会社" },
+  { name: "ケアサポート", suffix: "株式会社" },
+  { name: "健康クリニック", suffix: "" },
+  // 不動産・物流系
+  { name: "不動産管理センター", suffix: "株式会社" },
+  { name: "ロジスティクス", suffix: "株式会社" },
+  { name: "トランスポート", suffix: "株式会社" },
+  // 士業・コンサル系
+  { name: "法律事務所佐藤", suffix: "" },
+  { name: "会計事務所高橋", suffix: "" },
+  { name: "コンサルティングファーム", suffix: "株式会社" },
+  // 広告・メディア系
+  { name: "広告代理店ネクスト", suffix: "株式会社" },
+  { name: "イベント企画", suffix: "株式会社" },
+  { name: "メディアプロダクション", suffix: "株式会社" },
+  // 教育系
+  { name: "エデュケーション", suffix: "株式会社" },
+  { name: "学習塾サクセス", suffix: "" },
+  // その他
+  { name: "総合商事", suffix: "株式会社" },
+  { name: "ビジネスサポート", suffix: "株式会社" },
 ];
 
 // 住所詳細
 const addressDetails = [
-  { pref: "東京都", city: "千代田区", town: "丸の内", building: "丸の内ビルディング" },
-  { pref: "東京都", city: "港区", town: "六本木", building: "六本木ヒルズ森タワー" },
-  { pref: "東京都", city: "新宿区", town: "西新宿", building: "新宿アイランドタワー" },
-  { pref: "東京都", city: "渋谷区", town: "道玄坂", building: "渋谷マークシティ" },
-  { pref: "東京都", city: "中央区", town: "銀座", building: "銀座三越ビル" },
-  { pref: "東京都", city: "品川区", town: "大崎", building: "ゲートシティ大崎" },
-  { pref: "大阪府", city: "大阪市北区", town: "梅田", building: "グランフロント大阪" },
-  { pref: "大阪府", city: "大阪市中央区", town: "難波", building: "なんばパークス" },
-  { pref: "愛知県", city: "名古屋市中区", town: "栄", building: "名古屋ミッドランドスクエア" },
-  { pref: "神奈川県", city: "横浜市西区", town: "みなとみらい", building: "ランドマークタワー" },
-  { pref: "福岡県", city: "福岡市博多区", town: "博多駅前", building: "JR博多シティ" },
-  { pref: "北海道", city: "札幌市中央区", town: "北1条西", building: "札幌ステラプレイス" },
+  { pref: "東京都", city: "千代田区", town: "丸の内" },
+  { pref: "東京都", city: "港区", town: "六本木" },
+  { pref: "東京都", city: "新宿区", town: "西新宿" },
+  { pref: "東京都", city: "渋谷区", town: "道玄坂" },
+  { pref: "東京都", city: "中央区", town: "銀座" },
+  { pref: "東京都", city: "品川区", town: "大崎" },
+  { pref: "東京都", city: "目黒区", town: "中目黒" },
+  { pref: "東京都", city: "世田谷区", town: "三軒茶屋" },
+  { pref: "大阪府", city: "大阪市北区", town: "梅田" },
+  { pref: "大阪府", city: "大阪市中央区", town: "難波" },
+  { pref: "愛知県", city: "名古屋市中区", town: "栄" },
+  { pref: "神奈川県", city: "横浜市西区", town: "みなとみらい" },
+  { pref: "福岡県", city: "福岡市博多区", town: "博多駅前" },
+  { pref: "北海道", city: "札幌市中央区", town: "北1条西" },
+  { pref: "宮城県", city: "仙台市青葉区", town: "国分町" },
+  { pref: "広島県", city: "広島市中区", town: "紙屋町" },
 ];
 
-// 契約種別（旧体系 - DB制約に合わせる）
-const contractTypes = ["lease", "rental", "installment"] as const;
+// 契約種別（新スキーマ）- 物件40%, 回線35%, 保守25%
+const contractTypes = [
+  { type: "property" as const, weight: 40 },
+  { type: "line" as const, weight: 35 },
+  { type: "maintenance" as const, weight: 25 },
+];
 
-// 商品カテゴリ（契約種別別）
-const productCategoriesByType: Record<string, { categories: string[]; priceRange: [number, number] }> = {
-  lease: {
-    categories: ["UTM", "ルーター", "複合機", "その他"],
-    priceRange: [200000, 2500000]
-  },
-  rental: {
-    categories: ["UTM", "ルーター", "複合機", "その他"],
-    priceRange: [100000, 1500000]
-  },
-  installment: {
-    categories: ["UTM", "ルーター", "複合機", "その他"],
-    priceRange: [150000, 2000000]
-  },
+// 契約種別ごとの商品カテゴリ（アプリと同じ値）
+const productCategoriesByType: Record<string, string[]> = {
+  property: ["UTM", "ルーター", "複合機", "その他"],
+  line: ["インターネット", "電話", "その他"],
+  maintenance: ["インターネット", "電話", "その他"],
 };
 
 // リース会社
 const leaseCompanies = ["C-mind", "オリコ", "ジャックス", "その他"];
 
-// 契約フェーズ・ステータス（DB制約に合わせた旧体系）
-const contractPhaseStatuses = {
-  "商談中": ["日程調整中", "MTG実施待ち", "見積提出", "受注確定"],
-  "審査中": ["書類準備中", "審査結果待ち", "可決", "否決"],
-  "工事中": ["下見日程調整中", "下見実施待ち", "工事日程調整中", "工事実施待ち"],
-  "入金中": ["入金待ち", "入金済"],
-  "失注": ["失注"],
-  "クローズ": ["クローズ"],
-} as const;
+// 契約フェーズ・ステータス（新スキーマ準拠）- 進行中70%, 完了・失注30%
+// phase: '商談中', '審査・申込中', '下見・工事中', '契約中', '入金中', '請求中', '完了', '否決'
+// status: 商談待ち, 商談日程調整中, 審査・申込対応中, 審査・申込待ち, 下見調整中, 下見実施待ち, 工事日程調整中, 工事実施待ち, 検収確認中, 契約書提出対応中, 契約書確認待ち, 入金待ち, 入金済, 初回請求確認待ち, 請求処理対応中, クローズ, 対応検討中, 失注
+const contractPhaseStatuses = [
+  { phase: "商談中" as const, statuses: ["商談待ち", "商談日程調整中"], weight: 20 },
+  { phase: "審査・申込中" as const, statuses: ["審査・申込対応中", "審査・申込待ち"], weight: 15 },
+  { phase: "下見・工事中" as const, statuses: ["下見調整中", "下見実施待ち", "工事日程調整中", "工事実施待ち"], weight: 20 },
+  { phase: "契約中" as const, statuses: ["検収確認中", "契約書提出対応中", "契約書確認待ち"], weight: 10 },
+  { phase: "入金中" as const, statuses: ["入金待ち", "入金済"], weight: 10 },
+  { phase: "請求中" as const, statuses: ["初回請求確認待ち", "請求処理対応中"], weight: 5 },
+  { phase: "完了" as const, statuses: ["クローズ"], weight: 10 },
+  { phase: "否決" as const, statuses: ["対応検討中", "失注"], weight: 10 },
+];
 
 // タスク担当会社
 const taskCompanies = ["自社", "リース会社", "工事業者", "その他"] as const;
@@ -129,18 +174,30 @@ function generatePhone(): string {
   return `${randomElement(area)}-${randomInt(1000, 9999)}-${randomInt(1000, 9999)}`;
 }
 
-function generateEmail(name: string): string {
-  const domains = ["co.jp", "jp", "com"];
-  const simplified = name.replace(/[株式会社有限合同（）()\s]/g, "").substring(0, 6).toLowerCase();
-  return `info@${simplified || "company"}.${randomElement(domains)}`;
+// 重み付きランダム選択
+function weightedRandomChoice<T extends { weight: number }>(items: T[]): T {
+  const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+  let random = Math.random() * totalWeight;
+  for (const item of items) {
+    random -= item.weight;
+    if (random <= 0) return item;
+  }
+  return items[items.length - 1];
 }
 
-function getRandomPhaseAndStatus(): { phase: string; status: string } {
-  const phases = Object.keys(contractPhaseStatuses) as (keyof typeof contractPhaseStatuses)[];
-  const phase = randomElement(phases);
-  const statuses = contractPhaseStatuses[phase];
-  const status = randomElement(statuses);
-  return { phase, status };
+type ContractPhase = "商談中" | "審査・申込中" | "下見・工事中" | "契約中" | "入金中" | "請求中" | "完了" | "否決";
+
+function getRandomPhaseAndStatus(): { phase: ContractPhase; status: string } {
+  const phaseData = weightedRandomChoice(contractPhaseStatuses);
+  const status = randomElement(phaseData.statuses);
+  return { phase: phaseData.phase as ContractPhase, status };
+}
+
+type ContractType = "property" | "line" | "maintenance";
+
+function getRandomContractType(): ContractType {
+  const typeData = weightedRandomChoice([...contractTypes]);
+  return typeData.type;
 }
 
 // ============================================
@@ -159,18 +216,18 @@ async function seed() {
   await supabase.from("contracts").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   await supabase.from("deals").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   await supabase.from("customers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await supabase.from("users").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  // デモユーザーは残す
+  await supabase.from("users").delete().neq("email", "demoslaesms@example.com");
 
   console.log("  ✅ 既存データを削除しました\n");
 
   // ============================================
-  // 1. ユーザー（営業担当者）作成 - 15件
+  // 1. ユーザー（営業担当者）作成 - 10人
   // ============================================
   console.log("👤 ユーザーを作成中...");
   const users = [
     { id: crypto.randomUUID(), email: "admin@example.com", name: "管理者 太郎", role: "admin" },
     { id: crypto.randomUUID(), email: "manager1@example.com", name: "佐藤 健一", role: "manager" },
-    { id: crypto.randomUUID(), email: "manager2@example.com", name: "高橋 美咲", role: "manager" },
     { id: crypto.randomUUID(), email: "sales1@example.com", name: "田中 大輔", role: "sales" },
     { id: crypto.randomUUID(), email: "sales2@example.com", name: "鈴木 翔太", role: "sales" },
     { id: crypto.randomUUID(), email: "sales3@example.com", name: "伊藤 裕子", role: "sales" },
@@ -179,10 +236,6 @@ async function seed() {
     { id: crypto.randomUUID(), email: "sales6@example.com", name: "中村 和也", role: "sales" },
     { id: crypto.randomUUID(), email: "sales7@example.com", name: "小林 誠", role: "sales" },
     { id: crypto.randomUUID(), email: "sales8@example.com", name: "加藤 真一", role: "sales" },
-    { id: crypto.randomUUID(), email: "sales9@example.com", name: "吉田 浩二", role: "sales" },
-    { id: crypto.randomUUID(), email: "sales10@example.com", name: "山田 智子", role: "sales" },
-    { id: crypto.randomUUID(), email: "sales11@example.com", name: "佐々木 由美", role: "sales" },
-    { id: crypto.randomUUID(), email: "sales12@example.com", name: "松本 恵子", role: "sales" },
   ];
 
   const { error: usersError } = await supabase.from("users").insert(users);
@@ -190,10 +243,10 @@ async function seed() {
     console.error("ユーザー作成エラー:", usersError);
     return;
   }
-  console.log(`  ✅ ${users.length}件のユーザーを作成しました\n`);
+  console.log(`  ✅ ${users.length}人のユーザーを作成しました\n`);
 
   // ============================================
-  // 2. 顧客作成 - 50件
+  // 2. 顧客作成 - 40件
   // ============================================
   console.log("🏢 顧客データを作成中...");
   const customers: Array<{
@@ -205,32 +258,37 @@ async function seed() {
     address: string;
     business_type: "corporation" | "sole_proprietor" | "new_corporation";
     created_at: string;
+    updated_at: string;
   }> = [];
 
-  for (let i = 0; i < 50; i++) {
-    const prefix = randomElement(companyPrefixes);
-    const type = randomElement(companyTypes);
-    const suffix = randomElement(["株式会社", "有限会社", "合同会社"]);
-    const companyName = `${prefix}${type}${suffix}`;
+  // companyDataをシャッフルして使用
+  const shuffledCompanies = [...companyData].sort(() => Math.random() - 0.5).slice(0, 40);
+
+  for (let i = 0; i < 40; i++) {
+    const company = shuffledCompanies[i];
+    const companyName = company.suffix ? `${company.suffix}${company.name}` : company.name;
     const addr = randomElement(addressDetails);
 
-    // 業種タイプの分布
+    // 業種タイプの分布: 法人75%, 個人事業主15%, 新設法人10%
     let businessType: "corporation" | "sole_proprietor" | "new_corporation";
     const rand = Math.random();
     if (rand < 0.75) businessType = "corporation";
-    else if (rand < 0.9) businessType = "sole_proprietor";
+    else if (rand < 0.90) businessType = "sole_proprietor";
     else businessType = "new_corporation";
 
-    const createdDate = randomDate(new Date("2024-06-01"), new Date("2024-12-01"));
+    const createdDate = randomDate(new Date("2024-06-01"), new Date("2024-12-15"));
+    const updatedDate = randomDate(createdDate, new Date());
+
     customers.push({
       id: crypto.randomUUID(),
       company_name: companyName,
       representative_name: `${randomElement(lastNames)} ${randomElement(firstNames)}`,
       phone: generatePhone(),
-      email: generateEmail(companyName),
-      address: `${addr.pref}${addr.city}${addr.town}${randomInt(1, 10)}-${randomInt(1, 20)}-${randomInt(1, 30)} ${addr.building}${randomInt(1, 20)}F`,
+      email: `info@${company.name.toLowerCase().replace(/[^a-z]/g, "").substring(0, 10)}.co.jp`,
+      address: `${addr.pref}${addr.city}${addr.town}${randomInt(1, 10)}-${randomInt(1, 20)}-${randomInt(1, 15)}`,
       business_type: businessType,
       created_at: createdDate.toISOString(),
+      updated_at: updatedDate.toISOString(),
     });
   }
 
@@ -242,7 +300,7 @@ async function seed() {
   console.log(`  ✅ ${customers.length}件の顧客を作成しました\n`);
 
   // ============================================
-  // 3. 案件作成 - 50件
+  // 3. 案件作成 - 40件
   // ============================================
   console.log("📋 案件データを作成中...");
 
@@ -251,50 +309,51 @@ async function seed() {
     customer_id: string;
     assigned_user_id: string;
     title: string;
-    status: "active" | "won" | "lost" | "pending";
-    contract_type: string;
-    product_category: string;
+    status: string;
+    contract_type: ContractType;
+    product_category: string | null;
+    estimated_amount: number | null;
     created_at: string;
+    updated_at: string;
   }
 
   const deals: Deal[] = [];
   const salesUsers = users.filter(u => u.role === "sales");
-  const dealStatuses: Array<"active" | "won" | "lost" | "pending"> = ["active", "won", "lost", "pending"];
-  const dealStatusWeights = [0.5, 0.25, 0.15, 0.1]; // 進行中50%, 成約25%, 失注15%, 保留10%
 
-  for (let i = 0; i < 50; i++) {
-    const customer = randomElement(customers);
+  for (let i = 0; i < 40; i++) {
+    const customer = customers[i];
     const user = randomElement(salesUsers);
-    const contractType = randomElement(contractTypes);
-    const productInfo = productCategoriesByType[contractType];
-    const productCategory = randomElement(productInfo.categories);
 
     const daysAgo = randomInt(1, 180);
     const createdDate = new Date();
     createdDate.setDate(createdDate.getDate() - daysAgo);
+    const updatedDate = randomDate(createdDate, new Date());
 
-    // ステータスの重み付きランダム選択
-    const rand = Math.random();
-    let status: "active" | "won" | "lost" | "pending";
-    let cumulative = 0;
-    for (let j = 0; j < dealStatuses.length; j++) {
-      cumulative += dealStatusWeights[j];
-      if (rand <= cumulative) {
-        status = dealStatuses[j];
-        break;
-      }
-    }
-    status = status! || "active";
+    // 案件ステータス（deals.statusの許容値）
+    const dealStatuses = [
+      "appointment_acquired", "negotiating", "contract_pending",
+      "won", "lost"
+    ];
+    const status = randomElement(dealStatuses);
+
+    // 契約タイプ（新スキーマ）
+    const dealContractType = getRandomContractType();
+
+    // 製品カテゴリ（契約タイプに合わせる）
+    const productCategories = productCategoriesByType[dealContractType];
+    const productCategory = randomElement(productCategories);
 
     deals.push({
       id: crypto.randomUUID(),
       customer_id: customer.id,
       assigned_user_id: user.id,
-      title: `${productCategory}導入案件`,
+      title: `${customer.company_name} - ${productCategory}導入`,
       status,
-      contract_type: contractType,
+      contract_type: dealContractType,
       product_category: productCategory,
+      estimated_amount: randomElement([null, randomInt(100000, 10000000)]),
       created_at: createdDate.toISOString(),
+      updated_at: updatedDate.toISOString(),
     });
   }
 
@@ -306,7 +365,7 @@ async function seed() {
   console.log(`  ✅ ${deals.length}件の案件を作成しました\n`);
 
   // ============================================
-  // 4. 契約作成 - 50件（各案件に1件ずつ、50件分）
+  // 4. 契約作成 - 70件
   // ============================================
   console.log("📝 契約データを作成中...");
 
@@ -314,10 +373,10 @@ async function seed() {
     id: string;
     deal_id: string;
     title: string;
-    contract_type: string;
-    product_category: string;
+    contract_type: ContractType;
+    product_category: string | null;
     lease_company: string | null;
-    phase: string;
+    phase: ContractPhase;
     status: string;
     monthly_amount: number | null;
     total_amount: number | null;
@@ -326,25 +385,26 @@ async function seed() {
     end_date: string | null;
     notes: string | null;
     created_at: string;
+    updated_at: string;
   }
 
   const contracts: Contract[] = [];
   const contractMonthsOptions = [12, 24, 36, 48, 60, 72, 84];
 
-  // 50件の契約を作成（最初の50案件に1件ずつ）
-  for (let i = 0; i < 50; i++) {
-    const deal = deals[i];
-    const contractType = randomElement(contractTypes);
-    const productInfo = productCategoriesByType[contractType];
-    const productCategory = randomElement(productInfo.categories);
+  // 70件の契約を作成（各案件に1〜3件）
+  for (let i = 0; i < 70; i++) {
+    const deal = deals[i % deals.length];
+    const contractType = getRandomContractType();
+    const products = productCategoriesByType[contractType];
+    const productCategory = randomElement(products);
 
     const { phase, status } = getRandomPhaseAndStatus();
     const months = randomElement(contractMonthsOptions);
-    const monthlyAmount = randomInt(10000, 150000);
+    const monthlyAmount = randomInt(5000, 150000);
     const totalAmount = monthlyAmount * months;
 
-    // 入金中以降のフェーズの場合は開始日を設定
-    const activePhases = ["入金中", "クローズ"];
+    // 入金中以降・完了のフェーズの場合は開始日を設定
+    const activePhases: ContractPhase[] = ["入金中", "請求中", "完了"];
     const startDate = activePhases.includes(phase)
       ? new Date(new Date(deal.created_at).getTime() + randomInt(30, 90) * 24 * 60 * 60 * 1000)
       : null;
@@ -353,13 +413,22 @@ async function seed() {
       ? new Date(startDate.getTime() + months * 30 * 24 * 60 * 60 * 1000)
       : null;
 
-    // リース契約の場合はリース会社を設定
-    const needsLeaseCompany = contractType === "lease" && !["商談中", "否決"].includes(phase);
+    // 物件契約でフェーズが進んでいる場合はリース会社を設定
+    const needsLeaseCompany = contractType === "property" && !["商談中", "否決"].includes(phase);
+
+    const createdDate = new Date(deal.created_at);
+    const updatedDate = randomDate(createdDate, new Date());
+
+    // 契約タイトル
+    let title = productCategory;
+    if (contractType === "property") title = `${productCategory}`;
+    else if (contractType === "line") title = `${productCategory}`;
+    else if (contractType === "maintenance") title = `${productCategory}保守`;
 
     contracts.push({
       id: crypto.randomUUID(),
       deal_id: deal.id,
-      title: `${productCategory}${contractType === "lease" ? "リース" : contractType === "rental" ? "レンタル" : "割賦"}契約`,
+      title,
       contract_type: contractType,
       product_category: productCategory,
       lease_company: needsLeaseCompany ? randomElement(leaseCompanies) : null,
@@ -370,8 +439,9 @@ async function seed() {
       contract_months: months,
       start_date: startDate ? formatDate(startDate) : null,
       end_date: endDate ? formatDate(endDate) : null,
-      notes: Math.random() > 0.7 ? "特記事項あり" : null,
-      created_at: deal.created_at,
+      notes: randomElement([null, null, null, "特記事項あり", "カスタマイズあり"]),
+      created_at: createdDate.toISOString(),
+      updated_at: updatedDate.toISOString(),
     });
   }
 
@@ -383,138 +453,7 @@ async function seed() {
   console.log(`  ✅ ${contracts.length}件の契約を作成しました\n`);
 
   // ============================================
-  // 5. リース審査作成 - 30件（物件契約のみ）
-  // ============================================
-  console.log("📝 リース審査データを作成中...");
-
-  type LeaseStatus = "準備中" | "審査結果待ち" | "可決" | "否決" | "条件付可決";
-
-  const leaseApplications: Array<{
-    id: string;
-    deal_id: string;
-    contract_id: string;
-    lease_company: string;
-    status: LeaseStatus;
-    submitted_at: string | null;
-    result_at: string | null;
-    conditions: string | null;
-    created_at: string;
-  }> = [];
-
-  const leaseContracts = contracts.filter(c => c.contract_type === "lease");
-  const conditionsOptions = [
-    "保証人の追加が必要",
-    "前払い金20%の入金が必要",
-    "直近3期分の決算書提出が必要",
-    "代表者の連帯保証が必要",
-  ];
-
-  for (let i = 0; i < Math.min(30, leaseContracts.length); i++) {
-    const contract = leaseContracts[i];
-    const createdDate = new Date(contract.created_at);
-
-    // ステータス分布
-    let status: LeaseStatus;
-    const rand = Math.random();
-    if (rand < 0.15) status = "準備中";
-    else if (rand < 0.35) status = "審査結果待ち";
-    else if (rand < 0.75) status = "可決";
-    else if (rand < 0.85) status = "否決";
-    else status = "条件付可決";
-
-    let submittedAt: string | null = null;
-    let resultAt: string | null = null;
-    let conditions: string | null = null;
-
-    if (status !== "準備中") {
-      const submitDate = new Date(createdDate);
-      submitDate.setDate(submitDate.getDate() + randomInt(1, 7));
-      submittedAt = submitDate.toISOString();
-
-      if (["可決", "否決", "条件付可決"].includes(status)) {
-        const resultDate = new Date(submitDate);
-        resultDate.setDate(resultDate.getDate() + randomInt(3, 14));
-        resultAt = resultDate.toISOString();
-      }
-    }
-
-    if (status === "条件付可決") {
-      conditions = randomElement(conditionsOptions);
-    }
-
-    leaseApplications.push({
-      id: crypto.randomUUID(),
-      deal_id: contract.deal_id,
-      contract_id: contract.id,
-      lease_company: contract.lease_company || randomElement(leaseCompanies),
-      status,
-      submitted_at: submittedAt,
-      result_at: resultAt,
-      conditions,
-      created_at: createdDate.toISOString(),
-    });
-  }
-
-  const { error: leaseError } = await supabase.from("lease_applications").insert(leaseApplications);
-  if (leaseError) {
-    console.error("リース審査作成エラー:", leaseError);
-    return;
-  }
-  console.log(`  ✅ ${leaseApplications.length}件のリース審査を作成しました\n`);
-
-  // ============================================
-  // 6. 入金データ作成 - 40件
-  // ============================================
-  console.log("💰 入金データを作成中...");
-
-  type PaymentStatus = "入金予定" | "入金済";
-
-  const payments: Array<{
-    id: string;
-    deal_id: string;
-    contract_id: string;
-    expected_amount: number;
-    actual_amount: number | null;
-    expected_date: string;
-    actual_date: string | null;
-    status: PaymentStatus;
-    lease_company: string | null;
-  }> = [];
-
-  // 入金中・クローズのフェーズの契約に対して入金データを作成
-  const paymentPhases = ["入金中", "クローズ"];
-  const paymentContracts = contracts.filter(c => paymentPhases.includes(c.phase));
-
-  for (let i = 0; i < Math.min(40, paymentContracts.length * 2); i++) {
-    const contract = paymentContracts[i % paymentContracts.length];
-    const expectedDate = new Date(contract.created_at);
-    expectedDate.setDate(expectedDate.getDate() + randomInt(30, 90));
-
-    const isPaid = Math.random() < 0.55;
-    const expectedAmount = contract.monthly_amount || randomInt(50000, 200000);
-
-    payments.push({
-      id: crypto.randomUUID(),
-      deal_id: contract.deal_id,
-      contract_id: contract.id,
-      expected_amount: expectedAmount,
-      actual_amount: isPaid ? expectedAmount : null,
-      expected_date: formatDate(expectedDate),
-      actual_date: isPaid ? formatDate(new Date(expectedDate.getTime() + randomInt(-5, 10) * 24 * 60 * 60 * 1000)) : null,
-      status: isPaid ? "入金済" : "入金予定",
-      lease_company: contract.lease_company,
-    });
-  }
-
-  const { error: paymentsError } = await supabase.from("payments").insert(payments);
-  if (paymentsError) {
-    console.error("入金作成エラー:", paymentsError);
-    return;
-  }
-  console.log(`  ✅ ${payments.length}件の入金データを作成しました\n`);
-
-  // ============================================
-  // 7. タスク作成 - 50件
+  // 5. タスク作成 - 140件
   // ============================================
   console.log("✅ タスクデータを作成中...");
 
@@ -527,11 +466,12 @@ async function seed() {
     assigned_user_id: string;
     title: string;
     description: string | null;
-    due_date: string;
+    due_date: string | null;
     status: TaskStatus;
     priority: "high" | "medium" | "low";
     company: string | null;
     created_at: string;
+    updated_at: string;
   }> = [];
 
   const taskTemplates = [
@@ -550,35 +490,57 @@ async function seed() {
     { title: "審査申込書類準備", priority: "high" as const, description: "審査申込に必要な書類を準備", company: "自社" },
     { title: "下見日程調整", priority: "medium" as const, description: "工事業者と下見日程を調整", company: "工事業者" },
     { title: "工事完了報告", priority: "high" as const, description: "工事完了後、顧客に報告", company: "自社" },
+    { title: "顧客への電話連絡", priority: "medium" as const, description: "進捗状況の報告", company: "自社" },
+    { title: "NTT申込", priority: "high" as const, description: "NTTへの回線申込手続き", company: "自社" },
+    { title: "保守契約確認", priority: "medium" as const, description: "保守契約内容の確認", company: "自社" },
+    { title: "検収書取得", priority: "high" as const, description: "顧客から検収書を取得", company: "自社" },
+    { title: "口座情報確認", priority: "medium" as const, description: "引き落とし口座情報の確認", company: "リース会社" },
   ];
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 140; i++) {
     const template = randomElement(taskTemplates);
-    const contract = Math.random() > 0.15 ? randomElement(contracts) : null;
-    const deal = contract ? deals.find(d => d.id === contract.deal_id) : (Math.random() > 0.3 ? randomElement(deals) : null);
+    const contract = Math.random() > 0.2 ? randomElement(contracts) : null;
+    const deal = contract ? deals.find(d => d.id === contract.deal_id)! : randomElement(deals);
     const user = randomElement(salesUsers);
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + randomInt(-14, 30));
 
-    // ステータス分布
+    // 期限設定：20%過去、50%未来、30%なし
+    let dueDate: string | null = null;
+    const dueDateRandom = Math.random();
+    if (dueDateRandom < 0.20) {
+      // 過去の期限（期限切れ）
+      const d = new Date();
+      d.setDate(d.getDate() - randomInt(1, 30));
+      dueDate = formatDate(d);
+    } else if (dueDateRandom < 0.70) {
+      // 未来の期限
+      const d = new Date();
+      d.setDate(d.getDate() + randomInt(1, 60));
+      dueDate = formatDate(d);
+    }
+
+    // ステータス分布: 未着手35%, 進行中35%, 完了30%
     let status: TaskStatus;
     const rand = Math.random();
     if (rand < 0.35) status = "未着手";
-    else if (rand < 0.65) status = "進行中";
+    else if (rand < 0.70) status = "進行中";
     else status = "完了";
+
+    const createdDate = new Date();
+    createdDate.setDate(createdDate.getDate() - randomInt(1, 60));
 
     tasks.push({
       id: crypto.randomUUID(),
-      deal_id: deal?.id || null,
+      deal_id: deal.id,
       contract_id: contract?.id || null,
       assigned_user_id: user.id,
       title: template.title,
       description: template.description,
-      due_date: formatDate(dueDate),
+      due_date: dueDate,
       status,
       priority: template.priority,
       company: template.company,
-      created_at: new Date(dueDate.getTime() - randomInt(3, 14) * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: createdDate.toISOString(),
+      updated_at: new Date().toISOString(),
     });
   }
 
@@ -590,7 +552,7 @@ async function seed() {
   console.log(`  ✅ ${tasks.length}件のタスクを作成しました\n`);
 
   // ============================================
-  // 8. 活動履歴作成 - 80件
+  // 6. 活動履歴作成 - 各案件に2〜5件
   // ============================================
   console.log("📞 活動履歴を作成中...");
 
@@ -616,23 +578,29 @@ async function seed() {
     { type: "phone" as const, content: "設置工事日程の最終確認。当日の立ち会い者を確認。" },
     { type: "visit" as const, content: "設置工事完了。動作確認を実施し、操作説明を行った。" },
     { type: "phone" as const, content: "納品後フォロー電話。順調に稼働中とのこと。" },
+    { type: "email" as const, content: "NTT申込書類を送付。記入・返送をお願いした。" },
+    { type: "phone" as const, content: "NTT工事日程の連絡。来週月曜日で確定。" },
+    { type: "other" as const, content: "社内ミーティングで案件進捗を共有。上長承認を取得。" },
   ];
 
-  for (let i = 0; i < 80; i++) {
-    const template = randomElement(activityTemplates);
-    const deal = randomElement(deals);
-    const user = randomElement(salesUsers);
-    const activityDate = new Date(deal.created_at);
-    activityDate.setDate(activityDate.getDate() + randomInt(0, 60));
+  for (const deal of deals) {
+    const numActivities = randomInt(2, 5);
 
-    activities.push({
-      id: crypto.randomUUID(),
-      deal_id: deal.id,
-      user_id: user.id,
-      activity_type: template.type,
-      content: template.content,
-      created_at: activityDate.toISOString(),
-    });
+    for (let i = 0; i < numActivities; i++) {
+      const template = randomElement(activityTemplates);
+      const user = randomElement(salesUsers);
+      const activityDate = new Date(deal.created_at);
+      activityDate.setDate(activityDate.getDate() + randomInt(0, 90));
+
+      activities.push({
+        id: crypto.randomUUID(),
+        deal_id: deal.id,
+        user_id: user.id,
+        activity_type: template.type,
+        content: template.content,
+        created_at: activityDate.toISOString(),
+      });
+    }
   }
 
   const { error: activitiesError } = await supabase.from("activities").insert(activities);
@@ -647,20 +615,18 @@ async function seed() {
   // ============================================
   console.log("🎉 シードデータの投入が完了しました！");
   console.log("\n📊 作成されたデータ:");
-  console.log(`  - ユーザー: ${users.length}件`);
+  console.log(`  - ユーザー: ${users.length}人`);
   console.log(`  - 顧客: ${customers.length}件`);
   console.log(`  - 案件: ${deals.length}件`);
   console.log(`  - 契約: ${contracts.length}件`);
-  console.log(`  - リース審査: ${leaseApplications.length}件`);
-  console.log(`  - 入金: ${payments.length}件`);
   console.log(`  - タスク: ${tasks.length}件`);
   console.log(`  - 活動履歴: ${activities.length}件`);
 
   console.log("\n📈 データパターン:");
-  console.log("  - 案件ステータス: 進行中50%, 成約25%, 失注15%, 保留10%");
-  console.log("  - 契約種別: リース(lease), レンタル(rental), 割賦(installment)");
-  console.log("  - 契約フェーズ: 商談中, 審査中, 工事中, 入金中, 失注, クローズ");
-  console.log("  - タスク: 未着手/進行中/完了 + 担当会社（自社/リース会社/工事業者/その他）");
+  console.log("  - 契約種別: 物件40%, 回線35%, 保守25%");
+  console.log("  - 契約フェーズ: 進行中70%, 完了・否決30%");
+  console.log("  - タスク: 未完了70%, 完了30%（期限切れ20%含む）");
+  console.log("  - 活動履歴: 各案件に2〜5件");
 }
 
 seed().catch(console.error);

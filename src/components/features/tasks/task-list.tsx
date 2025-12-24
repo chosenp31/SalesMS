@@ -5,7 +5,6 @@ import { Task, User, DealOption, TaskStatus } from "@/types";
 import {
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
-  CONTRACT_PHASE_LABELS,
   CONTRACT_STATUS_LABELS,
 } from "@/constants";
 import {
@@ -24,12 +23,18 @@ import {
   FilterOption,
   ActiveFilter,
 } from "@/components/ui/search-filter-bar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { format, isPast, isToday } from "date-fns";
 import { ja } from "date-fns/locale";
-import { cn, formatDealId, formatContractId } from "@/lib/utils";
+import { cn, formatContractId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, ExternalLink, X } from "lucide-react";
+import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, X, CalendarIcon } from "lucide-react";
 import { TaskDialog } from "./task-dialog";
 import Link from "next/link";
 
@@ -46,23 +51,6 @@ const priorityColors = {
   high: "bg-red-100 text-red-800 border-red-200",
   medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
   low: "bg-green-100 text-green-800 border-green-200",
-};
-
-const phaseColors: Record<string, string> = {
-  // 新スキーマのフェーズ
-  商談中: "bg-blue-100 text-blue-800 border-blue-200",
-  "審査・申込中": "bg-yellow-100 text-yellow-800 border-yellow-200",
-  "下見・工事中": "bg-purple-100 text-purple-800 border-purple-200",
-  契約中: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  入金中: "bg-green-100 text-green-800 border-green-200",
-  請求中: "bg-teal-100 text-teal-800 border-teal-200",
-  完了: "bg-gray-100 text-gray-800 border-gray-200",
-  否決: "bg-red-100 text-red-800 border-red-200",
-  // 旧スキーマ（後方互換性）
-  審査中: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  工事中: "bg-purple-100 text-purple-800 border-purple-200",
-  失注: "bg-red-100 text-red-800 border-red-200",
-  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
 const contractStatusColors: Record<string, string> = {
@@ -109,7 +97,7 @@ const statusColors: Record<TaskStatus, string> = {
   完了: "bg-green-100 text-green-800 border-green-200",
 };
 
-type SortField = "title" | "phase" | "contractStatus" | "customer" | "deal" | "contract" | "assigned_user" | "priority" | "status" | "due_date";
+type SortField = "title" | "contractStatus" | "customer" | "deal" | "contract" | "assigned_user" | "priority" | "status" | "due_date";
 type SortDirection = "asc" | "desc";
 
 export function TaskList({ tasks, users, deals, currentUserId, filterContractId, filterStatus }: TaskListProps) {
@@ -210,6 +198,13 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
     router.refresh();
   };
 
+  // インライン更新用の関数
+  const handleInlineUpdate = async (taskId: string, field: string, value: string | null) => {
+    const supabase = createClient();
+    await supabase.from("tasks").update({ [field]: value }).eq("id", taskId);
+    router.refresh();
+  };
+
   const handleDelete = async (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("このタスクを削除しますか？")) return;
@@ -217,14 +212,6 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
     const supabase = createClient();
     await supabase.from("tasks").delete().eq("id", taskId);
     router.refresh();
-  };
-
-  // Helper to get deal display ID
-  const getDealDisplayId = (task: Task) => {
-    return formatDealId(
-      task.deal?.customer?.customer_number,
-      task.deal?.deal_number
-    );
   };
 
   // Helper to get contract display ID
@@ -274,9 +261,6 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
       switch (sortField) {
         case "title":
           comparison = a.title.localeCompare(b.title);
-          break;
-        case "phase":
-          comparison = (a.contract?.phase || "").localeCompare(b.contract?.phase || "");
           break;
         case "contractStatus":
           comparison = (a.contract?.status || "").localeCompare(b.contract?.status || "");
@@ -429,56 +413,49 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
 
       <div className="bg-white rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow className="bg-gray-50">
-                <TableHead className="w-12"></TableHead>
-                <TableHead className="w-[180px]">
+                <TableHead className="w-10"></TableHead>
+                <TableHead className="w-[200px]">
                   <SortHeader field="title">タスク名</SortHeader>
                 </TableHead>
-                <TableHead>
-                  <SortHeader field="phase">大分類</SortHeader>
-                </TableHead>
-                <TableHead>
-                  <SortHeader field="contractStatus">小分類</SortHeader>
-                </TableHead>
-                <TableHead>
+                <TableHead className="w-[140px]">
                   <SortHeader field="customer">顧客</SortHeader>
                 </TableHead>
-                <TableHead>
-                  <SortHeader field="deal">案件ID</SortHeader>
+                <TableHead className="w-[110px]">
+                  <SortHeader field="contractStatus">契約ステータス</SortHeader>
                 </TableHead>
-                <TableHead>
+                <TableHead className="w-[80px]">
                   <SortHeader field="contract">契約ID</SortHeader>
                 </TableHead>
-                <TableHead>
+                <TableHead className="w-[80px]">
                   <SortHeader field="assigned_user">担当者</SortHeader>
                 </TableHead>
-                <TableHead>
+                <TableHead className="w-[70px]">
                   <SortHeader field="priority">優先度</SortHeader>
                 </TableHead>
-                <TableHead>
+                <TableHead className="w-[80px]">
                   <SortHeader field="status">ステータス</SortHeader>
                 </TableHead>
-                <TableHead>
+                <TableHead className="w-[100px]">
                   <SortHeader field="due_date">期限</SortHeader>
                 </TableHead>
-                <TableHead className="text-right w-[100px]">操作</TableHead>
+                <TableHead className="text-right w-[70px]">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredTasks.map((task) => {
-                const dealDisplayId = getDealDisplayId(task);
                 const contractDisplayId = getContractDisplayId(task);
                 return (
                   <TableRow
                     key={task.id}
                     className={cn(
-                      "cursor-pointer hover:bg-blue-50 transition-colors",
+                      "hover:bg-blue-50 transition-colors",
                       task.status === "完了" && "opacity-60 bg-gray-50"
                     )}
                   >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
+                    <TableCell onClick={(e) => e.stopPropagation()} className="py-2">
                       <Checkbox
                         checked={task.status === "完了"}
                         onCheckedChange={() => {
@@ -487,124 +464,183 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
                         }}
                       />
                     </TableCell>
-                    <TableCell
-                      className={cn(
-                        "font-medium",
-                        task.status === "完了" && "line-through"
-                      )}
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {task.status !== "完了" &&
-                            task.due_date &&
-                            isPast(new Date(task.due_date)) &&
-                            !isToday(new Date(task.due_date)) && (
-                              <AlertCircle className="h-4 w-4 text-red-500" />
-                            )}
-                          {task.title}
-                        </div>
-                        {task.description && (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                            {task.description}
-                          </p>
-                        )}
+                    <TableCell className={cn("py-2", task.status === "完了" && "line-through")}>
+                      <div className="flex items-center gap-1">
+                        {task.status !== "完了" &&
+                          task.due_date &&
+                          isPast(new Date(task.due_date)) &&
+                          !isToday(new Date(task.due_date)) && (
+                            <AlertCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
+                          )}
+                        <span className="text-sm truncate">{task.title}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {task.contract?.phase ? (
-                        <Badge
-                          variant="outline"
-                          className={cn("border", phaseColors[task.contract.phase])}
+                    <TableCell className="py-2">
+                      {task.deal?.customer ? (
+                        <Link
+                          href={`/customers/${task.deal.customer.id}`}
+                          className="text-sm text-primary hover:underline truncate block"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {CONTRACT_PHASE_LABELS[task.contract.phase as keyof typeof CONTRACT_PHASE_LABELS]}
-                        </Badge>
+                          {task.deal.customer.company_name}
+                        </Link>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 text-sm">-</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2">
                       {task.contract?.status ? (
                         <Badge
                           variant="outline"
-                          className={cn("border", contractStatusColors[task.contract.status])}
+                          className={cn("border text-xs px-1.5 py-0", contractStatusColors[task.contract.status])}
                         >
                           {CONTRACT_STATUS_LABELS[task.contract.status]}
                         </Badge>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 text-sm">-</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      {task.deal?.customer ? (
-                        <Link
-                          href={`/customers/${task.deal.customer.id}`}
-                          className="flex items-center gap-1 text-primary hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {task.deal.customer.company_name}
-                          <ExternalLink className="h-3 w-3" />
-                        </Link>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {task.deal ? (
-                        <Link
-                          href={`/deals/${task.deal.id}`}
-                          className="flex items-center gap-1 text-primary hover:underline text-sm"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span className="font-mono text-xs text-gray-500">{dealDisplayId}</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </Link>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2">
                       {task.contract ? (
                         <Link
                           href={`/contracts/${task.contract.id}`}
-                          className="flex items-center gap-1 text-primary hover:underline text-sm"
+                          className="font-mono text-xs text-primary hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <span className="font-mono text-xs text-gray-500">{contractDisplayId}</span>
-                          <ExternalLink className="h-3 w-3" />
+                          {contractDisplayId}
                         </Link>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 text-sm">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-gray-600 text-sm">
-                      {task.assigned_user?.name || "-"}
+                    {/* 担当者 - クリックで変更 */}
+                    <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="text-sm text-left hover:bg-gray-100 rounded px-1 py-0.5 -mx-1 w-full truncate">
+                            {task.assigned_user?.name || "-"}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 p-2" align="start">
+                          <div className="space-y-1">
+                            {users.map((user) => (
+                              <button
+                                key={user.id}
+                                className={cn(
+                                  "w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100",
+                                  task.assigned_user_id === user.id && "bg-blue-50 text-blue-700"
+                                )}
+                                onClick={() => handleInlineUpdate(task.id, "assigned_user_id", user.id)}
+                              >
+                                {user.name}
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={cn("border", priorityColors[task.priority])}
-                      >
-                        {TASK_PRIORITY_LABELS[task.priority]}
-                      </Badge>
+                    {/* 優先度 - クリックで変更 */}
+                    <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button>
+                            <Badge
+                              variant="outline"
+                              className={cn("border text-xs px-1.5 py-0 cursor-pointer hover:opacity-80", priorityColors[task.priority])}
+                            >
+                              {TASK_PRIORITY_LABELS[task.priority]}
+                            </Badge>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-32 p-2" align="start">
+                          <div className="space-y-1">
+                            {(Object.entries(TASK_PRIORITY_LABELS) as [keyof typeof TASK_PRIORITY_LABELS, string][]).map(([value, label]) => (
+                              <button
+                                key={value}
+                                className={cn(
+                                  "w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100",
+                                  task.priority === value && "bg-blue-50 text-blue-700"
+                                )}
+                                onClick={() => handleInlineUpdate(task.id, "priority", value)}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={cn("border", statusColors[task.status])}
-                      >
-                        {TASK_STATUS_LABELS[task.status]}
-                      </Badge>
+                    {/* ステータス - クリックで変更 */}
+                    <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button>
+                            <Badge
+                              variant="outline"
+                              className={cn("border text-xs px-1.5 py-0 cursor-pointer hover:opacity-80", statusColors[task.status])}
+                            >
+                              {TASK_STATUS_LABELS[task.status]}
+                            </Badge>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-32 p-2" align="start">
+                          <div className="space-y-1">
+                            {(Object.entries(TASK_STATUS_LABELS) as [TaskStatus, string][]).map(([value, label]) => (
+                              <button
+                                key={value}
+                                className={cn(
+                                  "w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100",
+                                  task.status === value && "bg-blue-50 text-blue-700"
+                                )}
+                                onClick={() => handleInlineUpdate(task.id, "status", value)}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
-                    <TableCell
-                      className={getDueDateStyle(task.due_date, task.status)}
-                    >
-                      {task.due_date
-                        ? format(new Date(task.due_date), "yyyy/MM/dd", { locale: ja })
-                        : "-"}
+                    {/* 期限 - クリックで変更 */}
+                    <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className={cn(
+                            "text-sm hover:bg-gray-100 rounded px-1 py-0.5 -mx-1 flex items-center gap-1",
+                            getDueDateStyle(task.due_date, task.status)
+                          )}>
+                            <CalendarIcon className="h-3 w-3 text-gray-400" />
+                            {task.due_date
+                              ? format(new Date(task.due_date), "MM/dd", { locale: ja })
+                              : "-"}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={task.due_date ? new Date(task.due_date) : undefined}
+                            onSelect={(date) => handleInlineUpdate(task.id, "due_date", date ? format(date, "yyyy-MM-dd") : null)}
+                            initialFocus
+                            locale={ja}
+                          />
+                          {task.due_date && (
+                            <div className="p-2 border-t">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full text-red-500 hover:text-red-600"
+                                onClick={() => handleInlineUpdate(task.id, "due_date", null)}
+                              >
+                                期限をクリア
+                              </Button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right py-2">
                       <div
-                        className="flex justify-end space-x-1"
+                        className="flex justify-end space-x-0.5"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <TaskDialog
@@ -613,17 +649,18 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
                           deals={deals}
                           currentUserId={currentUserId}
                           trigger={
-                            <Button variant="ghost" size="sm">
-                              <Pencil className="h-4 w-4" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                              <Pencil className="h-3.5 w-3.5" />
                             </Button>
                           }
                         />
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-7 w-7 p-0"
                           onClick={(e) => handleDelete(task.id, e)}
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
                         </Button>
                       </div>
                     </TableCell>
