@@ -65,7 +65,7 @@ const statusColors: Record<string, string> = {
   否決: "bg-red-100 text-red-800 border-red-200",
 };
 
-type SortField = "deal_id" | "customer" | "contract_status" | "contracts" | "assigned_user";
+type SortField = "deal_id" | "customer" | "contract_status" | "contracts" | "assigned_user" | "updated_at";
 type SortDirection = "asc" | "desc";
 
 // 契約種類ラベル
@@ -221,6 +221,9 @@ export function DealList({ deals }: DealListProps) {
             b.assigned_user?.name || ""
           );
           break;
+        case "updated_at":
+          comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+          break;
       }
       return sortDirection === "asc" ? comparison : -comparison;
     });
@@ -296,7 +299,7 @@ export function DealList({ deals }: DealListProps) {
                   onFilterChange={(f) => handleColumnFilterChange("deal_id", f)}
                 />
               </TableHead>
-              <TableHead className="w-[200px] min-w-[200px]">
+              <TableHead className="w-[250px] min-w-[250px]">
                 <ColumnFilterHeader
                   column="customer"
                   label="顧客名"
@@ -342,6 +345,17 @@ export function DealList({ deals }: DealListProps) {
                   filterOptions={assignedUserOptions}
                   activeFilter={columnFilters["assigned_user"]}
                   onFilterChange={(f) => handleColumnFilterChange("assigned_user", f)}
+                />
+              </TableHead>
+              <TableHead className="w-[100px]">
+                <ColumnFilterHeader
+                  column="updated_at"
+                  label="最終更新日"
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("updated_at")}
+                  sortable
+                  filterable={false}
                 />
               </TableHead>
               <TableHead className="text-right w-[80px]">操作</TableHead>
@@ -404,6 +418,15 @@ export function DealList({ deals }: DealListProps) {
                 </TableCell>
                 <TableCell className="text-gray-600">
                   {deal.assigned_user?.name || "-"}
+                </TableCell>
+                <TableCell className="text-gray-500 text-sm">
+                  {deal.updated_at
+                    ? new Date(deal.updated_at).toLocaleDateString("ja-JP", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                      })
+                    : "-"}
                 </TableCell>
                 <TableCell className="text-right">
                   <div
