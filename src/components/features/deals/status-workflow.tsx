@@ -28,12 +28,24 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, Info } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Info, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
+} from "@/components/ui/dropdown-menu";
 
 // StatusWorkflowが必要とする最小限の契約情報
 interface ContractForWorkflow {
   id: string;
   status: string;  // 新旧両方の値に対応
+  deal_id?: string;
 }
 
 interface StatusWorkflowProps {
@@ -217,6 +229,48 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
       if (historyError) {
         console.error("Error recording status history:", historyError);
       }
+
+      // Contract完了時にDealステータス自動更新
+      if (newStatus === "クローズ" && contract.deal_id) {
+        // 同じDealの他の契約を取得
+        const { data: otherContracts } = await supabase
+          .from("contracts")
+          .select("id, status")
+          .eq("deal_id", contract.deal_id)
+          .neq("id", contract.id);
+
+        // 全ての契約がクローズまたは失注の場合、Dealを成約に更新
+        const allContractsCompleted = !otherContracts || otherContracts.every(
+          (c) => c.status === "クローズ" || c.status === "失注"
+        );
+
+        if (allContractsCompleted) {
+          await supabase
+            .from("deals")
+            .update({ status: "won" })
+            .eq("id", contract.deal_id);
+        }
+      }
+
+      // Contract失注時にDealステータス自動更新（全て失注の場合）
+      if (newStatus === "失注" && contract.deal_id) {
+        const { data: allContracts } = await supabase
+          .from("contracts")
+          .select("id, status")
+          .eq("deal_id", contract.deal_id);
+
+        // 全ての契約が失注の場合、Dealも失注に更新
+        const allContractsLost = allContracts && allContracts.every(
+          (c) => c.id === contract.id ? true : c.status === "失注"
+        );
+
+        if (allContractsLost) {
+          await supabase
+            .from("deals")
+            .update({ status: "lost" })
+            .eq("id", contract.deal_id);
+        }
+      }
     }
 
     setLoading(false);
@@ -376,12 +430,24 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
             </div>
           )}
 
-          {/* 請求中フェーズの案内 */}
+          {/* 請求中フェーズ → 完了への遷移 */}
           {currentPhase === "請求中" && (
             <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                請求中フェーズでは、ステータスの自動進行はできません。管理者にお問い合わせください。
+              <p className="text-sm text-gray-500 mb-2">
+                請求が完了したら、案件をクローズしてください。
               </p>
+              <StatusTooltip status="クローズ">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={loading || contract.status === "クローズ"}
+                  onClick={() => openConfirmDialog("クローズ")}
+                  className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  案件を完了する
+                </Button>
+              </StatusTooltip>
             </div>
           )}
 
@@ -415,6 +481,73 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
               </StatusTooltip>
             </div>
           </div>
+
+          {/* バックフロー - 前のフェーズ/ステータスに戻す */}
+          {currentPhaseIndex > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-gray-500 mb-2">
+                前のフェーズに戻す場合
+              </p>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={loading}
+                    className="text-gray-600"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    前のステータスに戻す
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {phaseOrder.slice(0, currentPhaseIndex + 1).map((phase) => {
+                    const phaseStatuses = PHASE_STATUSES[phase];
+                    if (!phaseStatuses || phaseStatuses.length === 0) return null;
+                    const phaseColor = phaseColors[phase] || phaseColors["商談中"];
+                    const isCurrentPhase = phase === currentPhase;
+
+                    return (
+                      <DropdownMenuSub key={phase}>
+                        <DropdownMenuSubTrigger
+                          className={cn(
+                            "cursor-pointer",
+                            isCurrentPhase && "font-medium"
+                          )}
+                        >
+                          <span className={cn("mr-2", phaseColor.text)}>●</span>
+                          {CONTRACT_PHASE_LABELS[phase] || phase}
+                          {isCurrentPhase && <span className="text-xs text-gray-400 ml-auto">現在</span>}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent>
+                            {phaseStatuses.map((status) => {
+                              const isCurrentStatus = contract.status === status;
+                              return (
+                                <DropdownMenuItem
+                                  key={status}
+                                  onClick={() => !isCurrentStatus && openConfirmDialog(status)}
+                                  disabled={isCurrentStatus}
+                                  className={cn(
+                                    "cursor-pointer",
+                                    isCurrentStatus && "bg-blue-50 font-medium"
+                                  )}
+                                >
+                                  {CONTRACT_STATUS_LABELS[status] || status}
+                                  {isCurrentStatus && <span className="text-xs text-gray-400 ml-auto">現在</span>}
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </CardContent>
       </Card>
 

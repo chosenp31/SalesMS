@@ -13,36 +13,12 @@ export const BUSINESS_TYPE_LABELS = {
 // 商談関連
 // ========================================
 
-// 商談ステータスラベル（全ワークフローステータス対応）
+// 商談ステータスラベル
 export const DEAL_STATUS_LABELS: Record<string, string> = {
-  // 旧シンプルステータス（後方互換性）
   active: "進行中",
   won: "成約",
   lost: "失注",
   pending: "保留",
-  // 新ワークフローステータス（営業フェーズ）
-  appointment_acquired: "アポ獲得",
-  in_negotiation: "商談中",
-  quote_submitted: "見積提出",
-  deal_won: "成約",
-  deal_lost: "失注",
-  // 契約準備フェーズ
-  contract_type_selection: "契約種別選択",
-  document_collection: "書類収集中",
-  review_requested: "審査依頼中",
-  review_pending: "審査待ち",
-  review_approved: "審査可決",
-  review_rejected: "審査否決",
-  // 工事フェーズ
-  survey_scheduling: "下見調整中",
-  survey_completed: "下見完了",
-  installation_scheduling: "工事調整中",
-  installation_completed: "工事完了",
-  // 完了フェーズ
-  delivery_completed: "納品完了",
-  delivered: "納品完了",
-  payment_pending: "入金待ち",
-  completed: "完了",
 };
 
 // ========================================
@@ -70,11 +46,6 @@ export const CONTRACT_PHASE_LABELS: Record<string, string> = {
   請求中: "請求中",
   完了: "完了",
   否決: "否決",
-  // 旧フェーズ（後方互換性）
-  審査中: "審査中",
-  工事中: "工事中",
-  失注: "失注",
-  クローズ: "クローズ",
 };
 
 // 契約ステータス（小分類）ラベル

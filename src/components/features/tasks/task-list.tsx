@@ -189,10 +189,16 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
     }
   };
 
+  // 3値サイクル: 未着手 → 進行中 → 完了 → 未着手
   const handleStatusToggle = async (task: Task, e: React.MouseEvent) => {
     e.stopPropagation();
     const supabase = createClient();
-    const newStatus: TaskStatus = task.status === "完了" ? "未着手" : "完了";
+    const statusCycle: Record<TaskStatus, TaskStatus> = {
+      未着手: "進行中",
+      進行中: "完了",
+      完了: "未着手",
+    };
+    const newStatus = statusCycle[task.status];
 
     await supabase.from("tasks").update({ status: newStatus }).eq("id", task.id);
     router.refresh();
@@ -472,7 +478,13 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
                           !isToday(new Date(task.due_date)) && (
                             <AlertCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
                           )}
-                        <span className="text-sm truncate">{task.title}</span>
+                        <Link
+                          href={`/tasks/${task.id}`}
+                          className="text-sm truncate text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {task.title}
+                        </Link>
                       </div>
                     </TableCell>
                     <TableCell className="py-2">

@@ -31,13 +31,16 @@ export type ContractType = "property" | "line" | "maintenance";
 // 契約種類（旧）- 後方互換性のため残す
 export type LegacyContractType = "lease" | "rental" | "installment";
 
+// 契約種類（新旧統合）
+export type AnyContractType = ContractType | LegacyContractType;
+
 // 商談内の契約（一覧表示用）- 新旧両方の値に対応
 export type DealContract = {
   id: string;
   title: string;
-  contract_type?: string;  // 新旧両方の値に対応
-  phase?: string;
-  status?: string;
+  contract_type?: AnyContractType;  // 新旧両方の値に対応
+  phase?: AnyContractPhase;
+  status?: AnyContractStatus;
   monthly_amount?: number | null;
   product_category?: string | null;
   contract_number?: number;
@@ -94,6 +97,21 @@ export type ContractStatus =
   | "対応検討中"
   | "失注";
 
+// 旧契約ステータス（後方互換性）
+export type LegacyContractStatus =
+  | "日程調整中"
+  | "MTG実施待ち"
+  | "見積提出"
+  | "受注確定"
+  | "書類準備中"
+  | "審査結果待ち"
+  | "可決"
+  | "否決"
+  | "下見日程調整中";
+
+// 契約ステータス（新旧統合）
+export type AnyContractStatus = ContractStatus | LegacyContractStatus;
+
 // 契約フェーズ（大分類）
 export type ContractPhase =
   | "商談中"
@@ -105,16 +123,26 @@ export type ContractPhase =
   | "完了"
   | "否決";
 
+// 旧契約フェーズ（後方互換性）
+export type LegacyContractPhase =
+  | "審査中"
+  | "工事中"
+  | "失注"
+  | "クローズ";
+
+// 契約フェーズ（新旧統合）
+export type AnyContractPhase = ContractPhase | LegacyContractPhase;
+
 // 契約（個別の契約明細）- 新旧両方の値に対応
 export type Contract = {
   id: string;
   deal_id: string;
   title: string;
-  contract_type: string;  // 新旧両方の値に対応
+  contract_type: AnyContractType;  // 新旧両方の値に対応
   product_category: string | null;
   lease_company: string | null;
-  phase: string;  // 新旧両方の値に対応
-  status: string;  // 新旧両方の値に対応
+  phase: AnyContractPhase;  // 新旧両方の値に対応
+  status: AnyContractStatus;  // 新旧両方の値に対応
   monthly_amount: number | null;
   total_amount: number | null;
   contract_months: number | null;
@@ -230,8 +258,8 @@ export type Task = {
     id: string;
     title: string;
     contract_number?: number;
-    phase?: string;  // 新旧両方の値に対応
-    status?: string;  // 新旧両方の値に対応
+    phase?: AnyContractPhase;  // 新旧両方の値に対応
+    status?: AnyContractStatus;  // 新旧両方の値に対応
   } | null;
   assigned_user?: User;
 };

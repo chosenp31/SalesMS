@@ -102,7 +102,7 @@ export function ContractForm({ dealId, contract }: ContractFormProps) {
       contract_type: contract?.contract_type || "lease",
       product_category: contract?.product_category || "",
       lease_company: contract?.lease_company || "",
-      status: contract?.status || "日程調整中",
+      status: contract?.status || "商談待ち",
       monthly_amount: contract?.monthly_amount?.toString() || "",
       total_amount: contract?.total_amount?.toString() || "",
       contract_months: contract?.contract_months?.toString() || "",

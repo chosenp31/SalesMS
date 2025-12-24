@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Customer, Deal } from "@/types";
 import { BUSINESS_TYPE_LABELS, DEAL_STATUS_LABELS } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,11 +15,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
-import { Eye, Plus } from "lucide-react";
+import { Eye, Plus, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/lib/hooks/use-toast";
 
 interface CustomerDetailProps {
   customer: Customer;
@@ -32,11 +47,102 @@ const statusColors: Record<string, string> = {
 };
 
 export function CustomerDetail({ customer, deals }: CustomerDetailProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const hasDeals = deals.length > 0;
+
+  const handleDelete = async () => {
+    if (hasDeals) {
+      toast({
+        title: "削除できません",
+        description: "関連する案件があるため削除できません。先に案件を削除してください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("customers")
+        .delete()
+        .eq("id", customer.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "顧客を削除しました",
+        description: `${customer.company_name}を削除しました`,
+      });
+
+      router.push("/customers");
+      router.refresh();
+    } catch (err) {
+      toast({
+        title: "削除に失敗しました",
+        description: err instanceof Error ? err.message : "エラーが発生しました",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>基本情報</CardTitle>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                disabled={hasDeals}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                削除
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>顧客を削除しますか？</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {hasDeals ? (
+                    <span className="text-red-600">
+                      この顧客には{deals.length}件の案件が関連付けられているため削除できません。
+                      先に案件を削除してください。
+                    </span>
+                  ) : (
+                    <>
+                      「{customer.company_name}」を削除します。この操作は取り消せません。
+                    </>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={hasDeals || deleteLoading}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {deleteLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      削除中...
+                    </>
+                  ) : (
+                    "削除する"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -249,7 +249,7 @@ export function DealList({ deals }: DealListProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="案件ID、顧客名、担当者で検索..."
+            placeholder="案件ID、顧客名、主担当者で検索..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             className="pl-10 pr-10 h-10 bg-white w-full"

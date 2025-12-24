@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Payment, Task, User } from "@/types";
 import { Tables } from "@/types/database";
 import {
@@ -8,14 +10,28 @@ import {
 } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { StatusWorkflow } from "../deals/status-workflow";
 import { ContractTaskCard } from "./contract-task-card";
 import { StatusHistoryCard } from "./status-history-card";
-import { Calendar, CreditCard, FileText, ExternalLink } from "lucide-react";
+import { Calendar, CreditCard, FileText, ExternalLink, Trash2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { formatDealId } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/lib/hooks/use-toast";
 
 // ステータス履歴の型
 type StatusHistory = Tables<"contract_status_history"> & {
@@ -45,6 +61,9 @@ interface ContractDetailProps {
   currentUserId: string;
 }
 
+// 削除可能なステータス（商談中フェーズのみ）
+const DELETABLE_STATUSES = ["商談待ち", "商談日程調整中"];
+
 export function ContractDetail({
   contract,
   payments,
@@ -53,12 +72,81 @@ export function ContractDetail({
   statusHistory,
   currentUserId,
 }: ContractDetailProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const canDelete = DELETABLE_STATUSES.includes(contract.status);
+
   const formatAmount = (amount: number | null) => {
     if (!amount) return "-";
     return new Intl.NumberFormat("ja-JP", {
       style: "currency",
       currency: "JPY",
     }).format(amount);
+  };
+
+  const handleDelete = async () => {
+    if (!canDelete) {
+      toast({
+        title: "削除できません",
+        description: "ステータスが進行しているため削除できません。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      const supabase = createClient();
+
+      // 関連するステータス履歴を削除
+      await supabase
+        .from("contract_status_history")
+        .delete()
+        .eq("contract_id", contract.id);
+
+      // 関連する入金情報を削除
+      await supabase
+        .from("payments")
+        .delete()
+        .eq("contract_id", contract.id);
+
+      // 関連するタスクを削除
+      await supabase
+        .from("tasks")
+        .delete()
+        .eq("contract_id", contract.id);
+
+      // 契約を削除
+      const { error } = await supabase
+        .from("contracts")
+        .delete()
+        .eq("id", contract.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "契約を削除しました",
+        description: `${contract.title}を削除しました`,
+      });
+
+      // 案件詳細に戻る
+      if (contract.deal?.id) {
+        router.push(`/deals/${contract.deal.id}`);
+      } else {
+        router.push("/contracts");
+      }
+      router.refresh();
+    } catch (err) {
+      toast({
+        title: "削除に失敗しました",
+        description: err instanceof Error ? err.message : "エラーが発生しました",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   return (
@@ -70,11 +158,58 @@ export function ContractDetail({
         {/* Contract Information */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center">
                 <FileText className="h-5 w-5 mr-2" />
                 契約情報
               </CardTitle>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    disabled={!canDelete}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    削除
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>契約を削除しますか？</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {!canDelete ? (
+                        <span className="text-red-600">
+                          ステータスが「{contract.status}」のため削除できません。
+                          商談中フェーズの契約のみ削除可能です。
+                        </span>
+                      ) : (
+                        <>
+                          「{contract.title}」を削除します。関連するタスク、入金情報、ステータス履歴も削除されます。この操作は取り消せません。
+                        </>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={!canDelete || deleteLoading}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {deleteLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          削除中...
+                        </>
+                      ) : (
+                        "削除する"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">

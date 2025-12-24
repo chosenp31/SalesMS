@@ -99,7 +99,7 @@ const formatPostalCode = (value: string): string => {
 
 const dealSchema = z.object({
   customer_id: z.string().min(1, "顧客を選択してください"),
-  assigned_user_id: z.string().min(1, "管理者を選択してください"),
+  assigned_user_id: z.string().min(1, "主担当者を選択してください"),
 });
 
 const customerSchema = z.object({
@@ -459,7 +459,7 @@ export function DealForm({
                   name="assigned_user_id"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>管理者 *</FormLabel>
+                      <FormLabel>主担当者 *</FormLabel>
                       <Popover open={userOpen} onOpenChange={setUserOpen}>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -474,7 +474,7 @@ export function DealForm({
                             >
                               {field.value
                                 ? users.find((u) => u.id === field.value)?.name
-                                : "管理者名を入力して検索..."}
+                                : "主担当者名を入力して検索..."}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </FormControl>
@@ -482,12 +482,12 @@ export function DealForm({
                         <PopoverContent className="w-[300px] p-0" align="start">
                           <Command shouldFilter={false}>
                             <CommandInput
-                              placeholder="管理者名で検索..."
+                              placeholder="主担当者名で検索..."
                               value={userSearch}
                               onValueChange={setUserSearch}
                             />
                             <CommandList>
-                              <CommandEmpty>管理者が見つかりません</CommandEmpty>
+                              <CommandEmpty>主担当者が見つかりません</CommandEmpty>
                               <CommandGroup>
                                 {filteredUsers.map((user) => (
                                   <CommandItem

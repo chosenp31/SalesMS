@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Deal, Activity } from "@/types";
 import {
   DEAL_STATUS_LABELS,
@@ -8,6 +10,18 @@ import {
 } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -16,6 +30,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Trash2, Loader2, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn, formatDealId, formatContractId } from "@/lib/utils";
@@ -23,6 +44,8 @@ import { ActivityList } from "../activities/activity-list";
 import { ActivityForm } from "../activities/activity-form";
 import { NewContractDialog } from "./new-contract-dialog";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/lib/hooks/use-toast";
 
 interface DealDetailProps {
   deal: Deal;
@@ -38,6 +61,43 @@ const statusColors: Record<string, string> = {
 };
 
 export function DealDetail({ deal, activities, currentUserId }: DealDetailProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  const hasContracts = (deal.contracts?.length || 0) > 0;
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === deal.status) return;
+
+    setStatusLoading(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("deals")
+        .update({ status: newStatus })
+        .eq("id", deal.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "ステータスを更新しました",
+        description: `${DEAL_STATUS_LABELS[newStatus]}に変更しました`,
+      });
+
+      router.refresh();
+    } catch (err) {
+      toast({
+        title: "更新に失敗しました",
+        description: err instanceof Error ? err.message : "エラーが発生しました",
+        variant: "destructive",
+      });
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   const formatAmount = (amount: number | null) => {
     if (!amount) return "-";
     return new Intl.NumberFormat("ja-JP", {
@@ -46,14 +106,113 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
     }).format(amount);
   };
 
+  const handleDelete = async () => {
+    if (hasContracts) {
+      toast({
+        title: "削除できません",
+        description: "関連する契約があるため削除できません。先に契約を削除してください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      const supabase = createClient();
+
+      // まず関連する活動履歴を削除
+      await supabase
+        .from("activities")
+        .delete()
+        .eq("deal_id", deal.id);
+
+      // 関連するタスクを削除
+      await supabase
+        .from("tasks")
+        .delete()
+        .eq("deal_id", deal.id);
+
+      // 案件を削除
+      const { error } = await supabase
+        .from("deals")
+        .delete()
+        .eq("id", deal.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "案件を削除しました",
+        description: `${deal.title}を削除しました`,
+      });
+
+      router.push("/deals");
+      router.refresh();
+    } catch (err) {
+      toast({
+        title: "削除に失敗しました",
+        description: err instanceof Error ? err.message : "エラーが発生しました",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-6">
         {/* Deal Information */}
         <div className="space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>案件情報</CardTitle>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    disabled={hasContracts}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    削除
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>案件を削除しますか？</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {hasContracts ? (
+                        <span className="text-red-600">
+                          この案件には{deal.contracts?.length}件の契約が関連付けられているため削除できません。
+                          先に契約を削除してください。
+                        </span>
+                      ) : (
+                        <>
+                          「{deal.title}」を削除します。関連する活動履歴とタスクも削除されます。この操作は取り消せません。
+                        </>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={hasContracts || deleteLoading}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {deleteLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          削除中...
+                        </>
+                      ) : (
+                        "削除する"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -79,12 +238,42 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
                     ステータス
                   </dt>
                   <dd className="mt-1">
-                    <Badge
-                      variant="secondary"
-                      className={cn(statusColors[deal.status])}
-                    >
-                      {DEAL_STATUS_LABELS[deal.status] || deal.status}
-                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild disabled={statusLoading}>
+                        <button className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity">
+                          <Badge
+                            variant="secondary"
+                            className={cn(statusColors[deal.status], "cursor-pointer")}
+                          >
+                            {statusLoading ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            ) : null}
+                            {DEAL_STATUS_LABELS[deal.status] || deal.status}
+                          </Badge>
+                          <ChevronDown className="h-3 w-3 text-gray-400" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {Object.entries(DEAL_STATUS_LABELS).map(([value, label]) => (
+                          <DropdownMenuItem
+                            key={value}
+                            onClick={() => handleStatusChange(value)}
+                            className={cn(
+                              "cursor-pointer",
+                              deal.status === value && "bg-blue-50 font-medium"
+                            )}
+                          >
+                            <Badge
+                              variant="secondary"
+                              className={cn(statusColors[value], "mr-2")}
+                            >
+                              {label}
+                            </Badge>
+                            {deal.status === value && <span className="text-xs text-gray-400 ml-auto">現在</span>}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </dd>
                 </div>
                 <div>
@@ -94,7 +283,7 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">担当者</dt>
+                  <dt className="text-sm font-medium text-gray-500">主担当者</dt>
                   <dd className="mt-1 text-sm text-gray-900">
                     {deal.assigned_user?.name || "-"}
                   </dd>

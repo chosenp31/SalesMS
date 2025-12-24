@@ -6,9 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Display ID generation utilities
-// Format: C001 (customer), C001-01 (deal), C001-01-01 (contract), C001-01-01-01 (task)
+// Format: C001-01 (deal), C001-01-01 (contract)
 
-export function formatCustomerId(customerNumber: number | undefined): string {
+function formatCustomerId(customerNumber: number | undefined): string {
   if (!customerNumber) return "-";
   return `C${String(customerNumber).padStart(3, "0")}`;
 }
@@ -28,14 +28,4 @@ export function formatContractId(
 ): string {
   if (!customerNumber || !dealNumber || !contractNumber) return "-";
   return `${formatDealId(customerNumber, dealNumber)}-${String(contractNumber).padStart(2, "0")}`;
-}
-
-export function formatTaskId(
-  customerNumber: number | undefined,
-  dealNumber: number | undefined,
-  contractNumber: number | undefined,
-  taskNumber: number | undefined
-): string {
-  if (!customerNumber || !dealNumber || !contractNumber || !taskNumber) return "-";
-  return `${formatContractId(customerNumber, dealNumber, contractNumber)}-${String(taskNumber).padStart(2, "0")}`;
 }
