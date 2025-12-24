@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/search-filter-bar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, FileText, ExternalLink } from "lucide-react";
+import { Eye, Pencil, FileText } from "lucide-react";
 import { cn, formatContractId, formatDealId } from "@/lib/utils";
 
 interface ContractTask {
@@ -389,34 +389,34 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
 
       {/* テーブル */}
       <div className="bg-white rounded-lg border overflow-x-auto -mx-4 md:mx-0">
-        <Table className="min-w-[650px]">
+        <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="w-[140px]">
+              <TableHead className="w-[100px]">
                 <SortHeader field="contract_id">契約ID</SortHeader>
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[60px]">
                 <SortHeader field="contract_type">種別</SortHeader>
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[100px]">
                 <SortHeader field="product_category">商材</SortHeader>
               </TableHead>
-              <TableHead className="w-[200px] min-w-[200px]">
+              <TableHead className="w-[160px]">
                 <SortHeader field="customer">顧客名</SortHeader>
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[90px]">
                 <SortHeader field="phase">大分類</SortHeader>
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[120px]">
                 <SortHeader field="status">小分類</SortHeader>
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[80px]">
                 <SortHeader field="deal">案件ID</SortHeader>
               </TableHead>
-              <TableHead className="w-[80px]">
+              <TableHead className="w-[60px]">
                 <SortHeader field="incomplete_tasks">未完了</SortHeader>
               </TableHead>
-              <TableHead className="text-right w-[80px]">操作</TableHead>
+              <TableHead className="text-right w-[60px]">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -437,88 +437,86 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                   className="cursor-pointer hover:bg-blue-50 transition-colors"
                   onClick={() => router.push(`/contracts/${contract.id}`)}
                 >
-                  <TableCell className="font-mono text-sm font-medium text-blue-600">
+                  <TableCell className="py-2 font-mono text-sm font-medium text-blue-600">
                     {contractDisplayId}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
+                  <TableCell className="py-2">
+                    <Badge variant="outline" className="text-xs px-1.5 py-0">
                       {CONTRACT_TYPE_LABELS[contract.contract_type]}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-gray-600">
+                  <TableCell className="py-2 text-sm text-gray-600 truncate">
                     {contract.product_category || "-"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-2">
                     {contract.deal?.customer ? (
                       <Link
                         href={`/customers/${contract.deal.customer.id}`}
-                        className="flex items-center gap-1 text-primary hover:underline"
+                        className="text-sm text-primary hover:underline truncate block"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {contract.deal.customer.company_name}
-                        <ExternalLink className="h-3 w-3" />
                       </Link>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-gray-400 text-sm">-</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-2">
                     <Badge
                       variant="outline"
-                      className={cn("border", phaseColors[contract.phase])}
+                      className={cn("border text-xs px-1.5 py-0", phaseColors[contract.phase])}
                     >
                       {CONTRACT_PHASE_LABELS[contract.phase]}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-2">
                     <Badge
                       variant="outline"
-                      className={cn("border", statusColors[contract.status])}
+                      className={cn("border text-xs px-1.5 py-0", statusColors[contract.status])}
                     >
                       {CONTRACT_STATUS_LABELS[contract.status]}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-2">
                     {contract.deal ? (
                       <Link
                         href={`/deals/${contract.deal.id}`}
-                        className="flex items-center gap-1 text-primary hover:underline text-sm"
+                        className="font-mono text-xs text-primary hover:underline"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <span className="font-mono text-xs">{dealDisplayId}</span>
-                        <ExternalLink className="h-3 w-3" />
+                        {dealDisplayId}
                       </Link>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-gray-400 text-sm">-</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-2">
                     {taskCounts.incomplete > 0 ? (
                       <button
-                        className="flex items-center gap-1 hover:bg-orange-100 rounded px-2 py-1 transition-colors"
+                        className="flex items-center hover:bg-orange-100 rounded px-1.5 py-0.5 transition-colors"
                         onClick={(e) => handleTaskCountClick(e, contract.id, true)}
                       >
-                        <Badge variant="secondary" className="font-medium bg-orange-100 text-orange-700 hover:bg-orange-200">
-                          {taskCounts.incomplete}件
+                        <Badge variant="secondary" className="text-xs font-medium bg-orange-100 text-orange-700 hover:bg-orange-200 px-1.5 py-0">
+                          {taskCounts.incomplete}
                         </Badge>
                       </button>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-gray-400 text-sm">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="py-2 text-right">
                     <div
-                      className="flex justify-end space-x-1"
+                      className="flex justify-end space-x-0.5"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button variant="ghost" size="sm" asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
                         <Link href={`/contracts/${contract.id}`}>
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
-                      <Button variant="ghost" size="sm" asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
                         <Link href={`/contracts/${contract.id}/edit`}>
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
                     </div>

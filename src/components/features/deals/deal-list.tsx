@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/column-filter-header";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, FileText, Search, X, ExternalLink } from "lucide-react";
+import { Eye, Pencil, FileText, Search, X } from "lucide-react";
 import { cn, formatDealId } from "@/lib/utils";
 
 interface DealListProps {
@@ -284,10 +284,10 @@ export function DealList({ deals }: DealListProps) {
 
       {/* テーブル */}
       <div className="bg-white rounded-lg border overflow-x-auto -mx-4 md:mx-0">
-        <Table className="min-w-[900px] table-fixed">
+        <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="w-[100px]">
+              <TableHead className="w-[90px]">
                 <ColumnFilterHeader
                   column="deal_id"
                   label="案件ID"
@@ -299,7 +299,7 @@ export function DealList({ deals }: DealListProps) {
                   onFilterChange={(f) => handleColumnFilterChange("deal_id", f)}
                 />
               </TableHead>
-              <TableHead className="w-[220px]">
+              <TableHead className="w-[180px]">
                 <ColumnFilterHeader
                   column="customer"
                   label="顧客名"
@@ -312,7 +312,7 @@ export function DealList({ deals }: DealListProps) {
                   onFilterChange={(f) => handleColumnFilterChange("customer", f)}
                 />
               </TableHead>
-              <TableHead className="w-[70px]">
+              <TableHead className="w-[60px]">
                 <ColumnFilterHeader
                   column="contracts"
                   label="契約数"
@@ -323,7 +323,7 @@ export function DealList({ deals }: DealListProps) {
                   filterable={false}
                 />
               </TableHead>
-              <TableHead className="w-[200px]">
+              <TableHead className="w-[180px]">
                 <ColumnFilterHeader
                   column="contract_status"
                   label="契約状況"
@@ -334,7 +334,7 @@ export function DealList({ deals }: DealListProps) {
                   filterable={false}
                 />
               </TableHead>
-              <TableHead className="w-[100px]">
+              <TableHead className="w-[90px]">
                 <ColumnFilterHeader
                   column="assigned_user"
                   label="主担当者"
@@ -347,10 +347,10 @@ export function DealList({ deals }: DealListProps) {
                   onFilterChange={(f) => handleColumnFilterChange("assigned_user", f)}
                 />
               </TableHead>
-              <TableHead className="w-[100px]">
+              <TableHead className="w-[90px]">
                 <ColumnFilterHeader
                   column="updated_at"
-                  label="最終更新日"
+                  label="更新日"
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={() => handleSort("updated_at")}
@@ -358,7 +358,7 @@ export function DealList({ deals }: DealListProps) {
                   filterable={false}
                 />
               </TableHead>
-              <TableHead className="text-right w-[70px]">操作</TableHead>
+              <TableHead className="text-right w-[60px]">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -371,76 +371,74 @@ export function DealList({ deals }: DealListProps) {
                 className="cursor-pointer hover:bg-blue-50 transition-colors"
                 onClick={() => router.push(`/deals/${deal.id}`)}
               >
-                <TableCell className="font-mono text-sm font-medium text-blue-600">
+                <TableCell className="py-2 font-mono text-sm font-medium text-blue-600">
                   {dealDisplayId}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2">
                   <Link
                     href={`/customers/${deal.customer_id}`}
-                    className="flex items-center gap-1 text-primary hover:underline"
+                    className="text-sm text-primary hover:underline truncate block"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {deal.customer?.company_name || "-"}
-                    <ExternalLink className="h-3 w-3" />
                   </Link>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2">
                   {deal.contracts && deal.contracts.length > 0 ? (
                     <button
-                      className="flex items-center gap-1.5 hover:bg-blue-100 rounded px-2 py-1 transition-colors"
+                      className="flex items-center gap-1 hover:bg-blue-100 rounded px-1.5 py-0.5 transition-colors"
                       onClick={(e) => handleContractCountClick(e, deal.id)}
                     >
-                      <FileText className="h-4 w-4 text-blue-500" />
-                      <Badge variant="secondary" className="font-medium bg-blue-100 text-blue-700 hover:bg-blue-200">
-                        {deal.contracts.length}件
+                      <FileText className="h-3.5 w-3.5 text-blue-500" />
+                      <Badge variant="secondary" className="text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 px-1.5 py-0">
+                        {deal.contracts.length}
                       </Badge>
                     </button>
                   ) : (
-                    <span className="text-gray-400">-</span>
+                    <span className="text-gray-400 text-sm">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2">
                   {contractStatusList.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-0.5">
                       {contractStatusList.map((item, idx) => (
                         <Badge
                           key={idx}
                           variant="outline"
-                          className={cn("text-xs border", statusColors[item.status] || "bg-gray-100")}
+                          className={cn("text-xs border px-1.5 py-0", statusColors[item.status] || "bg-gray-100")}
                         >
                           {item.type}：{item.status}
                         </Badge>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-gray-400">-</span>
+                    <span className="text-gray-400 text-sm">-</span>
                   )}
                 </TableCell>
-                <TableCell className="text-gray-600">
+                <TableCell className="py-2 text-sm text-gray-600 truncate">
                   {deal.assigned_user?.name || "-"}
                 </TableCell>
-                <TableCell className="text-gray-500 text-sm">
+                <TableCell className="py-2 text-gray-500 text-sm">
                   {deal.updated_at
                     ? new Date(deal.updated_at).toLocaleDateString("ja-JP", {
-                        year: "numeric",
                         month: "2-digit",
                         day: "2-digit",
                       })
                     : "-"}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="py-2 text-right">
                   <div
-                    className="flex justify-end space-x-1"
+                    className="flex justify-end space-x-0.5"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Button variant="ghost" size="sm" asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
                       <Link href={`/deals/${deal.id}`}>
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5" />
                       </Link>
                     </Button>
-                    <Button variant="ghost" size="sm" asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
                       <Link href={`/deals/${deal.id}/edit`}>
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-3.5 w-3.5" />
                       </Link>
                     </Button>
                   </div>
