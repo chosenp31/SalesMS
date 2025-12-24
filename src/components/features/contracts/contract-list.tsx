@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/search-filter-bar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, FileText, ExternalLink, ClipboardList } from "lucide-react";
+import { Eye, Pencil, FileText, ExternalLink } from "lucide-react";
 import { cn, formatContractId, formatDealId } from "@/lib/utils";
 
 interface ContractTask {
@@ -128,7 +128,7 @@ const statusColors: Record<string, string> = {
   下見日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
 };
 
-type SortField = "contract_id" | "contract_type" | "product_category" | "customer" | "phase" | "status" | "deal" | "all_tasks" | "incomplete_tasks" | "created_at";
+type SortField = "contract_id" | "contract_type" | "product_category" | "customer" | "phase" | "status" | "deal" | "incomplete_tasks";
 type SortDirection = "asc" | "desc";
 
 // タスク数を取得するヘルパー
@@ -143,7 +143,7 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("contract_id");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   // Filter options
@@ -308,14 +308,8 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
           const bDealId = formatDealId(b.deal?.customer?.customer_number, b.deal?.deal_number);
           comparison = aDealId.localeCompare(bDealId);
           break;
-        case "all_tasks":
-          comparison = getTaskCounts(a.tasks).total - getTaskCounts(b.tasks).total;
-          break;
         case "incomplete_tasks":
           comparison = getTaskCounts(a.tasks).incomplete - getTaskCounts(b.tasks).incomplete;
-          break;
-        case "created_at":
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
       }
       return sortDirection === "asc" ? comparison : -comparison;
@@ -407,7 +401,7 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
               <TableHead>
                 <SortHeader field="product_category">商材</SortHeader>
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[200px] min-w-[200px]">
                 <SortHeader field="customer">顧客名</SortHeader>
               </TableHead>
               <TableHead>
@@ -420,12 +414,9 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                 <SortHeader field="deal">案件ID</SortHeader>
               </TableHead>
               <TableHead className="w-[80px]">
-                <SortHeader field="all_tasks">全タスク</SortHeader>
-              </TableHead>
-              <TableHead className="w-[80px]">
                 <SortHeader field="incomplete_tasks">未完了</SortHeader>
               </TableHead>
-              <TableHead className="text-right w-[100px]">操作</TableHead>
+              <TableHead className="text-right w-[80px]">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -497,21 +488,6 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                         <span className="font-mono text-xs">{dealDisplayId}</span>
                         <ExternalLink className="h-3 w-3" />
                       </Link>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {taskCounts.total > 0 ? (
-                      <button
-                        className="flex items-center gap-1 hover:bg-blue-100 rounded px-2 py-1 transition-colors"
-                        onClick={(e) => handleTaskCountClick(e, contract.id, false)}
-                      >
-                        <ClipboardList className="h-4 w-4 text-blue-500" />
-                        <Badge variant="secondary" className="font-medium bg-blue-100 text-blue-700 hover:bg-blue-200">
-                          {taskCounts.total}件
-                        </Badge>
-                      </button>
                     ) : (
                       <span className="text-gray-400">-</span>
                     )}

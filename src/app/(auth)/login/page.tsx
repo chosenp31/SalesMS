@@ -9,10 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Play } from "lucide-react";
 
-// デモ用の認証情報（環境変数から取得）
-const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL || "";
-const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "";
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -42,18 +38,13 @@ export default function LoginPage() {
   };
 
   const handleDemoLogin = async () => {
-    if (!DEMO_EMAIL || !DEMO_PASSWORD) {
-      setError("デモアカウントが設定されていません");
-      return;
-    }
-
     setError(null);
     setDemoLoading(true);
 
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
-      email: DEMO_EMAIL,
-      password: DEMO_PASSWORD,
+      email: "demoslaesms@example.com",
+      password: "dn4hkg6xp",
     });
 
     if (error) {

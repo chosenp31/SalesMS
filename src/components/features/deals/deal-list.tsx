@@ -21,8 +21,6 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, Pencil, FileText, Search, X, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
-import { ja } from "date-fns/locale";
 import { cn, formatDealId } from "@/lib/utils";
 
 interface DealListProps {
@@ -67,7 +65,7 @@ const statusColors: Record<string, string> = {
   否決: "bg-red-100 text-red-800 border-red-200",
 };
 
-type SortField = "deal_id" | "customer" | "contract_status" | "contracts" | "assigned_user" | "created_at";
+type SortField = "deal_id" | "customer" | "contract_status" | "contracts" | "assigned_user";
 type SortDirection = "asc" | "desc";
 
 // 契約種類ラベル
@@ -93,7 +91,7 @@ const getContractStatusList = (contracts?: { id: string; title: string; contract
 export function DealList({ deals }: DealListProps) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("deal_id");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [columnFilters, setColumnFilters] = useState<Record<string, ColumnFilter>>({});
 
@@ -223,9 +221,6 @@ export function DealList({ deals }: DealListProps) {
             b.assigned_user?.name || ""
           );
           break;
-        case "created_at":
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          break;
       }
       return sortDirection === "asc" ? comparison : -comparison;
     });
@@ -301,7 +296,7 @@ export function DealList({ deals }: DealListProps) {
                   onFilterChange={(f) => handleColumnFilterChange("deal_id", f)}
                 />
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[200px] min-w-[200px]">
                 <ColumnFilterHeader
                   column="customer"
                   label="顧客名"
@@ -349,18 +344,7 @@ export function DealList({ deals }: DealListProps) {
                   onFilterChange={(f) => handleColumnFilterChange("assigned_user", f)}
                 />
               </TableHead>
-              <TableHead>
-                <ColumnFilterHeader
-                  column="created_at"
-                  label="作成日"
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                  onSort={() => handleSort("created_at")}
-                  sortable
-                  filterable={false}
-                />
-              </TableHead>
-              <TableHead className="text-right w-[100px]">操作</TableHead>
+              <TableHead className="text-right w-[80px]">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -420,11 +404,6 @@ export function DealList({ deals }: DealListProps) {
                 </TableCell>
                 <TableCell className="text-gray-600">
                   {deal.assigned_user?.name || "-"}
-                </TableCell>
-                <TableCell className="text-gray-500">
-                  {format(new Date(deal.created_at), "yyyy/MM/dd", {
-                    locale: ja,
-                  })}
                 </TableCell>
                 <TableCell className="text-right">
                   <div
