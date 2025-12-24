@@ -284,10 +284,10 @@ export function DealList({ deals }: DealListProps) {
 
       {/* テーブル */}
       <div className="bg-white rounded-lg border overflow-x-auto -mx-4 md:mx-0">
-        <Table className="min-w-[700px]">
+        <Table className="min-w-[900px] table-fixed">
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="w-[120px]">
+              <TableHead className="w-[100px]">
                 <ColumnFilterHeader
                   column="deal_id"
                   label="案件ID"
@@ -299,7 +299,7 @@ export function DealList({ deals }: DealListProps) {
                   onFilterChange={(f) => handleColumnFilterChange("deal_id", f)}
                 />
               </TableHead>
-              <TableHead className="w-[250px] min-w-[250px]">
+              <TableHead className="w-[220px]">
                 <ColumnFilterHeader
                   column="customer"
                   label="顧客名"
@@ -312,7 +312,7 @@ export function DealList({ deals }: DealListProps) {
                   onFilterChange={(f) => handleColumnFilterChange("customer", f)}
                 />
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[70px]">
                 <ColumnFilterHeader
                   column="contracts"
                   label="契約数"
@@ -334,7 +334,7 @@ export function DealList({ deals }: DealListProps) {
                   filterable={false}
                 />
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[100px]">
                 <ColumnFilterHeader
                   column="assigned_user"
                   label="主担当者"
@@ -358,7 +358,7 @@ export function DealList({ deals }: DealListProps) {
                   filterable={false}
                 />
               </TableHead>
-              <TableHead className="text-right w-[80px]">操作</TableHead>
+              <TableHead className="text-right w-[70px]">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
