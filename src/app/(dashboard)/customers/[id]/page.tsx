@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { CustomerDetail } from "@/components/features/customers/customer-detail";
+import { HistorySection } from "@/components/features/history/history-section";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
+import { getHistory } from "@/lib/history";
 
 interface CustomerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -37,6 +39,12 @@ export default async function CustomerDetailPage({
     .eq("customer_id", id)
     .order("created_at", { ascending: false });
 
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Get history for this customer
+  const history = await getHistory(supabase, "customer", id);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -61,7 +69,8 @@ export default async function CustomerDetailPage({
           </Link>
         </Button>
       </div>
-      <CustomerDetail customer={customer} deals={deals || []} />
+      <CustomerDetail customer={customer} deals={deals || []} currentUserId={user?.id} />
+      <HistorySection history={history} entityType="customer" />
     </div>
   );
 }

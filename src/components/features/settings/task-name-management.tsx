@@ -32,11 +32,12 @@ import { Plus, Edit2, ListTodo, Trash2 } from "lucide-react";
 
 interface TaskNameManagementProps {
   taskNames: TaskNameMaster[];
+  isAdmin: boolean;
 }
 
 const CONTRACT_TYPES: ContractType[] = ["property", "line", "maintenance"];
 
-export function TaskNameManagement({ taskNames }: TaskNameManagementProps) {
+export function TaskNameManagement({ taskNames, isAdmin }: TaskNameManagementProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [editDialog, setEditDialog] = useState<{
@@ -230,19 +231,21 @@ export function TaskNameManagement({ taskNames }: TaskNameManagementProps) {
 
             {CONTRACT_TYPES.map((type) => (
               <TabsContent key={type} value={type}>
-                <div className="flex justify-end mb-4">
-                  <Button onClick={() => openNewDialog(type)}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    追加
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex justify-end mb-4">
+                    <Button onClick={() => openNewDialog(type)}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      追加
+                    </Button>
+                  </div>
+                )}
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
                       <TableHead className="w-[60px]">順序</TableHead>
                       <TableHead>タスク名</TableHead>
-                      <TableHead className="w-[100px]">状態</TableHead>
-                      <TableHead className="w-[100px]">操作</TableHead>
+                      {isAdmin && <TableHead className="w-[100px]">状態</TableHead>}
+                      {isAdmin && <TableHead className="w-[100px]">操作</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -252,30 +255,34 @@ export function TaskNameManagement({ taskNames }: TaskNameManagementProps) {
                           {taskName.display_order}
                         </TableCell>
                         <TableCell className="font-medium">{taskName.name}</TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={taskName.is_active}
-                            onCheckedChange={() => handleToggleActive(taskName)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditDialog(taskName)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(taskName)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                        {isAdmin && (
+                          <TableCell>
+                            <Switch
+                              checked={taskName.is_active}
+                              onCheckedChange={() => handleToggleActive(taskName)}
+                            />
+                          </TableCell>
+                        )}
+                        {isAdmin && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditDialog(taskName)}
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(taskName)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                     {filteredTaskNames(type).length === 0 && (

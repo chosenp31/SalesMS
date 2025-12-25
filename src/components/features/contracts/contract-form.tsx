@@ -16,6 +16,7 @@ import {
   STATUS_TO_PHASE,
 } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
+import { recordCreate, recordUpdate } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,12 +85,29 @@ const contractSchema = z.object({
 
 type ContractFormValues = z.infer<typeof contractSchema>;
 
+// 履歴記録対象フィールド
+const TRACKED_FIELDS = [
+  "title",
+  "contract_type",
+  "product_category",
+  "lease_company",
+  "phase",
+  "status",
+  "monthly_amount",
+  "total_amount",
+  "contract_months",
+  "start_date",
+  "end_date",
+  "notes",
+];
+
 interface ContractFormProps {
   dealId: string;
   contract?: Tables<"contracts">;
+  currentUserId?: string;
 }
 
-export function ContractForm({ dealId, contract }: ContractFormProps) {
+export function ContractForm({ dealId, contract, currentUserId }: ContractFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -152,6 +170,17 @@ export function ContractForm({ dealId, contract }: ContractFormProps) {
           throw updateError;
         }
 
+        // 履歴を記録
+        await recordUpdate(
+          supabase,
+          "contract",
+          contract.id,
+          currentUserId || null,
+          contract as Record<string, unknown>,
+          contractData as Record<string, unknown>,
+          TRACKED_FIELDS
+        );
+
         toast({
           title: "契約を更新しました",
           description: `${data.title}の情報を更新しました`,
@@ -166,6 +195,11 @@ export function ContractForm({ dealId, contract }: ContractFormProps) {
 
         if (insertError) {
           throw insertError;
+        }
+
+        // 履歴を記録
+        if (newContract) {
+          await recordCreate(supabase, "contract", newContract.id, currentUserId || null);
         }
 
         toast({

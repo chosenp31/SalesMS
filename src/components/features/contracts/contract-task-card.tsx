@@ -53,7 +53,8 @@ import {
 import { format, isPast, isToday } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn, formatDealId, formatContractId } from "@/lib/utils";
-import { Plus, CheckSquare, Trash2, AlertCircle } from "lucide-react";
+import { Plus, CheckSquare, Trash2, AlertCircle, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 // 契約情報の型
 type ContractWithDeal = Tables<"contracts"> & {
@@ -492,12 +493,16 @@ export function ContractTaskCard({
                           !isToday(new Date(task.due_date)) && (
                             <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
                           )}
-                        <span className={cn(
-                          "font-medium text-sm",
-                          task.status === "完了" && "line-through"
-                        )}>
+                        <Link
+                          href={`/tasks/${task.id}`}
+                          className={cn(
+                            "font-medium text-sm text-primary hover:underline flex items-center gap-1",
+                            task.status === "完了" && "line-through"
+                          )}
+                        >
                           {task.title}
-                        </span>
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-gray-600">

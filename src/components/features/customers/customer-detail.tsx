@@ -33,10 +33,12 @@ import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
+import { recordDelete } from "@/lib/history";
 
 interface CustomerDetailProps {
   customer: Customer;
   deals: Deal[];
+  currentUserId?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -46,7 +48,7 @@ const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
 };
 
-export function CustomerDetail({ customer, deals }: CustomerDetailProps) {
+export function CustomerDetail({ customer, deals, currentUserId }: CustomerDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -66,6 +68,10 @@ export function CustomerDetail({ customer, deals }: CustomerDetailProps) {
     setDeleteLoading(true);
     try {
       const supabase = createClient();
+
+      // 削除前に履歴を記録
+      await recordDelete(supabase, "customer", customer.id, currentUserId || null);
+
       const { error } = await supabase
         .from("customers")
         .delete()

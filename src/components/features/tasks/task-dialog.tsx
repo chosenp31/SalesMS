@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Task, User, DealOption } from "@/types";
 import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
+import { recordCreate, recordUpdate } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +50,17 @@ const taskSchema = z.object({
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
+
+// 履歴記録対象フィールド
+const TRACKED_FIELDS = [
+  "title",
+  "description",
+  "deal_id",
+  "assigned_user_id",
+  "due_date",
+  "status",
+  "priority",
+];
 
 interface TaskDialogProps {
   task?: Task;
@@ -122,13 +134,29 @@ export function TaskDialog({
         const { error } = await supabase.from("tasks").update(taskData).eq("id", task.id);
         if (error) throw error;
 
+        // 履歴を記録
+        await recordUpdate(
+          supabase,
+          "task",
+          task.id,
+          currentUserId || null,
+          task as Record<string, unknown>,
+          taskData as Record<string, unknown>,
+          TRACKED_FIELDS
+        );
+
         toast({
           title: "タスクを更新しました",
           description: `${data.title}を更新しました`,
         });
       } else {
-        const { error } = await supabase.from("tasks").insert(taskData);
+        const { data: newTask, error } = await supabase.from("tasks").insert(taskData).select("id").single();
         if (error) throw error;
+
+        // 履歴を記録
+        if (newTask) {
+          await recordCreate(supabase, "task", newTask.id, currentUserId || null);
+        }
 
         toast({
           title: "タスクを作成しました",

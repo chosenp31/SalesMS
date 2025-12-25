@@ -346,3 +346,29 @@ export type ContractOption = {
     customer?: { company_name: string } | null;
   } | null;
 };
+
+// エンティティ種別
+export type EntityType = "customer" | "deal" | "contract" | "task" | "payment";
+
+// 変更アクション
+export type HistoryAction = "created" | "updated" | "deleted";
+
+// フィールド変更内容
+export type FieldChange = {
+  old: unknown;
+  new: unknown;
+};
+
+// 変更履歴
+export type EntityHistory = {
+  id: string;
+  entity_type: EntityType;
+  entity_id: string;
+  action: HistoryAction;
+  user_id: string | null;
+  changes: Record<string, FieldChange> | null;
+  comment: string | null;
+  created_at: string;
+  // Relations
+  user?: User | null;
+};

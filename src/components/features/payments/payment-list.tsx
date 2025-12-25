@@ -36,10 +36,12 @@ import {
 import { useToast } from "@/lib/hooks/use-toast";
 import { PaymentDialog } from "./payment-dialog";
 import Link from "next/link";
+import { recordDelete, recordUpdate } from "@/lib/history";
 
 interface PaymentListProps {
   payments: Payment[];
   contracts: ContractOption[];
+  currentUserId?: string;
 }
 
 const statusColors: Record<PaymentStatus, string> = {
@@ -58,7 +60,7 @@ type SortField =
   | "actual_date";
 type SortDirection = "asc" | "desc";
 
-export function PaymentList({ payments, contracts }: PaymentListProps) {
+export function PaymentList({ payments, contracts, currentUserId }: PaymentListProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [searchValue, setSearchValue] = useState("");
@@ -140,18 +142,30 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
     setProcessingId(payment.id);
     try {
       const supabase = createClient();
+      const newData = {
+        status: "入金済" as const,
+        actual_date: new Date().toISOString().split("T")[0],
+        actual_amount: payment.expected_amount,
+      };
       const { error } = await supabase
         .from("payments")
-        .update({
-          status: "入金済",
-          actual_date: new Date().toISOString().split("T")[0],
-          actual_amount: payment.expected_amount,
-        })
+        .update(newData)
         .eq("id", payment.id);
 
       if (error) {
         throw error;
       }
+
+      // 履歴を記録
+      await recordUpdate(
+        supabase,
+        "payment",
+        payment.id,
+        currentUserId || null,
+        { status: payment.status, actual_date: payment.actual_date, actual_amount: payment.actual_amount },
+        newData,
+        ["status", "actual_date", "actual_amount"]
+      );
 
       toast({
         title: "入金済みに更新しました",
@@ -178,6 +192,10 @@ export function PaymentList({ payments, contracts }: PaymentListProps) {
     setProcessingId(paymentId);
     try {
       const supabase = createClient();
+
+      // 削除前に履歴を記録
+      await recordDelete(supabase, "payment", paymentId, currentUserId || null);
+
       const { error } = await supabase.from("payments").delete().eq("id", paymentId);
 
       if (error) {

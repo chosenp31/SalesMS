@@ -53,9 +53,10 @@ const ROLE_COLORS: Record<string, string> = {
 
 interface UserManagementProps {
   users: User[];
+  isAdmin: boolean;
 }
 
-export function UserManagement({ users }: UserManagementProps) {
+export function UserManagement({ users, isAdmin }: UserManagementProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [editDialog, setEditDialog] = useState<{
@@ -132,7 +133,7 @@ export function UserManagement({ users }: UserManagementProps) {
                 <TableHead>メールアドレス</TableHead>
                 <TableHead>権限</TableHead>
                 <TableHead>登録日</TableHead>
-                <TableHead className="w-[80px]">操作</TableHead>
+                {isAdmin && <TableHead className="w-[80px]">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -151,15 +152,17 @@ export function UserManagement({ users }: UserManagementProps) {
                       ? format(new Date(user.created_at), "yyyy/MM/dd", { locale: ja })
                       : "-"}
                   </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditDialog(user)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+                  {isAdmin && (
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(user)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
               {users.length === 0 && (

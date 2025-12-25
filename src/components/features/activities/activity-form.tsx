@@ -3,17 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ACTIVITY_TYPE_LABELS } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Plus } from "lucide-react";
 
 interface ActivityFormProps {
@@ -21,12 +13,9 @@ interface ActivityFormProps {
   userId: string;
 }
 
-type ActivityType = "phone" | "visit" | "email" | "online_meeting" | "other";
-
 export function ActivityForm({ contractId, userId }: ActivityFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [activityType, setActivityType] = useState<ActivityType>("phone");
   const [content, setContent] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,7 +27,7 @@ export function ActivityForm({ contractId, userId }: ActivityFormProps) {
 
     const { error } = await supabase.from("activities").insert({
       user_id: userId,
-      activity_type: activityType,
+      activity_type: "other",
       contract_id: contractId,
       content: content.trim(),
     });
@@ -58,22 +47,6 @@ export function ActivityForm({ contractId, userId }: ActivityFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-4">
-        {/* 活動種別 */}
-        <div className="space-y-2 max-w-xs">
-          <Label htmlFor="activity-type">活動種別</Label>
-          <Select value={activityType} onValueChange={(v) => setActivityType(v as ActivityType)}>
-            <SelectTrigger id="activity-type">
-              <SelectValue placeholder="種別を選択" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         <div className="space-y-2">
         <Label htmlFor="activity-content">活動内容・議事録</Label>
         <Textarea

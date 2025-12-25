@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { ContractDetail } from "@/components/features/contracts/contract-detail";
+import { HistorySection } from "@/components/features/history/history-section";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
+import { getHistory } from "@/lib/history";
 
 interface ContractDetailPageProps {
   params: Promise<{ id: string }>;
@@ -85,6 +87,9 @@ export default async function ContractDetailPage({
   // 仮のcurrentUserId（認証が無効化されているため最初のユーザーを使用）
   const currentUserId = users?.[0]?.id || "";
 
+  // Get history for this contract
+  const history = await getHistory(supabase, "contract", id);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -116,6 +121,7 @@ export default async function ContractDetailPage({
         activities={activities || []}
         currentUserId={currentUserId}
       />
+      <HistorySection history={history} entityType="contract" />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Payment, ContractOption } from "@/types";
 import { PAYMENT_STATUS_LABELS, PAYMENT_TYPE_LABELS } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
+import { recordCreate, recordUpdate } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,13 +61,25 @@ const paymentSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
+// 履歴記録対象フィールド
+const TRACKED_FIELDS = [
+  "payment_type",
+  "expected_amount",
+  "actual_amount",
+  "expected_date",
+  "actual_date",
+  "status",
+  "notes",
+];
+
 interface PaymentDialogProps {
   payment?: Payment;
   contracts: ContractOption[];
   trigger: React.ReactNode;
+  currentUserId?: string;
 }
 
-export function PaymentDialog({ payment, contracts, trigger }: PaymentDialogProps) {
+export function PaymentDialog({ payment, contracts, trigger, currentUserId }: PaymentDialogProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -121,12 +134,28 @@ export function PaymentDialog({ payment, contracts, trigger }: PaymentDialogProp
         const { error } = await supabase.from("payments").update(paymentData).eq("id", payment.id);
         if (error) throw error;
 
+        // 履歴を記録
+        await recordUpdate(
+          supabase,
+          "payment",
+          payment.id,
+          currentUserId || null,
+          payment as Record<string, unknown>,
+          paymentData as Record<string, unknown>,
+          TRACKED_FIELDS
+        );
+
         toast({
           title: "入金情報を更新しました",
         });
       } else {
-        const { error } = await supabase.from("payments").insert(paymentData);
+        const { data: newPayment, error } = await supabase.from("payments").insert(paymentData).select("id").single();
         if (error) throw error;
+
+        // 履歴を記録
+        if (newPayment) {
+          await recordCreate(supabase, "payment", newPayment.id, currentUserId || null);
+        }
 
         toast({
           title: "入金情報を登録しました",

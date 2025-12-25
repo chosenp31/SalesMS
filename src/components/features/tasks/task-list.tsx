@@ -37,6 +37,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, X, CalendarIcon } from "lucide-react";
 import { TaskDialog } from "./task-dialog";
 import Link from "next/link";
+import { recordDelete, recordUpdate } from "@/lib/history";
 
 interface TaskListProps {
   tasks: Task[];
@@ -201,6 +202,18 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
     const newStatus = statusCycle[task.status];
 
     await supabase.from("tasks").update({ status: newStatus }).eq("id", task.id);
+
+    // 履歴を記録
+    await recordUpdate(
+      supabase,
+      "task",
+      task.id,
+      currentUserId || null,
+      { status: task.status },
+      { status: newStatus },
+      ["status"]
+    );
+
     router.refresh();
   };
 
@@ -216,6 +229,10 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
     if (!confirm("このタスクを削除しますか？")) return;
 
     const supabase = createClient();
+
+    // 削除前に履歴を記録
+    await recordDelete(supabase, "task", taskId, currentUserId || null);
+
     await supabase.from("tasks").delete().eq("id", taskId);
     router.refresh();
   };

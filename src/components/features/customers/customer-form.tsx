@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Customer } from "@/types";
 import { BUSINESS_TYPE_LABELS } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
+import { recordCreate, recordUpdate } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,9 +43,20 @@ type CustomerFormValues = z.infer<typeof customerSchema>;
 
 interface CustomerFormProps {
   customer?: Customer;
+  currentUserId?: string;
 }
 
-export function CustomerForm({ customer }: CustomerFormProps) {
+// 履歴記録対象フィールド
+const TRACKED_FIELDS = [
+  "company_name",
+  "representative_name",
+  "business_type",
+  "phone",
+  "email",
+  "address",
+];
+
+export function CustomerForm({ customer, currentUserId }: CustomerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -86,15 +98,35 @@ export function CustomerForm({ customer }: CustomerFormProps) {
           throw updateError;
         }
 
+        // 履歴を記録
+        await recordUpdate(
+          supabase,
+          "customer",
+          customer.id,
+          currentUserId || null,
+          customer as Record<string, unknown>,
+          customerData as Record<string, unknown>,
+          TRACKED_FIELDS
+        );
+
         toast({
           title: "顧客情報を更新しました",
           description: `${data.company_name}の情報を更新しました`,
         });
       } else {
-        const { error: insertError } = await supabase.from("customers").insert(customerData);
+        const { data: newCustomer, error: insertError } = await supabase
+          .from("customers")
+          .insert(customerData)
+          .select("id")
+          .single();
 
         if (insertError) {
           throw insertError;
+        }
+
+        // 履歴を記録
+        if (newCustomer) {
+          await recordCreate(supabase, "customer", newCustomer.id, currentUserId || null);
         }
 
         toast({

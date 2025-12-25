@@ -44,9 +44,11 @@ import { NewContractDialog } from "./new-contract-dialog";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
+import { recordDelete, recordUpdate } from "@/lib/history";
 
 interface DealDetailProps {
   deal: Deal;
+  currentUserId?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -56,7 +58,7 @@ const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
 };
 
-export function DealDetail({ deal }: DealDetailProps) {
+export function DealDetail({ deal, currentUserId }: DealDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -76,6 +78,17 @@ export function DealDetail({ deal }: DealDetailProps) {
         .eq("id", deal.id);
 
       if (error) throw error;
+
+      // 履歴を記録
+      await recordUpdate(
+        supabase,
+        "deal",
+        deal.id,
+        currentUserId || null,
+        { status: deal.status },
+        { status: newStatus },
+        ["status"]
+      );
 
       toast({
         title: "ステータスを更新しました",
@@ -115,6 +128,9 @@ export function DealDetail({ deal }: DealDetailProps) {
     setDeleteLoading(true);
     try {
       const supabase = createClient();
+
+      // 削除前に履歴を記録
+      await recordDelete(supabase, "deal", deal.id, currentUserId || null);
 
       // 関連するタスクを削除
       await supabase

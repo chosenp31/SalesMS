@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { DealDetail } from "@/components/features/deals/deal-detail";
+import { HistorySection } from "@/components/features/history/history-section";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
+import { getHistory } from "@/lib/history";
 
 interface DealDetailPageProps {
   params: Promise<{ id: string }>;
@@ -29,6 +31,12 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
     notFound();
   }
 
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Get history for this deal
+  const history = await getHistory(supabase, "deal", id);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -48,7 +56,8 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
           </Link>
         </Button>
       </div>
-      <DealDetail deal={deal} />
+      <DealDetail deal={deal} currentUserId={user?.id} />
+      <HistorySection history={history} entityType="deal" />
     </div>
   );
 }

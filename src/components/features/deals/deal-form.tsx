@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Customer, Deal, User } from "@/types";
 import { BUSINESS_TYPE_LABELS } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
+import { recordCreate, recordUpdate } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -117,6 +118,17 @@ const customerSchema = z.object({
 
 type DealFormValues = z.infer<typeof dealSchema>;
 type CustomerFormValues = z.infer<typeof customerSchema>;
+
+// 履歴記録対象フィールド
+const TRACKED_FIELDS = [
+  "title",
+  "customer_id",
+  "sales_user_id",
+  "appointer_user_id",
+  "status",
+  "description",
+  "total_amount",
+];
 
 interface DealFormProps {
   deal?: Deal;
@@ -332,6 +344,17 @@ export function DealForm({
 
         if (updateError) throw updateError;
 
+        // 履歴を記録
+        await recordUpdate(
+          supabase,
+          "deal",
+          deal.id,
+          currentUserId || null,
+          deal as Record<string, unknown>,
+          dealData as Record<string, unknown>,
+          TRACKED_FIELDS
+        );
+
         toast({
           title: "案件を更新しました",
           description: `${dealTitle}の情報を更新しました`,
@@ -347,6 +370,11 @@ export function DealForm({
           .single();
 
         if (insertError) throw insertError;
+
+        // 履歴を記録
+        if (newDeal) {
+          await recordCreate(supabase, "deal", newDeal.id, currentUserId || null);
+        }
 
         toast({
           title: "案件を登録しました",

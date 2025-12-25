@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { TaskDetail } from "@/components/features/tasks/task-detail";
+import { HistorySection } from "@/components/features/history/history-section";
 import { notFound, redirect } from "next/navigation";
+import { getHistory } from "@/lib/history";
 
 interface TaskDetailPageProps {
   params: Promise<{ id: string }>;
@@ -46,13 +48,17 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
     .select("id, name, email")
     .order("name");
 
+  // Get history for this task
+  const history = await getHistory(supabase, "task", id);
+
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 space-y-6">
       <TaskDetail
         task={task}
         users={users || []}
         currentUserId={user.id}
       />
+      <HistorySection history={history} entityType="task" />
     </div>
   );
 }
