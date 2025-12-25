@@ -25,6 +25,15 @@ export default async function EditCustomerPage({
     notFound();
   }
 
+  // ユーザーリストを取得してcurrentUserIdを設定
+  const { data: users } = await supabase
+    .from("users")
+    .select("id")
+    .order("name")
+    .limit(1);
+
+  const currentUserId = users?.[0]?.id || "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -39,7 +48,7 @@ export default async function EditCustomerPage({
           <p className="text-sm text-gray-500">{customer.company_name}</p>
         </div>
       </div>
-      <CustomerForm customer={customer} />
+      <CustomerForm customer={customer} currentUserId={currentUserId} />
     </div>
   );
 }

@@ -35,6 +35,9 @@ export default async function EditDealPage({ params }: EditDealPageProps) {
     .select("*")
     .order("name");
 
+  // 仮のcurrentUserId（認証が無効化されているため最初のユーザーを使用）
+  const currentUserId = users?.[0]?.id || "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -49,7 +52,12 @@ export default async function EditDealPage({ params }: EditDealPageProps) {
           <p className="text-sm text-gray-500">{deal.title}</p>
         </div>
       </div>
-      <DealForm deal={deal} customers={customers || []} users={users || []} />
+      <DealForm
+        deal={deal}
+        customers={customers || []}
+        users={users || []}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 }

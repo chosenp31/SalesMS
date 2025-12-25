@@ -605,6 +605,48 @@ export type Database = {
           }
         ];
       };
+      // 変更履歴テーブル（全エンティティ共通）
+      entity_history: {
+        Row: {
+          id: string;
+          entity_type: "customer" | "deal" | "contract" | "task" | "payment";
+          entity_id: string;
+          action: "created" | "updated" | "deleted";
+          user_id: string | null;
+          changes: Record<string, { old: unknown; new: unknown }> | null;
+          comment: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          entity_type: "customer" | "deal" | "contract" | "task" | "payment";
+          entity_id: string;
+          action: "created" | "updated" | "deleted";
+          user_id?: string | null;
+          changes?: Record<string, { old: unknown; new: unknown }> | null;
+          comment?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          entity_type?: "customer" | "deal" | "contract" | "task" | "payment";
+          entity_id?: string;
+          action?: "created" | "updated" | "deleted";
+          user_id?: string | null;
+          changes?: Record<string, { old: unknown; new: unknown }> | null;
+          comment?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "entity_history_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

@@ -28,6 +28,15 @@ export default async function EditContractPage({
     notFound();
   }
 
+  // ユーザーリストを取得してcurrentUserIdを設定
+  const { data: users } = await supabase
+    .from("users")
+    .select("id")
+    .order("name")
+    .limit(1);
+
+  const currentUserId = users?.[0]?.id || "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -44,7 +53,11 @@ export default async function EditContractPage({
           </p>
         </div>
       </div>
-      <ContractForm dealId={contract.deal_id} contract={contract} />
+      <ContractForm
+        dealId={contract.deal_id}
+        contract={contract}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 }
