@@ -28,7 +28,12 @@ export default async function CustomerDetailPage({
   // Get deals for this customer
   const { data: deals } = await supabase
     .from("deals")
-    .select("*, sales_user:users!sales_user_id(*), appointer_user:users!appointer_user_id(*)")
+    .select(`
+      *,
+      sales_user:users!sales_user_id(*),
+      appointer_user:users!appointer_user_id(*),
+      contracts(id, title, contract_type, phase, status, monthly_amount, product_category, contract_number)
+    `)
     .eq("customer_id", id)
     .order("created_at", { ascending: false });
 

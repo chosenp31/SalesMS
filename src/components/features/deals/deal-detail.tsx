@@ -273,9 +273,15 @@ export function DealDetail({ deal }: DealDetailProps) {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">主担当者</dt>
+                  <dt className="text-sm font-medium text-gray-500">営業担当者</dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    {deal.assigned_user?.name || "-"}
+                    {deal.sales_user?.name || deal.assigned_user?.name || "-"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">アポインター</dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {deal.appointer_user?.name || "-"}
                   </dd>
                 </div>
                 <div>

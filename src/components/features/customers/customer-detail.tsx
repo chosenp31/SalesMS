@@ -239,7 +239,7 @@ export function CustomerDetail({ customer, deals }: CustomerDetailProps) {
                       {deal.contracts?.length || 0}件
                     </TableCell>
                     <TableCell>
-                      {deal.assigned_user?.name || "-"}
+                      {deal.sales_user?.name || deal.assigned_user?.name || "-"}
                     </TableCell>
                     <TableCell>
                       {format(new Date(deal.created_at), "yyyy/MM/dd", {
