@@ -18,7 +18,8 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
     .select(`
       *,
       customer:customers(*),
-      assigned_user:users(*),
+      sales_user:users!sales_user_id(*),
+      appointer_user:users!appointer_user_id(*),
       contracts(*)
     `)
     .eq("id", id)
@@ -27,32 +28,6 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
   if (error || !deal) {
     notFound();
   }
-
-  // Get activities for this deal
-  const { data: activities } = await supabase
-    .from("activities")
-    .select(`
-      *,
-      user:users(*),
-      contract:contracts(id, title)
-    `)
-    .eq("deal_id", id)
-    .order("created_at", { ascending: false });
-
-  // Get current user
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
-
-  // Get users for demo mode fallback
-  const { data: users } = await supabase
-    .from("users")
-    .select("id")
-    .order("name")
-    .limit(1);
-
-  // デモモード時のデフォルトユーザーID（認証無効時は最初のユーザーを使用）
-  const defaultUserId = authUser?.id || users?.[0]?.id || "";
 
   return (
     <div className="space-y-6">
@@ -73,11 +48,7 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
           </Link>
         </Button>
       </div>
-      <DealDetail
-        deal={deal}
-        activities={activities || []}
-        currentUserId={defaultUserId}
-      />
+      <DealDetail deal={deal} />
     </div>
   );
 }

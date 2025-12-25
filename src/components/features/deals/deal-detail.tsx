@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Deal, Activity } from "@/types";
+import { Deal } from "@/types";
 import {
   DEAL_STATUS_LABELS,
   CONTRACT_TYPE_LABELS,
@@ -40,8 +40,6 @@ import {
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn, formatDealId, formatContractId } from "@/lib/utils";
-import { ActivityList } from "../activities/activity-list";
-import { ActivityForm } from "../activities/activity-form";
 import { NewContractDialog } from "./new-contract-dialog";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -49,8 +47,6 @@ import { useToast } from "@/lib/hooks/use-toast";
 
 interface DealDetailProps {
   deal: Deal;
-  activities: Activity[];
-  currentUserId: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -60,7 +56,7 @@ const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
 };
 
-export function DealDetail({ deal, activities, currentUserId }: DealDetailProps) {
+export function DealDetail({ deal }: DealDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -76,7 +72,7 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
       const supabase = createClient();
       const { error } = await supabase
         .from("deals")
-        .update({ status: newStatus })
+        .update({ status: newStatus as "active" | "won" | "lost" | "pending" })
         .eq("id", deal.id);
 
       if (error) throw error;
@@ -119,12 +115,6 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
     setDeleteLoading(true);
     try {
       const supabase = createClient();
-
-      // まず関連する活動履歴を削除
-      await supabase
-        .from("activities")
-        .delete()
-        .eq("deal_id", deal.id);
 
       // 関連するタスクを削除
       await supabase
@@ -189,7 +179,7 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
                         </span>
                       ) : (
                         <>
-                          「{deal.title}」を削除します。関連する活動履歴とタスクも削除されます。この操作は取り消せません。
+                          「{deal.title}」を削除します。関連するタスクも削除されます。この操作は取り消せません。
                         </>
                       )}
                     </AlertDialogDescription>
@@ -374,20 +364,6 @@ export function DealDetail({ deal, activities, currentUserId }: DealDetailProps)
             </CardContent>
           </Card>
 
-          {/* Activities */}
-          <Card>
-            <CardHeader>
-              <CardTitle>活動履歴</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <ActivityForm
-                dealId={deal.id}
-                userId={currentUserId}
-                contracts={deal.contracts?.map((c) => ({ id: c.id, title: c.title })) || []}
-              />
-              <ActivityList activities={activities} />
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

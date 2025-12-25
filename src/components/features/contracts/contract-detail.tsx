@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Payment, Task, User } from "@/types";
+import { Payment, Task, User, Activity } from "@/types";
 import { Tables } from "@/types/database";
 import {
   CONTRACT_TYPE_LABELS,
@@ -27,7 +27,9 @@ import { ja } from "date-fns/locale";
 import { StatusWorkflow } from "../deals/status-workflow";
 import { ContractTaskCard } from "./contract-task-card";
 import { StatusHistoryCard } from "./status-history-card";
-import { Calendar, CreditCard, FileText, ExternalLink, Trash2, Loader2 } from "lucide-react";
+import { ActivityForm } from "../activities/activity-form";
+import { ActivityList } from "../activities/activity-list";
+import { Calendar, CreditCard, FileText, ExternalLink, Trash2, Loader2, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { formatDealId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -58,6 +60,7 @@ interface ContractDetailProps {
   tasks: Task[];
   users: User[];
   statusHistory: StatusHistory[];
+  activities: Activity[];
   currentUserId: string;
 }
 
@@ -70,6 +73,7 @@ export function ContractDetail({
   tasks,
   users,
   statusHistory,
+  activities,
   currentUserId,
 }: ContractDetailProps) {
   const router = useRouter();
@@ -99,6 +103,12 @@ export function ContractDetail({
     setDeleteLoading(true);
     try {
       const supabase = createClient();
+
+      // 関連する活動履歴を削除
+      await supabase
+        .from("activities")
+        .delete()
+        .eq("contract_id", contract.id);
 
       // 関連するステータス履歴を削除
       await supabase
@@ -186,7 +196,7 @@ export function ContractDetail({
                         </span>
                       ) : (
                         <>
-                          「{contract.title}」を削除します。関連するタスク、入金情報、ステータス履歴も削除されます。この操作は取り消せません。
+                          「{contract.title}」を削除します。関連する活動履歴、タスク、入金情報、ステータス履歴も削除されます。この操作は取り消せません。
                         </>
                       )}
                     </AlertDialogDescription>
@@ -372,6 +382,23 @@ export function ContractDetail({
         users={users}
         currentUserId={currentUserId}
       />
+
+      {/* Activities */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <MessageCircle className="h-5 w-5 mr-2" />
+            活動履歴
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <ActivityForm
+            contractId={contract.id}
+            userId={currentUserId}
+          />
+          <ActivityList activities={activities} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

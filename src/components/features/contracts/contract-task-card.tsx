@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { Task, User } from "@/types";
+import { Task, User, TaskNameMaster, ContractType } from "@/types";
 import { Tables } from "@/types/database";
 import {
   TASK_STATUS_LABELS,
@@ -70,7 +70,8 @@ type ContractWithDeal = Tables<"contracts"> & {
 };
 
 const taskSchema = z.object({
-  title: z.string().min(1, "タスク名は必須です"),
+  task_name_master_id: z.string().min(1, "タスク名を選択してください"),
+  custom_title: z.string().optional(),
   assigned_user_id: z.string().min(1, "担当者を選択してください"),
   due_date: z.string().optional(),
   priority: z.enum(["high", "medium", "low"]),
@@ -113,11 +114,37 @@ function NewTaskDialog({
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [taskNameMasters, setTaskNameMasters] = useState<TaskNameMaster[]>([]);
+  const [isOther, setIsOther] = useState(false);
+
+  // 契約種別に応じたタスク名マスタを取得
+  useEffect(() => {
+    const fetchTaskNameMasters = async () => {
+      const supabase = createClient();
+      const contractType = contract.contract_type as ContractType;
+
+      const { data } = await supabase
+        .from("task_name_master")
+        .select("*")
+        .eq("contract_type", contractType)
+        .eq("is_active", true)
+        .order("display_order");
+
+      if (data) {
+        setTaskNameMasters(data as TaskNameMaster[]);
+      }
+    };
+
+    if (open) {
+      fetchTaskNameMasters();
+    }
+  }, [open, contract.contract_type]);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      title: "",
+      task_name_master_id: "",
+      custom_title: "",
       assigned_user_id: currentUserId,
       due_date: "",
       priority: "medium",
@@ -125,14 +152,30 @@ function NewTaskDialog({
     },
   });
 
+  // タスク名マスタ選択時の処理
+  const handleTaskNameChange = (masterId: string) => {
+    const master = taskNameMasters.find(m => m.id === masterId);
+    setIsOther(master?.name === "その他");
+    form.setValue("task_name_master_id", masterId);
+    if (master?.name !== "その他") {
+      form.setValue("custom_title", "");
+    }
+  };
+
   const onSubmit = async (data: TaskFormValues) => {
     setLoading(true);
 
     try {
       const supabase = createClient();
 
+      // タスク名を決定（「その他」の場合はカスタムタイトル、それ以外はマスタの名前）
+      const selectedMaster = taskNameMasters.find(m => m.id === data.task_name_master_id);
+      const taskTitle = selectedMaster?.name === "その他"
+        ? (data.custom_title || "その他")
+        : (selectedMaster?.name || "");
+
       const taskData = {
-        title: data.title,
+        title: taskTitle,
         description: null,
         deal_id: contract.deal_id,
         contract_id: contract.id,
@@ -140,6 +183,7 @@ function NewTaskDialog({
         due_date: data.due_date || null,
         status: data.status,
         priority: data.priority,
+        task_name_master_id: data.task_name_master_id,
       };
 
       const { error } = await supabase.from("tasks").insert(taskData);
@@ -147,11 +191,12 @@ function NewTaskDialog({
 
       toast({
         title: "タスクを作成しました",
-        description: `${data.title}を作成しました`,
+        description: `${taskTitle}を作成しました`,
       });
 
       setOpen(false);
       form.reset();
+      setIsOther(false);
       router.refresh();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "保存中にエラーが発生しました";
@@ -207,17 +252,44 @@ function NewTaskDialog({
 
             <FormField
               control={form.control}
-              name="title"
+              name="task_name_master_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>タスク名 *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="タスク名を入力" {...field} />
-                  </FormControl>
+                  <Select onValueChange={handleTaskNameChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="タスク名を選択" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {taskNameMasters.map((master) => (
+                        <SelectItem key={master.id} value={master.id}>
+                          {master.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {isOther && (
+              <FormField
+                control={form.control}
+                name="custom_title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>タスク名（詳細）*</FormLabel>
+                    <FormControl>
+                      <Input placeholder="タスク名を入力" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

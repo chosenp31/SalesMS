@@ -7,8 +7,8 @@ export type User = {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "manager" | "sales";
-  created_at: string;
+  role?: "admin" | "user";
+  created_at?: string;
 };
 
 // 顧客
@@ -38,9 +38,9 @@ export type AnyContractType = ContractType | LegacyContractType;
 export type DealContract = {
   id: string;
   title: string;
-  contract_type?: AnyContractType;  // 新旧両方の値に対応
-  phase?: AnyContractPhase;
-  status?: AnyContractStatus;
+  contract_type?: AnyContractType | string;  // 新旧両方の値に対応
+  phase?: AnyContractPhase | string;
+  status?: AnyContractStatus | string;
   monthly_amount?: number | null;
   product_category?: string | null;
   contract_number?: number;
@@ -50,7 +50,8 @@ export type DealContract = {
 export type Deal = {
   id: string;
   customer_id: string;
-  assigned_user_id: string;
+  sales_user_id?: string;        // 営業担当者（マイグレーション後）
+  appointer_user_id?: string;    // アポインター（マイグレーション後）
   title: string;
   status: DealStatus;
   description: string | null;
@@ -60,9 +61,12 @@ export type Deal = {
   updated_at: string;
   // Relations
   customer?: Customer;
-  assigned_user?: User;
+  sales_user?: User;            // 営業担当者
+  appointer_user?: User;        // アポインター
   contracts?: DealContract[];
-  activities?: Activity[];
+  // 後方互換性（assigned_user_idからの移行用）
+  assigned_user_id?: string;
+  assigned_user?: User;
 };
 
 // 商談ステータス
@@ -215,18 +219,77 @@ export type Payment = {
 // 活動履歴
 export type Activity = {
   id: string;
-  deal_id: string;
-  contract_id: string | null;
+  contract_id: string;  // 必須（マイグレーション後）
   user_id: string;
-  activity_type: "phone" | "visit" | "email" | "online_meeting" | "other";
+  activity_type: "phone" | "visit" | "email" | "online_meeting" | "status_change" | "other";
   content: string;
+  is_status_change?: boolean;
+  status_change_id?: string | null;
   created_at: string;
   // Relations
   user?: User;
   contract?: {
     id: string;
     title: string;
+    deal?: {
+      id: string;
+      title: string;
+      customer?: { id: string; company_name: string };
+    };
   } | null;
+  status_change?: StatusChangeHistory | null;
+};
+
+// ステータス変更履歴
+export type StatusChangeHistory = {
+  id: string;
+  contract_id: string;
+  changed_by_user_id: string;
+  previous_phase: string | null;
+  new_phase: string;
+  previous_status: string | null;
+  new_status: string;
+  comment: string | null;
+  created_at: string;
+  // Relations
+  user?: User;
+  contract?: Contract;
+};
+
+// タスク履歴
+export type TaskHistory = {
+  id: string;
+  task_id: string;
+  user_id: string;
+  action: "created" | "updated" | "status_changed" | "deleted";
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
+  created_at: string;
+  // Relations
+  user?: User;
+  task?: Task;
+};
+
+// タスク名マスタ
+export type TaskNameMaster = {
+  id: string;
+  contract_type: ContractType;
+  name: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+// 商材マスタ
+export type ProductMaster = {
+  id: string;
+  contract_type: ContractType;
+  name: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 // タスクステータス
@@ -238,6 +301,7 @@ export type Task = {
   deal_id: string | null;
   contract_id: string | null;
   assigned_user_id: string;
+  task_name_master_id?: string | null;  // タスク名マスタへの参照（マイグレーション後に追加）
   title: string;
   description: string | null;
   due_date: string | null;
@@ -256,12 +320,14 @@ export type Task = {
   } | null;
   contract?: {
     id: string;
-    title: string;
+    title?: string;
+    contract_type?: ContractType | string;
     contract_number?: number;
-    phase?: AnyContractPhase;  // 新旧両方の値に対応
-    status?: AnyContractStatus;  // 新旧両方の値に対応
+    phase?: AnyContractPhase | string;
+    status?: AnyContractStatus | string;
   } | null;
-  assigned_user?: User;
+  assigned_user?: Partial<User>;
+  task_name_master?: TaskNameMaster | null;
 };
 
 // セレクト用の簡易型

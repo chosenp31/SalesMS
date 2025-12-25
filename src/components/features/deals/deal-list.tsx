@@ -65,7 +65,7 @@ const statusColors: Record<string, string> = {
   否決: "bg-red-100 text-red-800 border-red-200",
 };
 
-type SortField = "deal_id" | "customer" | "contract_status" | "contracts" | "assigned_user" | "updated_at";
+type SortField = "deal_id" | "customer" | "contract_status" | "contracts" | "sales_user" | "appointer" | "updated_at";
 type SortDirection = "asc" | "desc";
 
 // 契約種類ラベル
@@ -139,11 +139,21 @@ export function DealList({ deals }: DealListProps) {
     );
   }, [deals]);
 
-  const assignedUserOptions = useMemo(() => {
+  // 営業担当者オプション（新旧両スキーマ対応）
+  const salesUserOptions = useMemo(() => {
     return generateFilterOptions(
-      deals.filter((d) => d.assigned_user?.name),
-      (deal) => deal.assigned_user?.id || "",
-      (deal) => deal.assigned_user?.name || ""
+      deals.filter((d) => d.sales_user?.name || d.assigned_user?.name),
+      (deal) => deal.sales_user?.id || deal.assigned_user?.id || "",
+      (deal) => deal.sales_user?.name || deal.assigned_user?.name || ""
+    );
+  }, [deals]);
+
+  // アポインターオプション（新スキーマのみ）
+  const appointerOptions = useMemo(() => {
+    return generateFilterOptions(
+      deals.filter((d) => d.appointer_user?.name),
+      (deal) => deal.appointer_user?.id || "",
+      (deal) => deal.appointer_user?.name || ""
     );
   }, [deals]);
 
@@ -158,7 +168,8 @@ export function DealList({ deals }: DealListProps) {
         (deal) =>
           deal.title.toLowerCase().includes(lowerSearch) ||
           deal.customer?.company_name?.toLowerCase().includes(lowerSearch) ||
-          deal.assigned_user?.name?.toLowerCase().includes(lowerSearch) ||
+          (deal.sales_user?.name || deal.assigned_user?.name)?.toLowerCase().includes(lowerSearch) ||
+          deal.appointer_user?.name?.toLowerCase().includes(lowerSearch) ||
           formatDealId(deal.customer?.customer_number, deal.deal_number).toLowerCase().includes(lowerSearch)
       );
     }
@@ -173,8 +184,10 @@ export function DealList({ deals }: DealListProps) {
               return formatDealId(deal.customer?.customer_number, deal.deal_number).toLowerCase().includes(lowerSearch);
             case "customer":
               return deal.customer?.company_name?.toLowerCase().includes(lowerSearch);
-            case "assigned_user":
-              return deal.assigned_user?.name?.toLowerCase().includes(lowerSearch);
+            case "sales_user":
+              return (deal.sales_user?.name || deal.assigned_user?.name)?.toLowerCase().includes(lowerSearch);
+            case "appointer":
+              return deal.appointer_user?.name?.toLowerCase().includes(lowerSearch);
             default:
               return true;
           }
@@ -185,8 +198,10 @@ export function DealList({ deals }: DealListProps) {
           switch (column) {
             case "customer":
               return filter.values.includes(deal.customer?.company_name || "");
-            case "assigned_user":
-              return filter.values.includes(deal.assigned_user?.id || "");
+            case "sales_user":
+              return filter.values.includes(deal.sales_user?.id || deal.assigned_user?.id || "");
+            case "appointer":
+              return filter.values.includes(deal.appointer_user?.id || "");
             default:
               return true;
           }
@@ -216,9 +231,14 @@ export function DealList({ deals }: DealListProps) {
           const bStatus = getContractStatusList(b.contracts).map(c => `${c.type}:${c.status}`).join(",");
           comparison = aStatus.localeCompare(bStatus);
           break;
-        case "assigned_user":
-          comparison = (a.assigned_user?.name || "").localeCompare(
-            b.assigned_user?.name || ""
+        case "sales_user":
+          comparison = (a.sales_user?.name || a.assigned_user?.name || "").localeCompare(
+            b.sales_user?.name || b.assigned_user?.name || ""
+          );
+          break;
+        case "appointer":
+          comparison = (a.appointer_user?.name || "").localeCompare(
+            b.appointer_user?.name || ""
           );
           break;
         case "updated_at":
@@ -249,7 +269,7 @@ export function DealList({ deals }: DealListProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="案件ID、顧客名、主担当者で検索..."
+            placeholder="案件ID、顧客名、担当者で検索..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             className="pl-10 pr-10 h-10 bg-white w-full"
@@ -336,15 +356,28 @@ export function DealList({ deals }: DealListProps) {
               </TableHead>
               <TableHead className="w-[90px]">
                 <ColumnFilterHeader
-                  column="assigned_user"
-                  label="主担当者"
+                  column="sales_user"
+                  label="営業"
                   sortField={sortField}
                   sortDirection={sortDirection}
-                  onSort={() => handleSort("assigned_user")}
+                  onSort={() => handleSort("sales_user")}
                   filterable
-                  filterOptions={assignedUserOptions}
-                  activeFilter={columnFilters["assigned_user"]}
-                  onFilterChange={(f) => handleColumnFilterChange("assigned_user", f)}
+                  filterOptions={salesUserOptions}
+                  activeFilter={columnFilters["sales_user"]}
+                  onFilterChange={(f) => handleColumnFilterChange("sales_user", f)}
+                />
+              </TableHead>
+              <TableHead className="w-[90px]">
+                <ColumnFilterHeader
+                  column="appointer"
+                  label="AP"
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("appointer")}
+                  filterable
+                  filterOptions={appointerOptions}
+                  activeFilter={columnFilters["appointer"]}
+                  onFilterChange={(f) => handleColumnFilterChange("appointer", f)}
                 />
               </TableHead>
               <TableHead className="w-[90px]">
@@ -416,7 +449,10 @@ export function DealList({ deals }: DealListProps) {
                   )}
                 </TableCell>
                 <TableCell className="py-2 text-sm text-gray-600 truncate">
-                  {deal.assigned_user?.name || "-"}
+                  {deal.sales_user?.name || deal.assigned_user?.name || "-"}
+                </TableCell>
+                <TableCell className="py-2 text-sm text-gray-600 truncate">
+                  {deal.appointer_user?.name || "-"}
                 </TableCell>
                 <TableCell className="py-2 text-gray-500 text-sm">
                   {deal.updated_at

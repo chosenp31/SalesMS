@@ -45,7 +45,7 @@ export default async function ContractDetailPage({
     .from("tasks")
     .select(`
       *,
-      assigned_user:users(*),
+      assigned_user:users!tasks_assigned_user_id_fkey(*),
       deal:deals(
         id,
         title,
@@ -55,6 +55,16 @@ export default async function ContractDetailPage({
     `)
     .eq("contract_id", id)
     .order("due_date", { ascending: true });
+
+  // Get activities for this contract
+  const { data: activities } = await supabase
+    .from("activities")
+    .select(`
+      *,
+      user:users(*)
+    `)
+    .eq("contract_id", id)
+    .order("created_at", { ascending: false });
 
   // Get users for task assignment
   const { data: users } = await supabase
@@ -103,6 +113,7 @@ export default async function ContractDetailPage({
         tasks={tasks || []}
         users={users || []}
         statusHistory={statusHistory || []}
+        activities={activities || []}
         currentUserId={currentUserId}
       />
     </div>

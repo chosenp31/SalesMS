@@ -19,7 +19,8 @@ export default async function ContractsPage({ searchParams }: ContractsPageProps
         title,
         deal_number,
         customer:customers(id, company_name, customer_number),
-        assigned_user:users(id, name)
+        sales_user:users!sales_user_id(id, name),
+        appointer_user:users!appointer_user_id(id, name)
       ),
       tasks(id, status)
     `)

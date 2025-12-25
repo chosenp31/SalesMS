@@ -21,6 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Tooltip,
   TooltipContent,
@@ -33,7 +35,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
@@ -179,10 +180,12 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
     open: boolean;
     targetStatus: string;
     message: string;
+    comment: string;
   }>({
     open: false,
     targetStatus: "",
     message: "",
+    comment: "",
   });
 
   // 現在のフェーズを取得（旧フェーズの場合はマッピングする）
@@ -196,7 +199,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
   const colors = phaseColors[currentPhase] || phaseColors["商談中"];
 
   // ステータス更新処理
-  const updateStatus = async (newStatus: string) => {
+  const updateStatus = async (newStatus: string, comment?: string) => {
     setLoading(true);
     const supabase = createClient();
 
@@ -224,6 +227,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
           new_status: newStatus,
           previous_phase: previousPhase,
           new_phase: newPhase,
+          comment: comment || null,
         });
 
       if (historyError) {
@@ -274,7 +278,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
     }
 
     setLoading(false);
-    setConfirmDialog({ open: false, targetStatus: "", message: "" });
+    setConfirmDialog({ open: false, targetStatus: "", message: "", comment: "" });
     router.refresh();
   };
 
@@ -285,6 +289,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
       open: true,
       targetStatus,
       message,
+      comment: "",
     });
   };
 
@@ -556,26 +561,42 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
         open={confirmDialog.open}
         onOpenChange={(open) => {
           if (!open) {
-            setConfirmDialog({ open: false, targetStatus: "", message: "" });
+            setConfirmDialog({ open: false, targetStatus: "", message: "", comment: "" });
           }
         }}
       >
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle>ステータス変更の確認</DialogTitle>
             <DialogDescription className="pt-2">
               {confirmDialog.message}
             </DialogDescription>
           </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="status-comment" className="text-sm font-medium">
+              コメント（任意）
+            </Label>
+            <Textarea
+              id="status-comment"
+              placeholder="ステータス変更に関するコメントを入力..."
+              className="mt-2"
+              rows={3}
+              value={confirmDialog.comment}
+              onChange={(e) => setConfirmDialog({ ...confirmDialog, comment: e.target.value })}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              変更理由や備考があれば記入してください
+            </p>
+          </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={() => setConfirmDialog({ open: false, targetStatus: "", message: "" })}
+              onClick={() => setConfirmDialog({ open: false, targetStatus: "", message: "", comment: "" })}
             >
               キャンセル
             </Button>
             <Button
-              onClick={() => updateStatus(confirmDialog.targetStatus)}
+              onClick={() => updateStatus(confirmDialog.targetStatus, confirmDialog.comment)}
               disabled={loading}
             >
               {loading ? "更新中..." : "完了"}

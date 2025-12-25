@@ -13,6 +13,7 @@ import {
   CreditCard,
   LogOut,
   X,
+  Settings,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const navigation = [
   { name: "顧客管理", href: "/customers", icon: Users },
   { name: "タスク", href: "/tasks", icon: ClipboardList },
   { name: "入金管理", href: "/payments", icon: CreditCard },
+  { name: "設定", href: "/settings", icon: Settings },
 ];
 
 function SidebarContent({

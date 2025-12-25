@@ -16,39 +16,30 @@ import {
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 
-interface Contract {
-  id: string;
-  title: string;
-}
-
 interface ActivityFormProps {
-  dealId: string;
+  contractId: string;
   userId: string;
-  contracts?: Contract[];
 }
 
 type ActivityType = "phone" | "visit" | "email" | "online_meeting" | "other";
 
-export function ActivityForm({ dealId, userId, contracts = [] }: ActivityFormProps) {
+export function ActivityForm({ contractId, userId }: ActivityFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [activityType, setActivityType] = useState<ActivityType>("phone");
-  const [contractId, setContractId] = useState<string>("");
   const [content, setContent] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
-    if (contracts.length > 0 && !contractId) return;
 
     setLoading(true);
     const supabase = createClient();
 
     const { error } = await supabase.from("activities").insert({
-      deal_id: dealId,
       user_id: userId,
       activity_type: activityType,
-      contract_id: contractId || null,
+      contract_id: contractId,
       content: content.trim(),
     });
 
@@ -62,36 +53,13 @@ export function ActivityForm({ dealId, userId, contracts = [] }: ActivityFormPro
     setLoading(false);
   };
 
-  const isSubmitDisabled = loading || !content.trim() || (contracts.length > 0 && !contractId);
+  const isSubmitDisabled = loading || !content.trim();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 契約種別（必須・左上） */}
-        {contracts.length > 0 && (
-          <div className="space-y-2">
-            <Label htmlFor="contract-select">
-              契約種別 <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={contractId}
-              onValueChange={setContractId}
-            >
-              <SelectTrigger id="contract-select">
-                <SelectValue placeholder="契約を選択してください" />
-              </SelectTrigger>
-              <SelectContent>
-                {contracts.map((contract) => (
-                  <SelectItem key={contract.id} value={contract.id}>
-                    {contract.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-        {/* 活動種別（右側） */}
-        <div className="space-y-2">
+      <div className="space-y-4">
+        {/* 活動種別 */}
+        <div className="space-y-2 max-w-xs">
           <Label htmlFor="activity-type">活動種別</Label>
           <Select value={activityType} onValueChange={(v) => setActivityType(v as ActivityType)}>
             <SelectTrigger id="activity-type">
@@ -106,8 +74,7 @@ export function ActivityForm({ dealId, userId, contracts = [] }: ActivityFormPro
             </SelectContent>
           </Select>
         </div>
-      </div>
-      <div className="space-y-2">
+        <div className="space-y-2">
         <Label htmlFor="activity-content">活動内容・議事録</Label>
         <Textarea
           id="activity-content"
@@ -132,6 +99,7 @@ export function ActivityForm({ dealId, userId, contracts = [] }: ActivityFormPro
         <p className="text-xs text-gray-500">
           議事録、電話内容、メール要約など詳細に記録できます
         </p>
+        </div>
       </div>
       <div className="flex justify-end">
         <Button type="submit" disabled={isSubmitDisabled}>

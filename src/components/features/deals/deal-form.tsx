@@ -99,7 +99,8 @@ const formatPostalCode = (value: string): string => {
 
 const dealSchema = z.object({
   customer_id: z.string().min(1, "顧客を選択してください"),
-  assigned_user_id: z.string().min(1, "主担当者を選択してください"),
+  sales_user_id: z.string().min(1, "営業担当者を選択してください"),
+  appointer_user_id: z.string().min(1, "アポインターを選択してください"),
 });
 
 const customerSchema = z.object({
@@ -144,8 +145,10 @@ export function DealForm({
   // オートコンプリート用の状態
   const [customerOpen, setCustomerOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [userOpen, setUserOpen] = useState(false);
-  const [userSearch, setUserSearch] = useState("");
+  const [salesUserOpen, setSalesUserOpen] = useState(false);
+  const [salesUserSearch, setSalesUserSearch] = useState("");
+  const [appointerOpen, setAppointerOpen] = useState(false);
+  const [appointerSearch, setAppointerSearch] = useState("");
 
   // フィルタされた顧客リスト
   const filteredCustomers = useMemo(() => {
@@ -158,12 +161,19 @@ export function DealForm({
     );
   }, [customers, customerSearch]);
 
-  // フィルタされたユーザーリスト
-  const filteredUsers = useMemo(() => {
-    if (!userSearch) return users;
-    const search = userSearch.toLowerCase();
+  // フィルタされた営業担当者リスト
+  const filteredSalesUsers = useMemo(() => {
+    if (!salesUserSearch) return users;
+    const search = salesUserSearch.toLowerCase();
     return users.filter((user) => user.name.toLowerCase().includes(search));
-  }, [users, userSearch]);
+  }, [users, salesUserSearch]);
+
+  // フィルタされたアポインターリスト
+  const filteredAppointers = useMemo(() => {
+    if (!appointerSearch) return users;
+    const search = appointerSearch.toLowerCase();
+    return users.filter((user) => user.name.toLowerCase().includes(search));
+  }, [users, appointerSearch]);
 
   // デフォルトユーザーIDを確保（currentUserIdが空の場合はユーザーリストの最初を使用）
   const effectiveUserId = currentUserId || users[0]?.id || "";
@@ -172,7 +182,9 @@ export function DealForm({
     resolver: zodResolver(dealSchema),
     defaultValues: {
       customer_id: deal?.customer_id || defaultCustomerId || "",
-      assigned_user_id: deal?.assigned_user_id || effectiveUserId,
+      // 新スキーマ（sales_user_id/appointer_user_id）と旧スキーマ（assigned_user_id）の両方に対応
+      sales_user_id: deal?.sales_user_id || deal?.assigned_user_id || effectiveUserId,
+      appointer_user_id: deal?.appointer_user_id || deal?.assigned_user_id || effectiveUserId,
     },
   });
 
@@ -302,12 +314,13 @@ export function DealForm({
       // 案件タイトルを自動生成（顧客名）
       const dealTitle = deal?.title || selectedCustomer?.company_name || "";
 
+      // 新スキーマ（sales_user_id/appointer_user_id）を使用
       const dealData = {
         title: dealTitle,
         customer_id: data.customer_id,
-        assigned_user_id: data.assigned_user_id,
+        sales_user_id: data.sales_user_id,
+        appointer_user_id: data.appointer_user_id,
         status: "active" as const,
-        contract_type: "rental" as const,
       };
 
       if (deal) {
@@ -453,20 +466,20 @@ export function DealForm({
                   )}
                 />
 
-                {/* 管理者選択（オートコンプリート） */}
+                {/* 営業担当者選択（オートコンプリート） */}
                 <FormField
                   control={form.control}
-                  name="assigned_user_id"
+                  name="sales_user_id"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>主担当者 *</FormLabel>
-                      <Popover open={userOpen} onOpenChange={setUserOpen}>
+                      <FormLabel>営業担当者 *</FormLabel>
+                      <Popover open={salesUserOpen} onOpenChange={setSalesUserOpen}>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant="outline"
                               role="combobox"
-                              aria-expanded={userOpen}
+                              aria-expanded={salesUserOpen}
                               className={cn(
                                 "justify-between",
                                 !field.value && "text-muted-foreground"
@@ -474,7 +487,7 @@ export function DealForm({
                             >
                               {field.value
                                 ? users.find((u) => u.id === field.value)?.name
-                                : "主担当者名を入力して検索..."}
+                                : "営業担当者を選択..."}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </FormControl>
@@ -482,21 +495,86 @@ export function DealForm({
                         <PopoverContent className="w-[300px] p-0" align="start">
                           <Command shouldFilter={false}>
                             <CommandInput
-                              placeholder="主担当者名で検索..."
-                              value={userSearch}
-                              onValueChange={setUserSearch}
+                              placeholder="営業担当者名で検索..."
+                              value={salesUserSearch}
+                              onValueChange={setSalesUserSearch}
                             />
                             <CommandList>
-                              <CommandEmpty>主担当者が見つかりません</CommandEmpty>
+                              <CommandEmpty>ユーザーが見つかりません</CommandEmpty>
                               <CommandGroup>
-                                {filteredUsers.map((user) => (
+                                {filteredSalesUsers.map((user) => (
                                   <CommandItem
                                     key={user.id}
                                     value={user.id}
                                     onSelect={() => {
                                       field.onChange(user.id);
-                                      setUserOpen(false);
-                                      setUserSearch("");
+                                      setSalesUserOpen(false);
+                                      setSalesUserSearch("");
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value === user.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {user.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* アポインター選択（オートコンプリート） */}
+                <FormField
+                  control={form.control}
+                  name="appointer_user_id"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>アポインター *</FormLabel>
+                      <Popover open={appointerOpen} onOpenChange={setAppointerOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={appointerOpen}
+                              className={cn(
+                                "justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? users.find((u) => u.id === field.value)?.name
+                                : "アポインターを選択..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command shouldFilter={false}>
+                            <CommandInput
+                              placeholder="アポインター名で検索..."
+                              value={appointerSearch}
+                              onValueChange={setAppointerSearch}
+                            />
+                            <CommandList>
+                              <CommandEmpty>ユーザーが見つかりません</CommandEmpty>
+                              <CommandGroup>
+                                {filteredAppointers.map((user) => (
+                                  <CommandItem
+                                    key={user.id}
+                                    value={user.id}
+                                    onSelect={() => {
+                                      field.onChange(user.id);
+                                      setAppointerOpen(false);
+                                      setAppointerSearch("");
                                     }}
                                   >
                                     <Check

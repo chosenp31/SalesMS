@@ -60,7 +60,11 @@ interface ContractWithRelations {
       company_name: string;
       customer_number?: number;
     };
-    assigned_user?: {
+    sales_user?: {
+      id: string;
+      name: string;
+    };
+    appointer_user?: {
       id: string;
       name: string;
     };

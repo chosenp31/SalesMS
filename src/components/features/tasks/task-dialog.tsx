@@ -55,7 +55,9 @@ interface TaskDialogProps {
   users: User[];
   deals: DealOption[];
   currentUserId: string;
-  trigger: React.ReactNode;
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function TaskDialog({
@@ -64,11 +66,18 @@ export function TaskDialog({
   deals,
   currentUserId,
   trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: TaskDialogProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Controlled or uncontrolled mode
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (controlledOnOpenChange || (() => {})) : setInternalOpen;
 
   const getDefaultValues = () => ({
     title: task?.title || "",
@@ -144,7 +153,7 @@ export function TaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{task ? "タスク編集" : "新規タスク"}</DialogTitle>

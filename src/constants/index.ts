@@ -295,6 +295,7 @@ export const ACTIVITY_TYPE_LABELS = {
   visit: "訪問",
   email: "メール",
   online_meeting: "オンライン商談",
+  status_change: "ステータス変更",
   other: "その他",
 } as const;
 

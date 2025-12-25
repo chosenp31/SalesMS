@@ -27,7 +27,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         customer:customers(id, company_name, customer_number)
       ),
       contract:contracts(id, title, phase, status, contract_number),
-      assigned_user:users(*)
+      assigned_user:users!tasks_assigned_user_id_fkey(*)
     `)
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("priority", { ascending: true })

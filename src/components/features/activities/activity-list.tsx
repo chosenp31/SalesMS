@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Phone, User, Mail, Video, MoreHorizontal, FileText, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Phone, User, Mail, Video, MoreHorizontal, FileText, Pencil, Trash2, Loader2, ArrowRightLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
 
@@ -41,6 +41,7 @@ const activityIcons = {
   visit: User,
   email: Mail,
   online_meeting: Video,
+  status_change: ArrowRightLeft,
   other: MoreHorizontal,
 };
 
@@ -49,6 +50,7 @@ const activityColors = {
   visit: "bg-green-100 text-green-600",
   email: "bg-yellow-100 text-yellow-600",
   online_meeting: "bg-purple-100 text-purple-600",
+  status_change: "bg-orange-100 text-orange-600",
   other: "bg-gray-100 text-gray-600",
 };
 

@@ -37,21 +37,21 @@ export type Database = {
           id: string;
           email: string;
           name: string;
-          role: "admin" | "manager" | "sales";
+          role: "admin" | "user";
           created_at: string;
         };
         Insert: {
           id?: string;
           email: string;
           name: string;
-          role?: "admin" | "manager" | "sales";
+          role?: "admin" | "user";
           created_at?: string;
         };
         Update: {
           id?: string;
           email?: string;
           name?: string;
-          role?: "admin" | "manager" | "sales";
+          role?: "admin" | "user";
           created_at?: string;
         };
         Relationships: [];
@@ -100,7 +100,8 @@ export type Database = {
         Row: {
           id: string;
           customer_id: string;
-          assigned_user_id: string;
+          sales_user_id: string;
+          appointer_user_id: string;
           title: string;
           status: "active" | "won" | "lost" | "pending";
           description: string | null;
@@ -112,7 +113,8 @@ export type Database = {
         Insert: {
           id?: string;
           customer_id: string;
-          assigned_user_id: string;
+          sales_user_id: string;
+          appointer_user_id: string;
           title: string;
           status?: "active" | "won" | "lost" | "pending";
           description?: string | null;
@@ -124,7 +126,8 @@ export type Database = {
         Update: {
           id?: string;
           customer_id?: string;
-          assigned_user_id?: string;
+          sales_user_id?: string;
+          appointer_user_id?: string;
           title?: string;
           status?: "active" | "won" | "lost" | "pending";
           description?: string | null;
@@ -142,8 +145,15 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "deals_assigned_user_id_fkey";
-            columns: ["assigned_user_id"];
+            foreignKeyName: "deals_sales_user_id_fkey";
+            columns: ["sales_user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deals_appointer_user_id_fkey";
+            columns: ["appointer_user_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
@@ -315,43 +325,39 @@ export type Database = {
           }
         ];
       };
-      // 活動履歴（商談単位）
+      // 活動履歴（契約単位）
       activities: {
         Row: {
           id: string;
-          deal_id: string;
-          contract_id: string | null;
+          contract_id: string;
           user_id: string;
-          activity_type: "phone" | "visit" | "email" | "online_meeting" | "other";
+          activity_type: "phone" | "visit" | "email" | "online_meeting" | "status_change" | "other";
           content: string;
+          is_status_change: boolean;
+          status_change_id: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
-          deal_id: string;
-          contract_id?: string | null;
+          contract_id: string;
           user_id: string;
-          activity_type: "phone" | "visit" | "email" | "online_meeting" | "other";
+          activity_type: "phone" | "visit" | "email" | "online_meeting" | "status_change" | "other";
           content: string;
+          is_status_change?: boolean;
+          status_change_id?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
-          deal_id?: string;
-          contract_id?: string | null;
+          contract_id?: string;
           user_id?: string;
-          activity_type?: "phone" | "visit" | "email" | "online_meeting" | "other";
+          activity_type?: "phone" | "visit" | "email" | "online_meeting" | "status_change" | "other";
           content?: string;
+          is_status_change?: boolean;
+          status_change_id?: string | null;
           created_at?: string;
         };
         Relationships: [
-          {
-            foreignKeyName: "activities_deal_id_fkey";
-            columns: ["deal_id"];
-            isOneToOne: false;
-            referencedRelation: "deals";
-            referencedColumns: ["id"];
-          },
           {
             foreignKeyName: "activities_contract_id_fkey";
             columns: ["contract_id"];
@@ -445,33 +451,33 @@ export type Database = {
           id: string;
           contract_id: string;
           changed_by_user_id: string;
-          previous_status: string;
+          previous_status: string | null;
           new_status: string;
           previous_phase: string | null;
-          new_phase: string | null;
-          changed_at: string;
+          new_phase: string;
+          comment: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           contract_id: string;
           changed_by_user_id: string;
-          previous_status: string;
+          previous_status?: string | null;
           new_status: string;
           previous_phase?: string | null;
-          new_phase?: string | null;
-          changed_at?: string;
+          new_phase: string;
+          comment?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           contract_id?: string;
           changed_by_user_id?: string;
-          previous_status?: string;
+          previous_status?: string | null;
           new_status?: string;
           previous_phase?: string | null;
-          new_phase?: string | null;
-          changed_at?: string;
+          new_phase?: string;
+          comment?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -485,6 +491,114 @@ export type Database = {
           {
             foreignKeyName: "contract_status_history_changed_by_user_id_fkey";
             columns: ["changed_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      // タスク名マスタ
+      task_name_master: {
+        Row: {
+          id: string;
+          contract_type: "property" | "line" | "maintenance";
+          name: string;
+          display_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          contract_type: "property" | "line" | "maintenance";
+          name: string;
+          display_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          contract_type?: "property" | "line" | "maintenance";
+          name?: string;
+          display_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      // 商材マスタ
+      product_master: {
+        Row: {
+          id: string;
+          contract_type: "property" | "line" | "maintenance";
+          name: string;
+          display_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          contract_type: "property" | "line" | "maintenance";
+          name: string;
+          display_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          contract_type?: "property" | "line" | "maintenance";
+          name?: string;
+          display_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      // タスク履歴
+      task_history: {
+        Row: {
+          id: string;
+          task_id: string;
+          user_id: string;
+          action: "created" | "updated" | "status_changed" | "deleted";
+          old_values: Record<string, unknown> | null;
+          new_values: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          user_id: string;
+          action: "created" | "updated" | "status_changed" | "deleted";
+          old_values?: Record<string, unknown> | null;
+          new_values?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          user_id?: string;
+          action?: "created" | "updated" | "status_changed" | "deleted";
+          old_values?: Record<string, unknown> | null;
+          new_values?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_history_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_history_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
