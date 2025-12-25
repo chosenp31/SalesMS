@@ -82,7 +82,7 @@ export default async function ContractDetailPage({
       changed_by_user:users(name)
     `)
     .eq("contract_id", id)
-    .order("changed_at", { ascending: false });
+    .order("created_at", { ascending: false });
 
   // 仮のcurrentUserId（認証が無効化されているため最初のユーザーを使用）
   const currentUserId = users?.[0]?.id || "";
@@ -117,11 +117,14 @@ export default async function ContractDetailPage({
         payments={payments || []}
         tasks={tasks || []}
         users={users || []}
-        statusHistory={statusHistory || []}
         activities={activities || []}
         currentUserId={currentUserId}
       />
-      <HistorySection history={history} entityType="contract" />
+      <HistorySection
+        history={history}
+        entityType="contract"
+        statusHistory={statusHistory || []}
+      />
     </div>
   );
 }

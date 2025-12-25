@@ -35,11 +35,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
 import { recordDelete } from "@/lib/history";
 
-// ステータス履歴の型
-type StatusHistory = Tables<"contract_status_history"> & {
-  changed_by_user?: { name: string } | null;
-};
-
 // 契約詳細ページ用の型（部分的なdeal情報を含む）
 type ContractWithPartialDeal = Tables<"contracts"> & {
   deal?: {
@@ -59,7 +54,6 @@ interface ContractDetailProps {
   payments: Payment[];
   tasks: Task[];
   users: User[];
-  statusHistory: StatusHistory[];
   activities: Activity[];
   currentUserId: string;
 }
@@ -72,7 +66,6 @@ export function ContractDetail({
   payments,
   tasks,
   users,
-  statusHistory,
   activities,
   currentUserId,
 }: ContractDetailProps) {
@@ -367,7 +360,7 @@ export function ContractDetail({
             contractId={contract.id}
             userId={currentUserId}
           />
-          <ActivityList activities={activities} statusHistory={statusHistory} />
+          <ActivityList activities={activities} />
         </CardContent>
       </Card>
 

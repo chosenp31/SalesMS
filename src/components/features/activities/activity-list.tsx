@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Activity, StatusChangeHistory } from "@/types";
-import { CONTRACT_STATUS_LABELS } from "@/constants";
-import { Badge } from "@/components/ui/badge";
+import { Activity } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -28,24 +26,13 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { MessageSquare, User, Pencil, Trash2, Loader2, ArrowRightLeft, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageSquare, User, Pencil, Trash2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
 
-// ステータス履歴の型（ユーザー情報付き）
-type StatusHistoryWithUser = StatusChangeHistory & {
-  user?: { name: string } | null;
-};
-
 interface ActivityListProps {
   activities: Activity[];
-  statusHistory?: StatusHistoryWithUser[];
 }
-
-// 統合された履歴アイテムの型
-type UnifiedHistoryItem =
-  | { type: "activity"; data: Activity; timestamp: Date }
-  | { type: "status_change"; data: StatusHistoryWithUser; timestamp: Date };
 
 // デフォルト表示件数
 const DEFAULT_DISPLAY_COUNT = 5;
@@ -68,7 +55,7 @@ const getRemainingMinutes = (createdAt: string): number => {
   return Math.max(0, Math.ceil(remaining / (60 * 1000)));
 };
 
-export function ActivityList({ activities, statusHistory = [] }: ActivityListProps) {
+export function ActivityList({ activities }: ActivityListProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -77,38 +64,12 @@ export function ActivityList({ activities, statusHistory = [] }: ActivityListPro
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
-  // 活動履歴とステータス変更履歴を統合して時系列でソート
-  const unifiedHistory = useMemo(() => {
-    const items: UnifiedHistoryItem[] = [];
+  // 表示する活動履歴
+  const displayedActivities = showAll
+    ? activities
+    : activities.slice(0, DEFAULT_DISPLAY_COUNT);
 
-    // 活動履歴を追加
-    activities.forEach((activity) => {
-      items.push({
-        type: "activity",
-        data: activity,
-        timestamp: new Date(activity.created_at),
-      });
-    });
-
-    // ステータス変更履歴を追加
-    statusHistory.forEach((status) => {
-      items.push({
-        type: "status_change",
-        data: status,
-        timestamp: new Date(status.created_at),
-      });
-    });
-
-    // 新しい順にソート
-    return items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }, [activities, statusHistory]);
-
-  // 表示する履歴
-  const displayedHistory = showAll
-    ? unifiedHistory
-    : unifiedHistory.slice(0, DEFAULT_DISPLAY_COUNT);
-
-  const hasMore = unifiedHistory.length > DEFAULT_DISPLAY_COUNT;
+  const hasMore = activities.length > DEFAULT_DISPLAY_COUNT;
 
   const handleEdit = (activity: Activity) => {
     setEditingActivity(activity);
@@ -191,7 +152,7 @@ export function ActivityList({ activities, statusHistory = [] }: ActivityListPro
     }
   };
 
-  if (unifiedHistory.length === 0) {
+  if (activities.length === 0) {
     return (
       <p className="text-sm text-gray-500 text-center py-4">
         活動履歴がありません
@@ -199,155 +160,96 @@ export function ActivityList({ activities, statusHistory = [] }: ActivityListPro
     );
   }
 
-  // ステータス変更アイテムをレンダリング
-  const renderStatusChangeItem = (item: StatusHistoryWithUser) => (
-    <div
-      key={`status-${item.id}`}
-      className="flex space-x-4 p-4 bg-orange-50 rounded-lg border border-orange-100"
-    >
-      <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-orange-100 text-orange-600">
-        <ArrowRightLeft className="h-5 w-5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center space-x-2 flex-wrap gap-1">
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-              ステータス変更
-            </Badge>
-            <span className="text-sm text-gray-500 flex items-center gap-1">
-              <User className="h-3 w-3" />
-              {item.user?.name || "不明"}
-            </span>
-          </div>
-          <span className="text-xs text-gray-400">
-            {format(new Date(item.created_at), "yyyy/MM/dd HH:mm", {
-              locale: ja,
-            })}
-          </span>
-        </div>
-        <div className="mt-2 flex items-center gap-2 text-sm flex-wrap">
-          {item.previous_status && (
-            <>
-              <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-700">
-                {CONTRACT_STATUS_LABELS[item.previous_status] || item.previous_status}
-              </span>
-              <span className="text-gray-400">→</span>
-            </>
-          )}
-          <span className="px-2 py-0.5 bg-primary/10 rounded text-primary font-medium">
-            {CONTRACT_STATUS_LABELS[item.new_status] || item.new_status}
-          </span>
-        </div>
-        {item.comment && (
-          <div className="mt-2 flex items-start gap-2 text-sm text-gray-600 bg-white rounded p-2 border">
-            <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0 text-gray-400" />
-            <span className="whitespace-pre-wrap">{item.comment}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // 活動アイテムをレンダリング
-  const renderActivityItem = (activity: Activity) => {
-    const canEdit = isEditable(activity.created_at);
-    const remainingMinutes = getRemainingMinutes(activity.created_at);
-
-    return (
-      <div
-        key={`activity-${activity.id}`}
-        className="flex space-x-4 p-4 bg-gray-50 rounded-lg"
-      >
-        <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-600">
-          <MessageSquare className="h-5 w-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center space-x-2 flex-wrap gap-1">
-              <Badge variant="secondary">
-                活動記録
-              </Badge>
-              <span className="text-sm text-gray-500 flex items-center gap-1">
-                <User className="h-3 w-3" />
-                {activity.user?.name || "不明"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {canEdit && (
-                <span className="text-xs text-gray-400">
-                  あと{remainingMinutes}分で編集不可
-                </span>
-              )}
-              <span className="text-xs text-gray-400">
-                {format(new Date(activity.created_at), "yyyy/MM/dd HH:mm", {
-                  locale: ja,
-                })}
-              </span>
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-            {activity.content}
-          </p>
-          {canEdit && (
-            <div className="mt-2 flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => handleEdit(activity)}
-              >
-                <Pencil className="h-3 w-3 mr-1" />
-                編集
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                    disabled={deleteLoading === activity.id}
-                  >
-                    {deleteLoading === activity.id ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3 w-3 mr-1" />
-                    )}
-                    削除
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>活動履歴を削除しますか？</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      この活動履歴を削除します。この操作は取り消せません。
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => handleDelete(activity)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      削除する
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <>
       <div className="space-y-4">
-        {displayedHistory.map((item) =>
-          item.type === "status_change"
-            ? renderStatusChangeItem(item.data)
-            : renderActivityItem(item.data)
-        )}
+        {displayedActivities.map((activity) => {
+          const canEdit = isEditable(activity.created_at);
+          const remainingMinutes = getRemainingMinutes(activity.created_at);
+
+          return (
+            <div
+              key={activity.id}
+              className="flex space-x-4 p-4 bg-gray-50 rounded-lg"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2 flex-wrap gap-1">
+                    <span className="text-sm text-gray-500 flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {activity.user?.name || "不明"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {canEdit && (
+                      <span className="text-xs text-gray-400">
+                        あと{remainingMinutes}分で編集不可
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-400">
+                      {format(new Date(activity.created_at), "yyyy/MM/dd HH:mm", {
+                        locale: ja,
+                      })}
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {activity.content}
+                </p>
+                {canEdit && (
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => handleEdit(activity)}
+                    >
+                      <Pencil className="h-3 w-3 mr-1" />
+                      編集
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                          disabled={deleteLoading === activity.id}
+                        >
+                          {deleteLoading === activity.id ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3 w-3 mr-1" />
+                          )}
+                          削除
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>活動履歴を削除しますか？</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            この活動履歴を削除します。この操作は取り消せません。
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(activity)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            削除する
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* もっと見る / 閉じる ボタン */}
@@ -367,7 +269,7 @@ export function ActivityList({ activities, statusHistory = [] }: ActivityListPro
             ) : (
               <>
                 <ChevronDown className="h-4 w-4 mr-1" />
-                過去の履歴をすべて表示（残り{unifiedHistory.length - DEFAULT_DISPLAY_COUNT}件）
+                過去の履歴をすべて表示（残り{activities.length - DEFAULT_DISPLAY_COUNT}件）
               </>
             )}
           </Button>
