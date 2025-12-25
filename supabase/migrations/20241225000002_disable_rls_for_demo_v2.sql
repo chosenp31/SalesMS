@@ -1,0 +1,19 @@
+-- Disable RLS for demo mode
+-- This migration disables Row Level Security for all tables to allow unauthenticated access
+
+-- Disable RLS for all existing tables
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE deals DISABLE ROW LEVEL SECURITY;
+ALTER TABLE contracts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE lease_applications DISABLE ROW LEVEL SECURITY;
+ALTER TABLE installations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE payments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE activities DISABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks DISABLE ROW LEVEL SECURITY;
+
+-- Disable RLS for new tables (v8)
+ALTER TABLE task_name_master DISABLE ROW LEVEL SECURITY;
+ALTER TABLE product_master DISABLE ROW LEVEL SECURITY;
+ALTER TABLE task_history DISABLE ROW LEVEL SECURITY;
+ALTER TABLE contract_status_history DISABLE ROW LEVEL SECURITY;
