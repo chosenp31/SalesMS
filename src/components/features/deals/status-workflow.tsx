@@ -42,6 +42,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
+import { workflowStageColors } from "@/constants/colors";
 
 // StatusWorkflowが必要とする最小限の契約情報
 interface ContractForWorkflow {
@@ -57,8 +58,6 @@ interface StatusWorkflowProps {
 
 // 新しいステージ順序
 const stageOrder = ["商談中", "審査・申込中", "下見・工事中", "契約中", "入金中", "請求中"];
-
-import { workflowStageColors } from "@/constants/colors";
 
 // 旧ステージから新ステージへのマッピング
 const stageMapping: Record<string, string> = {
@@ -318,38 +317,28 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
             })}
           </div>
 
-          {/* Current Stage Steps - ステップ選択エリア（入れ子構造で表現） */}
+          {/* Current Stage Steps - 表示のみ（変更は下のボタンで行う） */}
           {currentStageSteps.length > 0 && (
-            <div className={cn("ml-4 pl-4 border-l-4", colors.border)}>
-              <div className="flex flex-wrap items-center gap-2">
-                {currentStageSteps.map((step, index) => {
+            <div className={cn("p-4 rounded-lg", colors.bg)}>
+              <h4 className={cn("text-sm font-medium mb-3", colors.text)}>
+                {CONTRACT_STAGE_LABELS[currentStage] || currentStage}のステップ
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {currentStageSteps.map((step) => {
                   const isCurrentStep = contract.step === step;
                   return (
-                    <div key={step} className="flex items-center gap-1">
-                      <StepTooltip step={step}>
-                        <Button
-                          variant={isCurrentStep ? "default" : "ghost"}
-                          size="sm"
-                          disabled={loading || isCurrentStep}
-                          onClick={() => {
-                            if (!isCurrentStep) {
-                              openConfirmDialog(step);
-                            }
-                          }}
-                          className={cn(
-                            "h-8 px-3 text-sm",
-                            isCurrentStep && colors.active,
-                            isCurrentStep && "shadow-md font-bold",
-                            !isCurrentStep && "text-gray-500 hover:text-gray-900"
-                          )}
-                        >
-                          {CONTRACT_STEP_LABELS[step] || step}
-                        </Button>
-                      </StepTooltip>
-                      {index < currentStageSteps.length - 1 && (
-                        <ChevronRight className="h-4 w-4 text-gray-300" />
-                      )}
-                    </div>
+                    <StepTooltip key={step} step={step}>
+                      <div
+                        className={cn(
+                          "inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3",
+                          isCurrentStep
+                            ? `${colors.active} text-white`
+                            : "border border-input bg-background text-muted-foreground"
+                        )}
+                      >
+                        {CONTRACT_STEP_LABELS[step] || step}
+                      </div>
+                    </StepTooltip>
                   );
                 })}
               </div>
