@@ -31,7 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, ChevronLeft, Info, ChevronDown } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
