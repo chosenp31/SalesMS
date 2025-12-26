@@ -6,6 +6,7 @@ import { Payment, Task, User, Activity } from "@/types";
 import { Tables } from "@/types/database";
 import {
   CONTRACT_TYPE_LABELS,
+  CONTRACT_STAGE_LABELS,
   CONTRACT_STEP_LABELS,
 } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -273,6 +274,14 @@ export function ContractDetail({
               <dt className="text-sm font-medium text-gray-500">商品カテゴリ</dt>
               <dd className="mt-1 text-sm text-gray-900">
                 {contract.product_category || "-"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">ステージ</dt>
+              <dd className="mt-1">
+                <Badge variant="outline">
+                  {CONTRACT_STAGE_LABELS[contract.stage] || contract.stage}
+                </Badge>
               </dd>
             </div>
             <div>
