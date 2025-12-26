@@ -337,7 +337,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            契約ステップ
+            契約進捗（ステージ・ステップ）
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
