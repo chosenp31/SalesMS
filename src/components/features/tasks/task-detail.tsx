@@ -43,6 +43,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
 import { recordDelete } from "@/lib/history";
 import { TaskDialog } from "./task-dialog";
+import { priorityColors, taskStatusColors } from "@/constants/colors";
 
 interface TaskDetailProps {
   task: Task;
@@ -50,18 +51,6 @@ interface TaskDetailProps {
   currentUserId: string;
   isAdmin?: boolean;
 }
-
-const priorityColors = {
-  high: "bg-red-100 text-red-800",
-  medium: "bg-yellow-100 text-yellow-800",
-  low: "bg-green-100 text-green-800",
-};
-
-const statusColors = {
-  未着手: "bg-gray-100 text-gray-800",
-  進行中: "bg-blue-100 text-blue-800",
-  完了: "bg-green-100 text-green-800",
-};
 
 export function TaskDetail({ task, users, currentUserId, isAdmin = false }: TaskDetailProps) {
   const router = useRouter();
@@ -216,7 +205,7 @@ export function TaskDetail({ task, users, currentUserId, isAdmin = false }: Task
                 <div>
                   <dt className="text-sm font-medium text-gray-500">ステータス</dt>
                   <dd className="mt-1">
-                    <Badge className={cn(statusColors[task.status])}>
+                    <Badge className={cn(taskStatusColors[task.status])}>
                       {TASK_STATUS_LABELS[task.status]}
                     </Badge>
                   </dd>

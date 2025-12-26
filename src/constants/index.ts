@@ -88,11 +88,6 @@ export const CONTRACT_STEP_LABELS: Record<string, string> = {
   下見日程調整中: "下見日程調整中",
 };
 
-// 後方互換性のためのエイリアス
-/** @deprecated CONTRACT_STAGE_LABELS を使用してください */
-export const CONTRACT_PHASE_LABELS = CONTRACT_STAGE_LABELS;
-/** @deprecated CONTRACT_STEP_LABELS を使用してください */
-export const CONTRACT_STATUS_LABELS = CONTRACT_STEP_LABELS;
 
 // ステップからステージへのマッピング
 export const STEP_TO_STAGE: Record<string, string> = {
@@ -178,15 +173,6 @@ export const ALL_CONTRACT_STEPS = [
   "失注",
 ] as const;
 
-// 後方互換性のためのエイリアス
-/** @deprecated STEP_TO_STAGE を使用してください */
-export const STATUS_TO_PHASE = STEP_TO_STAGE;
-/** @deprecated STAGE_STEPS を使用してください */
-export const PHASE_STATUSES = STAGE_STEPS;
-/** @deprecated NEXT_STAGE_FIRST_STEP を使用してください */
-export const NEXT_PHASE_FIRST_STATUS = NEXT_STAGE_FIRST_STEP;
-/** @deprecated ALL_CONTRACT_STEPS を使用してください */
-export const ALL_CONTRACT_STATUSES = ALL_CONTRACT_STEPS;
 
 // ステップ詳細情報（状態概要・補足・必要なアクション）
 export const STEP_DETAILS: Record<string, { description: string; note: string; action: string }> = {
@@ -301,11 +287,6 @@ export const STEP_COMPLETION_MESSAGES: Record<string, string> = {
   請求処理対応中: "請求処理が完了しましたか？",
 };
 
-// 後方互換性のためのエイリアス
-/** @deprecated STEP_DETAILS を使用してください */
-export const STATUS_DETAILS = STEP_DETAILS;
-/** @deprecated STEP_COMPLETION_MESSAGES を使用してください */
-export const STATUS_COMPLETION_MESSAGES = STEP_COMPLETION_MESSAGES;
 
 // ========================================
 // 活動関連

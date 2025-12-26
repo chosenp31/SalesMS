@@ -23,48 +23,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, Pencil, FileText, Search, X } from "lucide-react";
 import { cn, formatDealId } from "@/lib/utils";
+import { dealStepColors } from "@/constants/colors";
 
 interface DealListProps {
   deals: Deal[];
 }
-
-const stepColors: Record<string, string> = {
-  // 商談中
-  商談待ち: "bg-blue-100 text-blue-800 border-blue-200",
-  商談日程調整中: "bg-blue-100 text-blue-800 border-blue-200",
-  // 審査・申込中
-  "審査・申込対応中": "bg-yellow-100 text-yellow-800 border-yellow-200",
-  "審査・申込待ち": "bg-yellow-100 text-yellow-800 border-yellow-200",
-  // 下見・工事中
-  下見調整中: "bg-purple-100 text-purple-800 border-purple-200",
-  下見実施待ち: "bg-purple-100 text-purple-800 border-purple-200",
-  工事日程調整中: "bg-purple-100 text-purple-800 border-purple-200",
-  工事実施待ち: "bg-purple-100 text-purple-800 border-purple-200",
-  // 契約中
-  検収確認中: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  契約書提出対応中: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  契約書確認待ち: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  // 入金中
-  入金待ち: "bg-green-100 text-green-800 border-green-200",
-  入金済: "bg-green-100 text-green-800 border-green-200",
-  // 請求中
-  初回請求確認待ち: "bg-teal-100 text-teal-800 border-teal-200",
-  請求処理対応中: "bg-teal-100 text-teal-800 border-teal-200",
-  // 完了
-  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
-  // 否決
-  対応検討中: "bg-red-100 text-red-800 border-red-200",
-  失注: "bg-red-100 text-red-800 border-red-200",
-  // ステージ（後方互換性）
-  商談中: "bg-blue-100 text-blue-800 border-blue-200",
-  "審査・申込中": "bg-yellow-100 text-yellow-800 border-yellow-200",
-  "下見・工事中": "bg-purple-100 text-purple-800 border-purple-200",
-  契約中: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  入金中: "bg-green-100 text-green-800 border-green-200",
-  請求中: "bg-teal-100 text-teal-800 border-teal-200",
-  完了: "bg-gray-100 text-gray-800 border-gray-200",
-  否決: "bg-red-100 text-red-800 border-red-200",
-};
 
 type SortField = "deal_id" | "customer" | "contract_status" | "contracts" | "sales_user" | "appointer" | "updated_at";
 type SortDirection = "asc" | "desc";
@@ -429,7 +392,7 @@ export function DealList({ deals }: DealListProps) {
                         <Badge
                           key={idx}
                           variant="outline"
-                          className={cn("text-xs border px-1.5 py-0", stepColors[item.step] || "bg-gray-100")}
+                          className={cn("text-xs border px-1.5 py-0", dealStepColors[item.step] || "bg-gray-100")}
                         >
                           {item.type}：{item.step}
                         </Badge>

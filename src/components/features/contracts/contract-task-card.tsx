@@ -81,24 +81,14 @@ const taskSchema = z.object({
 
 type TaskFormValues = z.infer<typeof taskSchema>;
 
+import { priorityColors, taskStatusColors } from "@/constants/colors";
+
 interface ContractTaskCardProps {
   contract: ContractWithDeal;
   tasks: Task[];
   users: User[];
   currentUserId: string;
 }
-
-const priorityColors = {
-  high: "bg-red-100 text-red-800 border-red-200",
-  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  low: "bg-green-100 text-green-800 border-green-200",
-};
-
-const statusColors = {
-  未着手: "bg-gray-100 text-gray-800",
-  進行中: "bg-blue-100 text-blue-800",
-  完了: "bg-green-100 text-green-800",
-};
 
 function NewTaskDialog({
   contract,
@@ -525,7 +515,7 @@ export function ContractTaskCard({
                     <TableCell>
                       <Badge
                         variant="secondary"
-                        className={cn("text-xs", statusColors[task.status])}
+                        className={cn("text-xs", taskStatusColors[task.status])}
                       >
                         {TASK_STATUS_LABELS[task.status]}
                       </Badge>

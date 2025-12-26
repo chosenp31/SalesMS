@@ -58,86 +58,12 @@ interface StatusWorkflowProps {
 // 新しいステージ順序
 const stageOrder = ["商談中", "審査・申込中", "下見・工事中", "契約中", "入金中", "請求中"];
 
+import { workflowStageColors } from "@/constants/colors";
+
 // 旧ステージから新ステージへのマッピング
 const stageMapping: Record<string, string> = {
   審査中: "審査・申込中",
   工事中: "下見・工事中",
-};
-
-const stageColors: Record<string, { bg: string; border: string; text: string; active: string }> = {
-  商談中: {
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    text: "text-blue-800",
-    active: "bg-blue-500",
-  },
-  "審査・申込中": {
-    bg: "bg-yellow-50",
-    border: "border-yellow-200",
-    text: "text-yellow-800",
-    active: "bg-yellow-500",
-  },
-  "下見・工事中": {
-    bg: "bg-purple-50",
-    border: "border-purple-200",
-    text: "text-purple-800",
-    active: "bg-purple-500",
-  },
-  契約中: {
-    bg: "bg-indigo-50",
-    border: "border-indigo-200",
-    text: "text-indigo-800",
-    active: "bg-indigo-500",
-  },
-  入金中: {
-    bg: "bg-green-50",
-    border: "border-green-200",
-    text: "text-green-800",
-    active: "bg-green-500",
-  },
-  請求中: {
-    bg: "bg-teal-50",
-    border: "border-teal-200",
-    text: "text-teal-800",
-    active: "bg-teal-500",
-  },
-  完了: {
-    bg: "bg-gray-50",
-    border: "border-gray-200",
-    text: "text-gray-800",
-    active: "bg-gray-500",
-  },
-  否決: {
-    bg: "bg-red-50",
-    border: "border-red-200",
-    text: "text-red-800",
-    active: "bg-red-500",
-  },
-  // 旧ステージ（後方互換性）
-  審査中: {
-    bg: "bg-yellow-50",
-    border: "border-yellow-200",
-    text: "text-yellow-800",
-    active: "bg-yellow-500",
-  },
-  工事中: {
-    bg: "bg-purple-50",
-    border: "border-purple-200",
-    text: "text-purple-800",
-    active: "bg-purple-500",
-  },
-  失注: {
-    bg: "bg-red-50",
-    border: "border-red-200",
-    text: "text-red-800",
-    active: "bg-red-500",
-  },
-  クローズ: {
-    bg: "bg-gray-50",
-    border: "border-gray-200",
-    text: "text-gray-800",
-    active: "bg-gray-500",
-  },
 };
 
 // ステップツールチップコンポーネント
@@ -197,7 +123,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
 
   const currentStageIndex = stageOrder.indexOf(currentStage);
   const currentStageSteps = STAGE_STEPS[currentStage] || [];
-  const colors = stageColors[currentStage] || stageColors["商談中"];
+  const colors = workflowStageColors[currentStage] || workflowStageColors["商談中"];
 
   // ステップ更新処理
   const updateStep = async (newStep: string, comment?: string) => {
@@ -346,7 +272,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
             {stageOrder.map((stage, index) => {
               const isCompleted = index < currentStageIndex;
               const isCurrent = index === currentStageIndex;
-              const stageColor = stageColors[stage] || stageColors["商談中"];
+              const stageColor = workflowStageColors[stage] || workflowStageColors["商談中"];
 
               return (
                 <div key={stage} className="flex items-center flex-1 min-w-[70px]">
@@ -523,7 +449,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                   {stageOrder.slice(0, currentStageIndex + 1).map((stage) => {
                     const stageSteps = STAGE_STEPS[stage];
                     if (!stageSteps || stageSteps.length === 0) return null;
-                    const stageColor = stageColors[stage] || stageColors["商談中"];
+                    const stageColor = workflowStageColors[stage] || workflowStageColors["商談中"];
                     const isCurrentStage = stage === currentStage;
 
                     return (
