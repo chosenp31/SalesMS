@@ -3,10 +3,35 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ACTIVITY_TYPE_LABELS } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Phone, Users, Mail, Video, FileText } from "lucide-react";
+
+// 活動種別の型
+type ActivityType = "phone" | "visit" | "email" | "online_meeting" | "other";
+
+// 活動種別に対応するアイコン
+const activityTypeIcons: Record<ActivityType, React.ReactNode> = {
+  phone: <Phone className="h-4 w-4" />,
+  visit: <Users className="h-4 w-4" />,
+  email: <Mail className="h-4 w-4" />,
+  online_meeting: <Video className="h-4 w-4" />,
+  other: <FileText className="h-4 w-4" />,
+};
+
+// 選択可能な活動種別（status_changeは自動記録のみなので除外）
+const selectableActivityTypes = Object.entries(ACTIVITY_TYPE_LABELS).filter(
+  ([key]) => key !== "status_change"
+);
 
 interface ActivityFormProps {
   contractId: string;
@@ -16,6 +41,7 @@ interface ActivityFormProps {
 export function ActivityForm({ contractId, userId }: ActivityFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [activityType, setActivityType] = useState<ActivityType>("phone");
   const [content, setContent] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,7 +53,7 @@ export function ActivityForm({ contractId, userId }: ActivityFormProps) {
 
     const { error } = await supabase.from("activities").insert({
       user_id: userId,
-      activity_type: "other",
+      activity_type: activityType,
       contract_id: contractId,
       content: content.trim(),
     });
@@ -36,6 +62,7 @@ export function ActivityForm({ contractId, userId }: ActivityFormProps) {
       console.error("Error creating activity:", error);
     } else {
       setContent("");
+      setActivityType("phone");
       router.refresh();
     }
 
@@ -47,6 +74,24 @@ export function ActivityForm({ contractId, userId }: ActivityFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="activity-type">活動種別</Label>
+          <Select value={activityType} onValueChange={(value) => setActivityType(value as ActivityType)}>
+            <SelectTrigger id="activity-type" className="w-full sm:w-[200px]">
+              <SelectValue placeholder="活動種別を選択" />
+            </SelectTrigger>
+            <SelectContent>
+              {selectableActivityTypes.map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  <div className="flex items-center gap-2">
+                    {activityTypeIcons[value as ActivityType]}
+                    <span>{label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2">
         <Label htmlFor="activity-content">活動内容・議事録</Label>
         <Textarea

@@ -234,6 +234,22 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
         console.error("Error recording status history:", historyResult.error);
       }
 
+      // 活動履歴にもステータス変更を記録
+      const statusChangeContent = `ステータスを変更しました\n${CONTRACT_STATUS_LABELS[previousStatus] || previousStatus} → ${CONTRACT_STATUS_LABELS[newStatus] || newStatus}${comment ? `\n\nコメント: ${comment}` : ""}`;
+
+      const { error: activityError } = await supabase.from("activities").insert({
+        user_id: currentUserId,
+        activity_type: "status_change",
+        contract_id: contract.id,
+        content: statusChangeContent,
+        is_status_change: true,
+        status_change_id: null, // entity_historyに統合されたため不要
+      });
+
+      if (activityError) {
+        console.error("Error recording activity:", activityError);
+      }
+
       // Contract完了時にDealステータス自動更新
       if (newStatus === "クローズ" && contract.deal_id) {
         // 同じDealの他の契約を取得

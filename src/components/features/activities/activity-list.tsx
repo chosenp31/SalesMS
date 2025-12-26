@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Activity } from "@/types";
+import { ACTIVITY_TYPE_LABELS } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,9 +28,22 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { MessageSquare, User, Pencil, Trash2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageSquare, User, Pencil, Trash2, Loader2, ChevronDown, ChevronUp, Phone, Users, Mail, Video, FileText, ArrowRightLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
+
+// 活動種別に対応するアイコンとスタイル
+const activityTypeConfig: Record<string, { icon: React.ReactNode; bg: string; text: string }> = {
+  phone: { icon: <Phone className="h-5 w-5" />, bg: "bg-green-100", text: "text-green-600" },
+  visit: { icon: <Users className="h-5 w-5" />, bg: "bg-blue-100", text: "text-blue-600" },
+  email: { icon: <Mail className="h-5 w-5" />, bg: "bg-purple-100", text: "text-purple-600" },
+  online_meeting: { icon: <Video className="h-5 w-5" />, bg: "bg-indigo-100", text: "text-indigo-600" },
+  status_change: { icon: <ArrowRightLeft className="h-5 w-5" />, bg: "bg-orange-100", text: "text-orange-600" },
+  other: { icon: <FileText className="h-5 w-5" />, bg: "bg-gray-100", text: "text-gray-600" },
+};
+
+// デフォルト設定（未知の活動種別用）
+const defaultActivityConfig = { icon: <MessageSquare className="h-5 w-5" />, bg: "bg-blue-100", text: "text-blue-600" };
 
 interface ActivityListProps {
   activities: Activity[];
@@ -172,12 +187,20 @@ export function ActivityList({ activities }: ActivityListProps) {
               key={activity.id}
               className="flex space-x-4 p-4 bg-gray-50 rounded-lg"
             >
-              <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
-                <MessageSquare className="h-5 w-5" />
-              </div>
+              {(() => {
+                const config = activityTypeConfig[activity.activity_type] || defaultActivityConfig;
+                return (
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${config.bg} ${config.text}`}>
+                    {config.icon}
+                  </div>
+                );
+              })()}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center space-x-2 flex-wrap gap-1">
+                    <Badge variant="outline" className="text-xs">
+                      {ACTIVITY_TYPE_LABELS[activity.activity_type] || activity.activity_type}
+                    </Badge>
                     <span className="text-sm text-gray-500 flex items-center gap-1">
                       <User className="h-3 w-3" />
                       {activity.user?.name || "不明"}
