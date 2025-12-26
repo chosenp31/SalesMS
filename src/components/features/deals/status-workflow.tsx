@@ -399,7 +399,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
             })}
           </div>
 
-          {/* Current Phase Statuses */}
+          {/* Current Phase Statuses - 表示のみ（変更は下のボタンで行う） */}
           {currentPhaseStatuses.length > 0 && (
             <div className={cn("p-4 rounded-lg", colors.bg)}>
               <h4 className={cn("text-sm font-medium mb-3", colors.text)}>
@@ -410,22 +410,16 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                   const isCurrentStatus = contract.status === status;
                   return (
                     <StatusTooltip key={status} status={status}>
-                      <Button
-                        variant={isCurrentStatus ? "default" : "outline"}
-                        size="sm"
-                        disabled={loading || isCurrentStatus}
-                        onClick={() => {
-                          if (!isCurrentStatus) {
-                            openConfirmDialog(status);
-                          }
-                        }}
+                      <div
                         className={cn(
-                          isCurrentStatus && colors.active,
-                          "cursor-pointer"
+                          "inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3",
+                          isCurrentStatus
+                            ? `${colors.active} text-white`
+                            : "border border-input bg-background text-muted-foreground"
                         )}
                       >
                         {CONTRACT_STATUS_LABELS[status] || status}
-                      </Button>
+                      </div>
                     </StatusTooltip>
                   );
                 })}
