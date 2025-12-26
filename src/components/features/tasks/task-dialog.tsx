@@ -56,7 +56,7 @@ const TRACKED_FIELDS = [
   "title",
   "description",
   "deal_id",
-  "assigned_user_id",
+  "assigned_user_name",  // 履歴表示用に名前で記録
   "due_date",
   "status",
   "priority",
@@ -134,14 +134,28 @@ export function TaskDialog({
         const { error } = await supabase.from("tasks").update(taskData).eq("id", task.id);
         if (error) throw error;
 
+        // 履歴記録用にユーザー名を解決
+        const getUserName = (userId: string | undefined) =>
+          users.find((u) => u.id === userId)?.name || "不明";
+
+        const oldDataForHistory = {
+          ...task,
+          assigned_user_name: getUserName(task.assigned_user_id),
+        };
+
+        const newDataForHistory = {
+          ...taskData,
+          assigned_user_name: getUserName(data.assigned_user_id),
+        };
+
         // 履歴を記録
         await recordUpdate(
           supabase,
           "task",
           task.id,
           currentUserId || null,
-          task as Record<string, unknown>,
-          taskData as Record<string, unknown>,
+          oldDataForHistory as Record<string, unknown>,
+          newDataForHistory as Record<string, unknown>,
           TRACKED_FIELDS
         );
 

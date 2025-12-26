@@ -123,8 +123,8 @@ type CustomerFormValues = z.infer<typeof customerSchema>;
 const TRACKED_FIELDS = [
   "title",
   "customer_id",
-  "sales_user_id",
-  "appointer_user_id",
+  "sales_user_name",  // 履歴表示用に名前で記録
+  "appointer_user_name",  // 履歴表示用に名前で記録
   "status",
   "description",
   "total_amount",
@@ -344,14 +344,30 @@ export function DealForm({
 
         if (updateError) throw updateError;
 
+        // 履歴記録用にユーザー名を解決
+        const getUserName = (userId: string | undefined) =>
+          users.find((u) => u.id === userId)?.name || "不明";
+
+        const oldDataForHistory = {
+          ...deal,
+          sales_user_name: getUserName(deal.sales_user_id || deal.assigned_user_id),
+          appointer_user_name: getUserName(deal.appointer_user_id || deal.assigned_user_id),
+        };
+
+        const newDataForHistory = {
+          ...dealData,
+          sales_user_name: getUserName(data.sales_user_id),
+          appointer_user_name: getUserName(data.appointer_user_id),
+        };
+
         // 履歴を記録
         await recordUpdate(
           supabase,
           "deal",
           deal.id,
           currentUserId || null,
-          deal as Record<string, unknown>,
-          dealData as Record<string, unknown>,
+          oldDataForHistory as Record<string, unknown>,
+          newDataForHistory as Record<string, unknown>,
           TRACKED_FIELDS
         );
 

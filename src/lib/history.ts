@@ -24,6 +24,8 @@ export const FIELD_LABELS: Record<string, Record<string, string>> = {
     total_amount: "合計金額",
     sales_user_id: "営業担当者",
     appointer_user_id: "アポインター",
+    sales_user_name: "営業担当者",
+    appointer_user_name: "アポインター",
   },
   contract: {
     title: "契約名",
@@ -46,6 +48,7 @@ export const FIELD_LABELS: Record<string, Record<string, string>> = {
     status: "ステータス",
     priority: "優先度",
     assigned_user_id: "担当者",
+    assigned_user_name: "担当者",
   },
   payment: {
     payment_type: "入金種別",
