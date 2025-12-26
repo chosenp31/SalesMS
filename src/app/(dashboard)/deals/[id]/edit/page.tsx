@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserIdOrFallback } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { DealForm } from "@/components/features/deals/deal-form";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,9 @@ interface EditDealPageProps {
 export default async function EditDealPage({ params }: EditDealPageProps) {
   const { id } = await params;
   const supabase = await createClient();
+
+  // 現在のユーザーIDを取得（認証優先、デモモード対応）
+  const currentUserId = await getCurrentUserIdOrFallback();
 
   const { data: deal, error } = await supabase
     .from("deals")
@@ -34,9 +38,6 @@ export default async function EditDealPage({ params }: EditDealPageProps) {
     .from("users")
     .select("*")
     .order("name");
-
-  // 仮のcurrentUserId（認証が無効化されているため最初のユーザーを使用）
-  const currentUserId = users?.[0]?.id || "";
 
   return (
     <div className="space-y-6">

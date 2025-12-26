@@ -11,6 +11,7 @@ import {
   STATUS_COMPLETION_MESSAGES,
 } from "@/constants";
 import { createClient } from "@/lib/supabase/client";
+import { recordStatusChange } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -217,21 +218,20 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
     if (error) {
       console.error("Error updating status:", error);
     } else {
-      // ステータス変更履歴を記録
-      const { error: historyError } = await supabase
-        .from("contract_status_history")
-        .insert({
-          contract_id: contract.id,
-          changed_by_user_id: currentUserId,
-          previous_status: previousStatus,
-          new_status: newStatus,
-          previous_phase: previousPhase,
-          new_phase: newPhase,
-          comment: comment || null,
-        });
+      // ステータス変更履歴を記録（entity_historyに統一）
+      const historyResult = await recordStatusChange(
+        supabase,
+        contract.id,
+        currentUserId || null,
+        previousPhase,
+        newPhase,
+        previousStatus,
+        newStatus,
+        comment
+      );
 
-      if (historyError) {
-        console.error("Error recording status history:", historyError);
+      if (!historyResult.success) {
+        console.error("Error recording status history:", historyResult.error);
       }
 
       // Contract完了時にDealステータス自動更新

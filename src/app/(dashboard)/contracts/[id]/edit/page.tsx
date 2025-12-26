@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserIdOrFallback } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { ContractForm } from "@/components/features/contracts/contract-form";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,9 @@ export default async function EditContractPage({
   const { id } = await params;
   const supabase = await createClient();
 
+  // 現在のユーザーIDを取得（認証優先、デモモード対応）
+  const currentUserId = await getCurrentUserIdOrFallback();
+
   const { data: contract, error } = await supabase
     .from("contracts")
     .select(`
@@ -27,15 +31,6 @@ export default async function EditContractPage({
   if (error || !contract) {
     notFound();
   }
-
-  // ユーザーリストを取得してcurrentUserIdを設定
-  const { data: users } = await supabase
-    .from("users")
-    .select("id")
-    .order("name")
-    .limit(1);
-
-  const currentUserId = users?.[0]?.id || "";
 
   return (
     <div className="space-y-6">

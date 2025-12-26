@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Deal } from "@/types";
+import { CONTRACT_TYPE_LABELS } from "@/constants";
 import {
   Table,
   TableBody,
@@ -67,16 +68,6 @@ const statusColors: Record<string, string> = {
 
 type SortField = "deal_id" | "customer" | "contract_status" | "contracts" | "sales_user" | "appointer" | "updated_at";
 type SortDirection = "asc" | "desc";
-
-// 契約種類ラベル
-const CONTRACT_TYPE_LABELS: Record<string, string> = {
-  property: "物件",
-  line: "回線",
-  maintenance: "保守",
-  lease: "リース",
-  rental: "レンタル",
-  installment: "割賦",
-};
 
 // 契約種類：ステータス一覧を取得するヘルパー
 const getContractStatusList = (contracts?: { id: string; title: string; contract_type?: string; phase?: string; status?: string; product_category?: string | null }[]): { type: string; status: string }[] => {

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { DealForm } from "@/components/features/deals/deal-form";
+import { getCurrentUserIdOrFallback } from "@/lib/auth";
 
 interface NewDealPageProps {
   searchParams: Promise<{ customer_id?: string }>;
@@ -21,13 +22,8 @@ export default async function NewDealPage({ searchParams }: NewDealPageProps) {
     .select("*")
     .order("name");
 
-  // Get current user
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
-
-  // デモモード時のデフォルトユーザーID（認証無効時は最初のユーザーを使用）
-  const defaultUserId = authUser?.id || users?.[0]?.id;
+  // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
+  const currentUserId = await getCurrentUserIdOrFallback();
 
   return (
     <div className="space-y-6">
@@ -39,7 +35,7 @@ export default async function NewDealPage({ searchParams }: NewDealPageProps) {
         customers={customers || []}
         users={users || []}
         defaultCustomerId={customer_id}
-        currentUserId={defaultUserId}
+        currentUserId={currentUserId}
       />
     </div>
   );

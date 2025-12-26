@@ -1,6 +1,12 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { EntityType, HistoryAction, FieldChange } from "@/types";
 
+// 履歴記録の結果型
+export type HistoryRecordResult = {
+  success: boolean;
+  error?: Error;
+};
+
 // フィールドの日本語ラベルマッピング
 export const FIELD_LABELS: Record<string, Record<string, string>> = {
   customer: {
@@ -89,9 +95,6 @@ export const VALUE_LABELS: Record<string, Record<string, string>> = {
     property: "物件",
     line: "回線",
     maintenance: "保守",
-    lease: "リース",
-    rental: "レンタル",
-    installment: "割賦",
   },
 };
 
@@ -125,8 +128,8 @@ export function detectChanges(
     const oldValue = oldData?.[field] ?? null;
     const newValue = newData[field] ?? null;
 
-    // 値が異なる場合のみ記録
-    if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+    // 値が異なる場合のみ記録（順序に依存しない比較）
+    if (!isEqual(oldValue, newValue)) {
       changes[field] = {
         old: oldValue,
         new: newValue,
@@ -138,7 +141,32 @@ export function detectChanges(
 }
 
 /**
- * 履歴を記録する
+ * 深い等価性チェック（JSON.stringifyより安全）
+ */
+function isEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return a === b;
+  if (typeof a !== typeof b) return false;
+
+  if (typeof a === "object" && typeof b === "object") {
+    const aKeys = Object.keys(a as object);
+    const bKeys = Object.keys(b as object);
+
+    if (aKeys.length !== bKeys.length) return false;
+
+    return aKeys.every((key) =>
+      isEqual(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key]
+      )
+    );
+  }
+
+  return false;
+}
+
+/**
+ * 履歴を記録する（エラーハンドリング強化版）
  */
 export async function recordHistory(
   supabase: SupabaseClient,
@@ -148,18 +176,41 @@ export async function recordHistory(
   userId: string | null,
   changes: Record<string, FieldChange> | null,
   comment?: string
-): Promise<void> {
-  const { error } = await supabase.from("entity_history").insert({
-    entity_type: entityType,
-    entity_id: entityId,
-    action,
-    user_id: userId,
-    changes,
-    comment: comment || null,
-  });
+): Promise<HistoryRecordResult> {
+  try {
+    const { error } = await supabase.from("entity_history").insert({
+      entity_type: entityType,
+      entity_id: entityId,
+      action,
+      user_id: userId,
+      changes,
+      comment: comment || null,
+    });
 
-  if (error) {
-    console.error("Failed to record history:", error);
+    if (error) {
+      // テーブルが存在しない場合は警告のみ（graceful degradation）
+      if (error.code === "42P01") {
+        console.warn(
+          "entity_history table does not exist. History recording skipped."
+        );
+        return { success: true };
+      }
+
+      // RLS違反の場合も警告のみ
+      if (error.code === "42501") {
+        console.warn("Insufficient permissions to record history:", error.message);
+        return { success: true };
+      }
+
+      console.error("Failed to record history:", error);
+      return { success: false, error: new Error(error.message) };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.error("Unexpected error recording history:", error);
+    return { success: false, error };
   }
 }
 
@@ -171,8 +222,8 @@ export async function recordCreate(
   entityType: EntityType,
   entityId: string,
   userId: string | null
-): Promise<void> {
-  await recordHistory(supabase, entityType, entityId, "created", userId, null);
+): Promise<HistoryRecordResult> {
+  return recordHistory(supabase, entityType, entityId, "created", userId, null);
 }
 
 /**
@@ -187,15 +238,15 @@ export async function recordUpdate(
   newData: Record<string, unknown>,
   fieldsToTrack: string[],
   comment?: string
-): Promise<void> {
+): Promise<HistoryRecordResult> {
   const changes = detectChanges(oldData, newData, fieldsToTrack);
 
   // 変更がない場合は記録しない
   if (!changes && !comment) {
-    return;
+    return { success: true };
   }
 
-  await recordHistory(
+  return recordHistory(
     supabase,
     entityType,
     entityId,
@@ -214,8 +265,42 @@ export async function recordDelete(
   entityType: EntityType,
   entityId: string,
   userId: string | null
-): Promise<void> {
-  await recordHistory(supabase, entityType, entityId, "deleted", userId, null);
+): Promise<HistoryRecordResult> {
+  return recordHistory(supabase, entityType, entityId, "deleted", userId, null);
+}
+
+/**
+ * ステータス変更履歴を記録する（contract_status_historyの代わりにentity_historyを使用）
+ */
+export async function recordStatusChange(
+  supabase: SupabaseClient,
+  contractId: string,
+  userId: string | null,
+  previousPhase: string | null,
+  newPhase: string,
+  previousStatus: string | null,
+  newStatus: string,
+  comment?: string
+): Promise<HistoryRecordResult> {
+  const changes: Record<string, FieldChange> = {};
+
+  if (previousPhase !== newPhase) {
+    changes.phase = { old: previousPhase, new: newPhase };
+  }
+
+  if (previousStatus !== newStatus) {
+    changes.status = { old: previousStatus, new: newStatus };
+  }
+
+  return recordHistory(
+    supabase,
+    "contract",
+    contractId,
+    "updated",
+    userId,
+    Object.keys(changes).length > 0 ? changes : null,
+    comment
+  );
 }
 
 /**
@@ -229,16 +314,23 @@ export async function getHistory(
 ) {
   const { data, error } = await supabase
     .from("entity_history")
-    .select(`
+    .select(
+      `
       *,
       user:users(id, name)
-    `)
+    `
+    )
     .eq("entity_type", entityType)
     .eq("entity_id", entityId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) {
+    // テーブルが存在しない場合は空配列を返す
+    if (error.code === "42P01") {
+      console.warn("entity_history table does not exist.");
+      return [];
+    }
     console.error("Failed to fetch history:", error);
     return [];
   }

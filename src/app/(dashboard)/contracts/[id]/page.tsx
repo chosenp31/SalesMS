@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { getHistory } from "@/lib/history";
+import { getCurrentUserIdOrFallback } from "@/lib/auth";
 
 interface ContractDetailPageProps {
   params: Promise<{ id: string }>;
@@ -84,8 +85,8 @@ export default async function ContractDetailPage({
     .eq("contract_id", id)
     .order("created_at", { ascending: false });
 
-  // 仮のcurrentUserId（認証が無効化されているため最初のユーザーを使用）
-  const currentUserId = users?.[0]?.id || "";
+  // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
+  const currentUserId = await getCurrentUserIdOrFallback();
 
   // Get history for this contract
   const history = await getHistory(supabase, "contract", id);
@@ -97,7 +98,7 @@ export default async function ContractDetailPage({
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/deals/${contract.deal_id}`}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              商談へ戻る
+              案件へ戻る
             </Link>
           </Button>
           <div>

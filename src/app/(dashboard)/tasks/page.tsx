@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { TaskList } from "@/components/features/tasks/task-list";
 import { NewTaskMessageDialog } from "@/components/features/tasks/new-task-message-dialog";
+import { getCurrentUserIdOrFallback } from "@/lib/auth";
 
 interface TasksPageProps {
   searchParams: Promise<{ contract_id?: string; status?: string }>;
@@ -12,9 +13,8 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
   const contractIdFilter = params.contract_id;
   const statusFilter = params.status;
 
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
+  // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
+  const currentUserId = await getCurrentUserIdOrFallback();
 
   let query = supabase
     .from("tasks")
@@ -74,9 +74,6 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
     filterDescription = "未完了タスクの一覧";
   }
 
-  // デモモード時のデフォルトユーザーID（認証無効時は最初のユーザーを使用）
-  const defaultUserId = authUser?.id || users?.[0]?.id || "";
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -90,7 +87,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         tasks={tasks || []}
         users={users || []}
         deals={deals || []}
-        currentUserId={defaultUserId}
+        currentUserId={currentUserId}
         filterContractId={contractIdFilter}
         filterStatus={statusFilter}
       />

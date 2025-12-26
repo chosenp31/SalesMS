@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { TaskDetail } from "@/components/features/tasks/task-detail";
 import { HistorySection } from "@/components/features/history/history-section";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getHistory } from "@/lib/history";
+import { getCurrentUserIdOrFallback } from "@/lib/auth";
 
 interface TaskDetailPageProps {
   params: Promise<{ id: string }>;
@@ -12,14 +13,8 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // Get current user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
+  // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
+  const currentUserId = await getCurrentUserIdOrFallback();
 
   // Fetch task with related data
   const { data: task, error } = await supabase
@@ -56,7 +51,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
       <TaskDetail
         task={task}
         users={users || []}
-        currentUserId={user.id}
+        currentUserId={currentUserId}
       />
       <HistorySection history={history} entityType="task" />
     </div>

@@ -25,13 +25,16 @@ export type Customer = {
   updated_at: string;
 };
 
-// 契約種類（新）
+// 契約種類
 export type ContractType = "property" | "line" | "maintenance";
 
-// 契約種類（旧）- 後方互換性のため残す
+/**
+ * @deprecated DBマイグレーションで新しい値に移行すること
+ * lease/rental/installment → property に統合
+ */
 export type LegacyContractType = "lease" | "rental" | "installment";
 
-// 契約種類（新旧統合）
+// 契約種類（DB移行完了までの一時的な型）
 export type AnyContractType = ContractType | LegacyContractType;
 
 // 商談内の契約（一覧表示用）- 新旧両方の値に対応
@@ -101,7 +104,9 @@ export type ContractStatus =
   | "対応検討中"
   | "失注";
 
-// 旧契約ステータス（後方互換性）
+/**
+ * @deprecated DBマイグレーションで新しいステータスに移行すること
+ */
 export type LegacyContractStatus =
   | "日程調整中"
   | "MTG実施待ち"
@@ -113,7 +118,7 @@ export type LegacyContractStatus =
   | "否決"
   | "下見日程調整中";
 
-// 契約ステータス（新旧統合）
+// 契約ステータス（DB移行完了までの一時的な型）
 export type AnyContractStatus = ContractStatus | LegacyContractStatus;
 
 // 契約フェーズ（大分類）
@@ -127,14 +132,17 @@ export type ContractPhase =
   | "完了"
   | "否決";
 
-// 旧契約フェーズ（後方互換性）
+/**
+ * @deprecated DBマイグレーションで新しいフェーズに移行すること
+ * 審査中 → 審査・申込中、工事中 → 下見・工事中
+ */
 export type LegacyContractPhase =
   | "審査中"
   | "工事中"
   | "失注"
   | "クローズ";
 
-// 契約フェーズ（新旧統合）
+// 契約フェーズ（DB移行完了までの一時的な型）
 export type AnyContractPhase = ContractPhase | LegacyContractPhase;
 
 // 契約（個別の契約明細）- 新旧両方の値に対応

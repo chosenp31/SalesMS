@@ -37,16 +37,26 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 
-// 金額をフォーマット（カンマ区切り）
+// 金額をフォーマット（カンマ区切り、小数対応）
 const formatAmount = (value: string): string => {
-  const num = value.replace(/[^\d]/g, "");
+  // 数字と小数点のみ抽出
+  const num = value.replace(/[^\d.]/g, "");
   if (!num) return "";
+
+  // 小数点を含む場合
+  if (num.includes(".")) {
+    const [integer, decimal] = num.split(".");
+    const formattedInteger = new Intl.NumberFormat("ja-JP").format(parseInt(integer || "0"));
+    return decimal !== undefined ? `${formattedInteger}.${decimal}` : formattedInteger;
+  }
+
   return new Intl.NumberFormat("ja-JP").format(parseInt(num));
 };
 
-// カンマを除去して数値文字列に変換
+// カンマを除去して数値文字列に変換（小数対応）
 const parseAmount = (value: string): string => {
-  return value.replace(/[^\d]/g, "");
+  // 数字と小数点のみ抽出
+  return value.replace(/[^\d.]/g, "");
 };
 
 const contractSchema = z.object({
@@ -255,7 +265,7 @@ export function ContractForm({ dealId, contract, currentUserId }: ContractFormPr
                     <FormLabel>契約種別 *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -284,7 +294,7 @@ export function ContractForm({ dealId, contract, currentUserId }: ContractFormPr
                     <FormLabel>商品カテゴリ</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -311,7 +321,7 @@ export function ContractForm({ dealId, contract, currentUserId }: ContractFormPr
                     <FormLabel>リース会社</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -338,7 +348,7 @@ export function ContractForm({ dealId, contract, currentUserId }: ContractFormPr
                     <FormLabel>ステータス *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -367,7 +377,7 @@ export function ContractForm({ dealId, contract, currentUserId }: ContractFormPr
                     <FormLabel>契約期間</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger>

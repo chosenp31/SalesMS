@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserIdOrFallback } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { CustomerForm } from "@/components/features/customers/customer-form";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,9 @@ export default async function EditCustomerPage({
   const { id } = await params;
   const supabase = await createClient();
 
+  // 現在のユーザーIDを取得（認証優先、デモモード対応）
+  const currentUserId = await getCurrentUserIdOrFallback();
+
   const { data: customer, error } = await supabase
     .from("customers")
     .select("*")
@@ -24,15 +28,6 @@ export default async function EditCustomerPage({
   if (error || !customer) {
     notFound();
   }
-
-  // ユーザーリストを取得してcurrentUserIdを設定
-  const { data: users } = await supabase
-    .from("users")
-    .select("id")
-    .order("name")
-    .limit(1);
-
-  const currentUserId = users?.[0]?.id || "";
 
   return (
     <div className="space-y-6">

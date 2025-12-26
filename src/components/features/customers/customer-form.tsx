@@ -195,7 +195,7 @@ export function CustomerForm({ customer, currentUserId }: CustomerFormProps) {
                     <FormLabel>事業形態 *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>

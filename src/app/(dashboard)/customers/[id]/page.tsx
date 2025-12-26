@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { getHistory } from "@/lib/history";
+import { getCurrentUserIdOrFallback } from "@/lib/auth";
 
 interface CustomerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -39,8 +40,8 @@ export default async function CustomerDetailPage({
     .eq("customer_id", id)
     .order("created_at", { ascending: false });
 
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
+  // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
+  const currentUserId = await getCurrentUserIdOrFallback();
 
   // Get history for this customer
   const history = await getHistory(supabase, "customer", id);
@@ -69,7 +70,7 @@ export default async function CustomerDetailPage({
           </Link>
         </Button>
       </div>
-      <CustomerDetail customer={customer} deals={deals || []} currentUserId={user?.id} />
+      <CustomerDetail customer={customer} deals={deals || []} currentUserId={currentUserId} />
       <HistorySection history={history} entityType="customer" />
     </div>
   );
