@@ -32,8 +32,8 @@ export const FIELD_LABELS: Record<string, Record<string, string>> = {
     contract_type: "契約種類",
     product_category: "商材カテゴリ",
     lease_company: "リース会社",
-    phase: "フェーズ",
-    status: "ステータス",
+    stage: "ステージ",
+    step: "ステップ",
     monthly_amount: "月額",
     total_amount: "合計金額",
     contract_months: "契約月数",
@@ -273,26 +273,26 @@ export async function recordDelete(
 }
 
 /**
- * ステータス変更履歴を記録する（contract_status_historyの代わりにentity_historyを使用）
+ * ステップ変更履歴を記録する（contract_status_historyの代わりにentity_historyを使用）
  */
-export async function recordStatusChange(
+export async function recordStepChange(
   supabase: SupabaseClient,
   contractId: string,
   userId: string | null,
-  previousPhase: string | null,
-  newPhase: string,
-  previousStatus: string | null,
-  newStatus: string,
+  previousStage: string | null,
+  newStage: string,
+  previousStep: string | null,
+  newStep: string,
   comment?: string
 ): Promise<HistoryRecordResult> {
   const changes: Record<string, FieldChange> = {};
 
-  if (previousPhase !== newPhase) {
-    changes.phase = { old: previousPhase, new: newPhase };
+  if (previousStage !== newStage) {
+    changes.stage = { old: previousStage, new: newStage };
   }
 
-  if (previousStatus !== newStatus) {
-    changes.status = { old: previousStatus, new: newStatus };
+  if (previousStep !== newStep) {
+    changes.step = { old: previousStep, new: newStep };
   }
 
   return recordHistory(

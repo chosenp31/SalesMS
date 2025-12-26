@@ -36,8 +36,8 @@ export const CONTRACT_TYPE_LABELS: Record<string, string> = {
   installment: "割賦",
 };
 
-// 契約フェーズ（大分類）
-export const CONTRACT_PHASE_LABELS: Record<string, string> = {
+// 契約ステージ
+export const CONTRACT_STAGE_LABELS: Record<string, string> = {
   商談中: "商談中",
   "審査・申込中": "審査・申込中",
   "下見・工事中": "下見・工事中",
@@ -48,11 +48,11 @@ export const CONTRACT_PHASE_LABELS: Record<string, string> = {
   否決: "否決",
 };
 
-// 契約ステータス（小分類）ラベル
-export const CONTRACT_STATUS_LABELS: Record<string, string> = {
+// 契約ステップラベル
+export const CONTRACT_STEP_LABELS: Record<string, string> = {
   // 商談中
-  商談待ち: "商談待ち",
   商談日程調整中: "商談日程調整中",
+  商談待ち: "商談待ち",
   // 審査・申込中
   "審査・申込対応中": "審査・申込対応中",
   "審査・申込待ち": "審査・申込待ち",
@@ -76,7 +76,7 @@ export const CONTRACT_STATUS_LABELS: Record<string, string> = {
   // 否決
   対応検討中: "対応検討中",
   失注: "失注",
-  // 旧ステータス（後方互換性）
+  // 旧ステップ（後方互換性）
   日程調整中: "日程調整中",
   MTG実施待ち: "MTG実施待ち",
   見積提出: "見積提出",
@@ -88,11 +88,17 @@ export const CONTRACT_STATUS_LABELS: Record<string, string> = {
   下見日程調整中: "下見日程調整中",
 };
 
-// ステータスからフェーズ（大分類）へのマッピング
-export const STATUS_TO_PHASE: Record<string, string> = {
+// 後方互換性のためのエイリアス
+/** @deprecated CONTRACT_STAGE_LABELS を使用してください */
+export const CONTRACT_PHASE_LABELS = CONTRACT_STAGE_LABELS;
+/** @deprecated CONTRACT_STEP_LABELS を使用してください */
+export const CONTRACT_STATUS_LABELS = CONTRACT_STEP_LABELS;
+
+// ステップからステージへのマッピング
+export const STEP_TO_STAGE: Record<string, string> = {
   // 商談中
-  商談待ち: "商談中",
   商談日程調整中: "商談中",
+  商談待ち: "商談中",
   // 審査・申込中
   "審査・申込対応中": "審査・申込中",
   "審査・申込待ち": "審査・申込中",
@@ -116,7 +122,7 @@ export const STATUS_TO_PHASE: Record<string, string> = {
   // 否決
   対応検討中: "否決",
   失注: "否決",
-  // 旧ステータス（後方互換性）
+  // 旧ステップ（後方互換性）
   日程調整中: "商談中",
   MTG実施待ち: "商談中",
   見積提出: "商談中",
@@ -128,9 +134,9 @@ export const STATUS_TO_PHASE: Record<string, string> = {
   下見日程調整中: "工事中",
 };
 
-// フェーズ内ステータス一覧（順序付き）
-export const PHASE_STATUSES: Record<string, string[]> = {
-  商談中: ["商談待ち", "商談日程調整中"],
+// ステージ内ステップ一覧（順序付き）
+export const STAGE_STEPS: Record<string, string[]> = {
+  商談中: ["商談日程調整中", "商談待ち"],
   "審査・申込中": ["審査・申込対応中", "審査・申込待ち"],
   "下見・工事中": ["下見調整中", "下見実施待ち", "工事日程調整中", "工事実施待ち"],
   契約中: ["検収確認中", "契約書提出対応中", "契約書確認待ち"],
@@ -140,8 +146,8 @@ export const PHASE_STATUSES: Record<string, string[]> = {
   否決: ["対応検討中", "失注"],
 };
 
-// 次のフェーズの最初のステータス
-export const NEXT_PHASE_FIRST_STATUS: Record<string, string> = {
+// 次のステージの最初のステップ
+export const NEXT_STAGE_FIRST_STEP: Record<string, string> = {
   商談中: "審査・申込対応中",
   "審査・申込中": "下見調整中",
   "下見・工事中": "検収確認中",
@@ -150,10 +156,10 @@ export const NEXT_PHASE_FIRST_STATUS: Record<string, string> = {
   請求中: "クローズ",
 };
 
-// 全ステータス一覧（順序付き）
-export const ALL_CONTRACT_STATUSES = [
-  "商談待ち",
+// 全ステップ一覧（順序付き）
+export const ALL_CONTRACT_STEPS = [
   "商談日程調整中",
+  "商談待ち",
   "審査・申込対応中",
   "審査・申込待ち",
   "下見調整中",
@@ -172,17 +178,27 @@ export const ALL_CONTRACT_STATUSES = [
   "失注",
 ] as const;
 
-// ステータス詳細情報（状態概要・補足・必要なアクション）
-export const STATUS_DETAILS: Record<string, { description: string; note: string; action: string }> = {
+// 後方互換性のためのエイリアス
+/** @deprecated STEP_TO_STAGE を使用してください */
+export const STATUS_TO_PHASE = STEP_TO_STAGE;
+/** @deprecated STAGE_STEPS を使用してください */
+export const PHASE_STATUSES = STAGE_STEPS;
+/** @deprecated NEXT_STAGE_FIRST_STEP を使用してください */
+export const NEXT_PHASE_FIRST_STATUS = NEXT_STAGE_FIRST_STEP;
+/** @deprecated ALL_CONTRACT_STEPS を使用してください */
+export const ALL_CONTRACT_STATUSES = ALL_CONTRACT_STEPS;
+
+// ステップ詳細情報（状態概要・補足・必要なアクション）
+export const STEP_DETAILS: Record<string, { description: string; note: string; action: string }> = {
+  商談日程調整中: {
+    description: "商談日程の調整が必要な状態",
+    note: "顧客と日程調整中、またはリスケが発生した状態",
+    action: "顧客と日程を調整し確定させる",
+  },
   商談待ち: {
     description: "商談日程が確定している（初期ステータス）",
     note: "",
     action: "商談を実施する",
-  },
-  商談日程調整中: {
-    description: "商談日程の調整が必要。リスケ依頼がきた場合や、担当者が不在だった場合",
-    note: "顧客から日程変更依頼があった、または訪問時に担当者が不在だった状態",
-    action: "顧客と日程を調整し確定させる",
   },
   "審査・申込対応中": {
     description: "審査または申込に必要な書類等を準備している",
@@ -237,7 +253,7 @@ export const STATUS_DETAILS: Record<string, { description: string; note: string;
   入金済: {
     description: "入金が確認された",
     note: "",
-    action: "請求フェーズへ進む",
+    action: "請求ステージへ進む",
   },
   初回請求確認待ち: {
     description: "リース会社から顧客への初回請求処理中",
@@ -266,10 +282,10 @@ export const STATUS_DETAILS: Record<string, { description: string; note: string;
   },
 };
 
-// ステータス完了確認メッセージ
-export const STATUS_COMPLETION_MESSAGES: Record<string, string> = {
-  商談待ち: "商談を実施しましたか？",
+// ステップ完了確認メッセージ
+export const STEP_COMPLETION_MESSAGES: Record<string, string> = {
   商談日程調整中: "商談日程が確定しましたか？",
+  商談待ち: "商談を実施しましたか？",
   "審査・申込対応中": "書類を提出しましたか？",
   "審査・申込待ち": "審査・申込が完了しましたか？",
   下見調整中: "下見日程が確定しましたか？",
@@ -280,10 +296,16 @@ export const STATUS_COMPLETION_MESSAGES: Record<string, string> = {
   契約書提出対応中: "契約書をリース会社へ提出しましたか？",
   契約書確認待ち: "リース会社の契約書確認が完了しましたか？",
   入金待ち: "入金が確認されましたか？",
-  入金済: "請求フェーズへ進みますか？",
+  入金済: "請求ステージへ進みますか？",
   初回請求確認待ち: "初回請求が完了しましたか？",
   請求処理対応中: "請求処理が完了しましたか？",
 };
+
+// 後方互換性のためのエイリアス
+/** @deprecated STEP_DETAILS を使用してください */
+export const STATUS_DETAILS = STEP_DETAILS;
+/** @deprecated STEP_COMPLETION_MESSAGES を使用してください */
+export const STATUS_COMPLETION_MESSAGES = STEP_COMPLETION_MESSAGES;
 
 // ========================================
 // 活動関連
@@ -295,7 +317,7 @@ export const ACTIVITY_TYPE_LABELS = {
   visit: "訪問",
   email: "メール",
   online_meeting: "オンライン商談",
-  status_change: "ステータス変更",
+  status_change: "ステップ変更",
   other: "その他",
 } as const;
 

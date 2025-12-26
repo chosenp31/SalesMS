@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { getHistory } from "@/lib/history";
-import { getCurrentUserIdOrFallback } from "@/lib/auth";
+import { getCurrentUserWithRole } from "@/lib/auth";
 
 interface DealDetailPageProps {
   params: Promise<{ id: string }>;
@@ -33,7 +33,7 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
   }
 
   // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
-  const currentUserId = await getCurrentUserIdOrFallback();
+  const { userId: currentUserId, isAdmin } = await getCurrentUserWithRole();
 
   // Get history for this deal
   const history = await getHistory(supabase, "deal", id);
@@ -57,7 +57,7 @@ export default async function DealDetailPage({ params }: DealDetailPageProps) {
           </Link>
         </Button>
       </div>
-      <DealDetail deal={deal} currentUserId={currentUserId} />
+      <DealDetail deal={deal} currentUserId={currentUserId} isAdmin={isAdmin} />
       <HistorySection history={history} entityType="deal" />
     </div>
   );

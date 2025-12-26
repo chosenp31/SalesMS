@@ -1,29 +1,29 @@
 "use client";
 
-import { StatusChangeHistory } from "@/types";
-import { CONTRACT_STATUS_LABELS } from "@/constants";
+import { StepChangeHistory } from "@/types";
+import { CONTRACT_STEP_LABELS } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { History, ArrowRight, MessageSquare, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type StatusHistoryWithUser = StatusChangeHistory & {
+type StepHistoryWithUser = StepChangeHistory & {
   user?: { name: string } | null;
 };
 
-interface StatusHistoryCardProps {
-  history: StatusHistoryWithUser[];
+interface StepHistoryCardProps {
+  history: StepHistoryWithUser[];
 }
 
-export function StatusHistoryCard({ history }: StatusHistoryCardProps) {
+export function StepHistoryCard({ history }: StepHistoryCardProps) {
   if (history.length === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
             <History className="h-5 w-5 mr-2" />
-            ステータス変更履歴
+            ステップ変更履歴
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -38,7 +38,7 @@ export function StatusHistoryCard({ history }: StatusHistoryCardProps) {
       <CardHeader>
         <CardTitle className="flex items-center">
           <History className="h-5 w-5 mr-2" />
-          ステータス変更履歴
+          ステップ変更履歴
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -68,18 +68,18 @@ export function StatusHistoryCard({ history }: StatusHistoryCardProps) {
                   </span>
                 </div>
 
-                {/* ステータス変更 */}
+                {/* ステップ変更 */}
                 <div className="flex items-center gap-2 text-sm flex-wrap">
-                  {item.previous_status && (
+                  {item.previous_step && (
                     <>
                       <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-700">
-                        {CONTRACT_STATUS_LABELS[item.previous_status] || item.previous_status}
+                        {CONTRACT_STEP_LABELS[item.previous_step] || item.previous_step}
                       </span>
                       <ArrowRight className="h-4 w-4 text-gray-400" />
                     </>
                   )}
                   <span className="px-2 py-0.5 bg-primary/10 rounded text-primary font-medium">
-                    {CONTRACT_STATUS_LABELS[item.new_status] || item.new_status}
+                    {CONTRACT_STEP_LABELS[item.new_step] || item.new_step}
                   </span>
                 </div>
 

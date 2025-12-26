@@ -6,11 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { Deal, ContractType, ContractPhase, ContractStatus } from "@/types";
+import { Deal, ContractType, ContractStage, ContractStep } from "@/types";
 import {
   CONTRACT_TYPE_LABELS,
-  CONTRACT_PHASE_LABELS,
-  PHASE_STATUSES,
+  CONTRACT_STAGE_LABELS,
+  STAGE_STEPS,
   PRODUCT_CATEGORIES_BY_CONTRACT_TYPE,
 } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
@@ -44,8 +44,8 @@ import { Plus } from "lucide-react";
 // 新しい契約種類のみ
 const NEW_CONTRACT_TYPES: ContractType[] = ["property", "line", "maintenance"];
 
-// 新しいフェーズのみ
-const NEW_PHASES: ContractPhase[] = [
+// 新しいステージのみ
+const NEW_STAGES: ContractStage[] = [
   "商談中",
   "審査・申込中",
   "下見・工事中",
@@ -59,8 +59,8 @@ const NEW_PHASES: ContractPhase[] = [
 const contractSchema = z.object({
   contract_type: z.string().min(1, "契約種別を選択してください"),
   product_category: z.string().min(1, "商材を選択してください"),
-  phase: z.string().min(1, "フェーズを選択してください"),
-  status: z.string().min(1, "ステータスを選択してください"),
+  stage: z.string().min(1, "ステージを選択してください"),
+  step: z.string().min(1, "ステップを選択してください"),
   monthly_amount: z.string().optional(),
   total_amount: z.string().optional(),
   contract_months: z.string().optional(),
@@ -86,8 +86,8 @@ export function NewContractDialog({ deal, trigger }: NewContractDialogProps) {
     defaultValues: {
       contract_type: "",
       product_category: "",
-      phase: "商談中",
-      status: "商談待ち",
+      stage: "商談中",
+      step: "商談待ち",
       monthly_amount: "",
       total_amount: "",
       contract_months: "",
@@ -97,7 +97,7 @@ export function NewContractDialog({ deal, trigger }: NewContractDialogProps) {
   });
 
   const selectedContractType = form.watch("contract_type") as ContractType;
-  const selectedPhase = form.watch("phase") as ContractPhase;
+  const selectedStage = form.watch("stage") as ContractStage;
 
   // 契約種別に応じた商材リスト
   const productOptions = useMemo(() => {
@@ -105,11 +105,11 @@ export function NewContractDialog({ deal, trigger }: NewContractDialogProps) {
     return PRODUCT_CATEGORIES_BY_CONTRACT_TYPE[selectedContractType] || [];
   }, [selectedContractType]);
 
-  // フェーズに応じたステータスリスト
-  const statusOptions = useMemo(() => {
-    if (!selectedPhase) return [];
-    return PHASE_STATUSES[selectedPhase] || [];
-  }, [selectedPhase]);
+  // ステージに応じたステップリスト
+  const stepOptions = useMemo(() => {
+    if (!selectedStage) return [];
+    return STAGE_STEPS[selectedStage] || [];
+  }, [selectedStage]);
 
   // 契約種別が変わったら商材をリセット
   const handleContractTypeChange = (value: string) => {
@@ -117,12 +117,12 @@ export function NewContractDialog({ deal, trigger }: NewContractDialogProps) {
     form.setValue("product_category", "");
   };
 
-  // フェーズが変わったらステータスを最初のものに設定
-  const handlePhaseChange = (value: string) => {
-    form.setValue("phase", value);
-    const statuses = PHASE_STATUSES[value as ContractPhase] || [];
-    if (statuses.length > 0) {
-      form.setValue("status", statuses[0]);
+  // ステージが変わったらステップを最初のものに設定
+  const handleStageChange = (value: string) => {
+    form.setValue("stage", value);
+    const steps = STAGE_STEPS[value as ContractStage] || [];
+    if (steps.length > 0) {
+      form.setValue("step", steps[0]);
     }
   };
 
@@ -151,8 +151,8 @@ export function NewContractDialog({ deal, trigger }: NewContractDialogProps) {
         title: `${deal.customer?.company_name || ""} ${CONTRACT_TYPE_LABELS[data.contract_type as ContractType]}`,
         contract_type: data.contract_type as ContractType,
         product_category: data.product_category,
-        phase: data.phase as ContractPhase,
-        status: data.status as ContractStatus,
+        stage: data.stage as ContractStage,
+        step: data.step as ContractStep,
         monthly_amount: parseAmount(data.monthly_amount || ""),
         total_amount: parseAmount(data.total_amount || ""),
         contract_months: data.contract_months ? parseInt(data.contract_months) : null,
@@ -269,23 +269,23 @@ export function NewContractDialog({ deal, trigger }: NewContractDialogProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* フェーズ（大分類） */}
+              {/* ステージ */}
               <FormField
                 control={form.control}
-                name="phase"
+                name="stage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>フェーズ（大分類）</FormLabel>
-                    <Select onValueChange={handlePhaseChange} value={field.value}>
+                    <FormLabel>ステージ</FormLabel>
+                    <Select onValueChange={handleStageChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="選択してください" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {NEW_PHASES.map((phase) => (
-                          <SelectItem key={phase} value={phase}>
-                            {CONTRACT_PHASE_LABELS[phase]}
+                        {NEW_STAGES.map((stage) => (
+                          <SelectItem key={stage} value={stage}>
+                            {CONTRACT_STAGE_LABELS[stage]}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -295,13 +295,13 @@ export function NewContractDialog({ deal, trigger }: NewContractDialogProps) {
                 )}
               />
 
-              {/* ステータス（小分類） */}
+              {/* ステップ */}
               <FormField
                 control={form.control}
-                name="status"
+                name="step"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ステータス（小分類）</FormLabel>
+                    <FormLabel>ステップ</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -309,9 +309,9 @@ export function NewContractDialog({ deal, trigger }: NewContractDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {statusOptions.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
+                        {stepOptions.map((step) => (
+                          <SelectItem key={step} value={step}>
+                            {step}
                           </SelectItem>
                         ))}
                       </SelectContent>

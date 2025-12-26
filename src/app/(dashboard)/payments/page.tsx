@@ -3,9 +3,13 @@ import { PaymentList } from "@/components/features/payments/payment-list";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { PaymentDialog } from "@/components/features/payments/payment-dialog";
+import { getCurrentUserWithRole } from "@/lib/auth";
 
 export default async function PaymentsPage() {
   const supabase = await createClient();
+
+  // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
+  const { userId: currentUserId, isAdmin } = await getCurrentUserWithRole();
 
   const { data: payments, error } = await supabase
     .from("payments")
@@ -59,7 +63,7 @@ export default async function PaymentsPage() {
           }
         />
       </div>
-      <PaymentList payments={payments || []} contracts={contracts || []} />
+      <PaymentList payments={payments || []} contracts={contracts || []} currentUserId={currentUserId} isAdmin={isAdmin} />
     </div>
   );
 }

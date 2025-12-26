@@ -6,7 +6,7 @@ import { Deal } from "@/types";
 import {
   DEAL_STATUS_LABELS,
   CONTRACT_TYPE_LABELS,
-  CONTRACT_STATUS_LABELS,
+  CONTRACT_STEP_LABELS,
 } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,7 @@ import { recordDelete, recordUpdate } from "@/lib/history";
 interface DealDetailProps {
   deal: Deal;
   currentUserId?: string;
+  isAdmin?: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -58,13 +59,26 @@ const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
 };
 
-export function DealDetail({ deal, currentUserId }: DealDetailProps) {
+export function DealDetail({ deal, currentUserId, isAdmin = false }: DealDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
 
   const hasContracts = (deal.contracts?.length || 0) > 0;
+  const canDelete = isAdmin && !hasContracts;
+
+  const handleDeleteClick = () => {
+    if (!isAdmin) {
+      toast({
+        title: "削除できません",
+        description: "削除は管理者のみ実行可能です。",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === deal.status) return;
@@ -116,6 +130,15 @@ export function DealDetail({ deal, currentUserId }: DealDetailProps) {
   };
 
   const handleDelete = async () => {
+    if (!isAdmin) {
+      toast({
+        title: "削除できません",
+        description: "削除は管理者のみ実行可能です。",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (hasContracts) {
       toast({
         title: "削除できません",
@@ -178,7 +201,13 @@ export function DealDetail({ deal, currentUserId }: DealDetailProps) {
                     variant="outline"
                     size="sm"
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    disabled={hasContracts}
+                    disabled={!canDelete}
+                    onClick={(e) => {
+                      if (!isAdmin) {
+                        e.preventDefault();
+                        handleDeleteClick();
+                      }
+                    }}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     削除
@@ -188,7 +217,11 @@ export function DealDetail({ deal, currentUserId }: DealDetailProps) {
                   <AlertDialogHeader>
                     <AlertDialogTitle>案件を削除しますか？</AlertDialogTitle>
                     <AlertDialogDescription>
-                      {hasContracts ? (
+                      {!isAdmin ? (
+                        <span className="text-red-600">
+                          削除は管理者のみ実行可能です。
+                        </span>
+                      ) : hasContracts ? (
                         <span className="text-red-600">
                           この案件には{deal.contracts?.length}件の契約が関連付けられているため削除できません。
                           先に契約を削除してください。
@@ -204,7 +237,7 @@ export function DealDetail({ deal, currentUserId }: DealDetailProps) {
                     <AlertDialogCancel>キャンセル</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDelete}
-                      disabled={hasContracts || deleteLoading}
+                      disabled={!canDelete || deleteLoading}
                       className="bg-red-600 hover:bg-red-700"
                     >
                       {deleteLoading ? (
@@ -372,7 +405,7 @@ export function DealDetail({ deal, currentUserId }: DealDetailProps) {
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">
-                            {contract.status ? (CONTRACT_STATUS_LABELS[contract.status] || contract.status) : "-"}
+                            {contract.step ? (CONTRACT_STEP_LABELS[contract.step] || contract.step) : "-"}
                           </Badge>
                         </TableCell>
                         <TableCell>

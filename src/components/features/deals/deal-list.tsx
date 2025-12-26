@@ -28,7 +28,7 @@ interface DealListProps {
   deals: Deal[];
 }
 
-const statusColors: Record<string, string> = {
+const stepColors: Record<string, string> = {
   // 商談中
   商談待ち: "bg-blue-100 text-blue-800 border-blue-200",
   商談日程調整中: "bg-blue-100 text-blue-800 border-blue-200",
@@ -55,7 +55,7 @@ const statusColors: Record<string, string> = {
   // 否決
   対応検討中: "bg-red-100 text-red-800 border-red-200",
   失注: "bg-red-100 text-red-800 border-red-200",
-  // フェーズ（後方互換性）
+  // ステージ（後方互換性）
   商談中: "bg-blue-100 text-blue-800 border-blue-200",
   "審査・申込中": "bg-yellow-100 text-yellow-800 border-yellow-200",
   "下見・工事中": "bg-purple-100 text-purple-800 border-purple-200",
@@ -69,13 +69,13 @@ const statusColors: Record<string, string> = {
 type SortField = "deal_id" | "customer" | "contract_status" | "contracts" | "sales_user" | "appointer" | "updated_at";
 type SortDirection = "asc" | "desc";
 
-// 契約種類：ステータス一覧を取得するヘルパー
-const getContractStatusList = (contracts?: { id: string; title: string; contract_type?: string; phase?: string; status?: string; product_category?: string | null }[]): { type: string; status: string }[] => {
+// 契約種類：ステップ一覧を取得するヘルパー
+const getContractStepList = (contracts?: { id: string; title: string; contract_type?: string; stage?: string; step?: string; product_category?: string | null }[]): { type: string; step: string }[] => {
   if (!contracts || contracts.length === 0) return [];
 
   return contracts.map(contract => ({
     type: CONTRACT_TYPE_LABELS[contract.contract_type || ""] || contract.contract_type || "不明",
-    status: contract.status || contract.phase || "不明",
+    step: contract.step || contract.stage || "不明",
   }));
 };
 
@@ -218,9 +218,9 @@ export function DealList({ deals }: DealListProps) {
           comparison = (a.contracts?.length || 0) - (b.contracts?.length || 0);
           break;
         case "contract_status":
-          const aStatus = getContractStatusList(a.contracts).map(c => `${c.type}:${c.status}`).join(",");
-          const bStatus = getContractStatusList(b.contracts).map(c => `${c.type}:${c.status}`).join(",");
-          comparison = aStatus.localeCompare(bStatus);
+          const aStep = getContractStepList(a.contracts).map(c => `${c.type}:${c.step}`).join(",");
+          const bStep = getContractStepList(b.contracts).map(c => `${c.type}:${c.step}`).join(",");
+          comparison = aStep.localeCompare(bStep);
           break;
         case "sales_user":
           comparison = (a.sales_user?.name || a.assigned_user?.name || "").localeCompare(
@@ -388,7 +388,7 @@ export function DealList({ deals }: DealListProps) {
           <TableBody>
             {filteredDeals.map((deal) => {
               const dealDisplayId = formatDealId(deal.customer?.customer_number, deal.deal_number);
-              const contractStatusList = getContractStatusList(deal.contracts);
+              const contractStepList = getContractStepList(deal.contracts);
               return (
               <TableRow
                 key={deal.id}
@@ -423,15 +423,15 @@ export function DealList({ deals }: DealListProps) {
                   )}
                 </TableCell>
                 <TableCell className="py-2">
-                  {contractStatusList.length > 0 ? (
+                  {contractStepList.length > 0 ? (
                     <div className="flex flex-wrap gap-0.5">
-                      {contractStatusList.map((item, idx) => (
+                      {contractStepList.map((item, idx) => (
                         <Badge
                           key={idx}
                           variant="outline"
-                          className={cn("text-xs border px-1.5 py-0", statusColors[item.status] || "bg-gray-100")}
+                          className={cn("text-xs border px-1.5 py-0", stepColors[item.step] || "bg-gray-100")}
                         >
-                          {item.type}：{item.status}
+                          {item.type}：{item.step}
                         </Badge>
                       ))}
                     </div>

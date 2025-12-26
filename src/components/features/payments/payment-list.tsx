@@ -42,6 +42,7 @@ interface PaymentListProps {
   payments: Payment[];
   contracts: ContractOption[];
   currentUserId?: string;
+  isAdmin?: boolean;
 }
 
 const statusColors: Record<PaymentStatus, string> = {
@@ -60,7 +61,7 @@ type SortField =
   | "actual_date";
 type SortDirection = "asc" | "desc";
 
-export function PaymentList({ payments, contracts, currentUserId }: PaymentListProps) {
+export function PaymentList({ payments, contracts, currentUserId, isAdmin = false }: PaymentListProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [searchValue, setSearchValue] = useState("");
@@ -187,6 +188,16 @@ export function PaymentList({ payments, contracts, currentUserId }: PaymentListP
   const handleDelete = async (paymentId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (processingId) return; // 処理中は無視
+
+    if (!isAdmin) {
+      toast({
+        title: "削除できません",
+        description: "削除は管理者のみ実行可能です。",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!confirm("この入金情報を削除しますか？")) return;
 
     setProcessingId(paymentId);
@@ -565,12 +576,13 @@ export function PaymentList({ payments, contracts, currentUserId }: PaymentListP
                       variant="ghost"
                       size="sm"
                       onClick={(e) => handleDelete(payment.id, e)}
-                      disabled={processingId === payment.id}
+                      disabled={!isAdmin || processingId === payment.id}
+                      title={!isAdmin ? "削除は管理者のみ実行可能です" : "削除"}
                     >
                       {processingId === payment.id ? (
                         <Loader2 className="h-4 w-4 animate-spin text-red-500" />
                       ) : (
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className={cn("h-4 w-4", isAdmin ? "text-red-500" : "text-gray-300")} />
                       )}
                     </Button>
                   </div>

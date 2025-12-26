@@ -39,6 +39,7 @@ interface CustomerDetailProps {
   customer: Customer;
   deals: Deal[];
   currentUserId?: string;
+  isAdmin?: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -48,14 +49,24 @@ const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
 };
 
-export function CustomerDetail({ customer, deals, currentUserId }: CustomerDetailProps) {
+export function CustomerDetail({ customer, deals, currentUserId, isAdmin = false }: CustomerDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const hasDeals = deals.length > 0;
+  const canDelete = isAdmin && !hasDeals;
 
   const handleDelete = async () => {
+    if (!isAdmin) {
+      toast({
+        title: "削除できません",
+        description: "削除は管理者のみ実行可能です。",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (hasDeals) {
       toast({
         title: "削除できません",
@@ -108,7 +119,17 @@ export function CustomerDetail({ customer, deals, currentUserId }: CustomerDetai
                 variant="outline"
                 size="sm"
                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                disabled={hasDeals}
+                disabled={!isAdmin}
+                onClick={(e) => {
+                  if (!isAdmin) {
+                    e.preventDefault();
+                    toast({
+                      title: "削除できません",
+                      description: "削除は管理者のみ実行可能です。",
+                      variant: "destructive",
+                    });
+                  }
+                }}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 削除
@@ -118,7 +139,11 @@ export function CustomerDetail({ customer, deals, currentUserId }: CustomerDetai
               <AlertDialogHeader>
                 <AlertDialogTitle>顧客を削除しますか？</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {hasDeals ? (
+                  {!isAdmin ? (
+                    <span className="text-red-600">
+                      削除は管理者のみ実行可能です。
+                    </span>
+                  ) : hasDeals ? (
                     <span className="text-red-600">
                       この顧客には{deals.length}件の案件が関連付けられているため削除できません。
                       先に案件を削除してください。
@@ -134,7 +159,7 @@ export function CustomerDetail({ customer, deals, currentUserId }: CustomerDetai
                 <AlertDialogCancel>キャンセル</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
-                  disabled={hasDeals || deleteLoading}
+                  disabled={!canDelete || deleteLoading}
                   className="bg-red-600 hover:bg-red-700"
                 >
                   {deleteLoading ? (

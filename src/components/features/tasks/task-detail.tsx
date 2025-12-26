@@ -6,7 +6,7 @@ import { Task, User } from "@/types";
 import {
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
-  CONTRACT_STATUS_LABELS,
+  CONTRACT_STEP_LABELS,
 } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ interface TaskDetailProps {
   task: Task;
   users: User[];
   currentUserId: string;
+  isAdmin?: boolean;
 }
 
 const priorityColors = {
@@ -62,13 +63,22 @@ const statusColors = {
   完了: "bg-green-100 text-green-800",
 };
 
-export function TaskDetail({ task, users, currentUserId }: TaskDetailProps) {
+export function TaskDetail({ task, users, currentUserId, isAdmin = false }: TaskDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const handleDelete = async () => {
+    if (!isAdmin) {
+      toast({
+        title: "削除できません",
+        description: "削除は管理者のみ実行可能です。",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setDeleteLoading(true);
     try {
       const supabase = createClient();
@@ -135,6 +145,17 @@ export function TaskDetail({ task, users, currentUserId }: TaskDetailProps) {
                       variant="outline"
                       size="sm"
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      disabled={!isAdmin}
+                      onClick={(e) => {
+                        if (!isAdmin) {
+                          e.preventDefault();
+                          toast({
+                            title: "削除できません",
+                            description: "削除は管理者のみ実行可能です。",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       削除
@@ -144,14 +165,22 @@ export function TaskDetail({ task, users, currentUserId }: TaskDetailProps) {
                     <AlertDialogHeader>
                       <AlertDialogTitle>タスクを削除しますか？</AlertDialogTitle>
                       <AlertDialogDescription>
-                        「{task.title}」を削除します。この操作は取り消せません。
+                        {!isAdmin ? (
+                          <span className="text-red-600">
+                            削除は管理者のみ実行可能です。
+                          </span>
+                        ) : (
+                          <>
+                            「{task.title}」を削除します。この操作は取り消せません。
+                          </>
+                        )}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>キャンセル</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDelete}
-                        disabled={deleteLoading}
+                        disabled={!isAdmin || deleteLoading}
                         className="bg-red-600 hover:bg-red-700"
                       >
                         {deleteLoading ? (
@@ -287,9 +316,9 @@ export function TaskDetail({ task, users, currentUserId }: TaskDetailProps) {
                       </span>
                       <ExternalLink className="h-3 w-3" />
                     </Link>
-                    {task.contract.status && (
+                    {task.contract.step && (
                       <Badge variant="outline" className="mt-1 text-xs">
-                        {CONTRACT_STATUS_LABELS[task.contract.status] || task.contract.status}
+                        {CONTRACT_STEP_LABELS[task.contract.step] || task.contract.step}
                       </Badge>
                     )}
                   </dd>

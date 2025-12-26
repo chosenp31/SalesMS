@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { getHistory } from "@/lib/history";
-import { getCurrentUserIdOrFallback } from "@/lib/auth";
+import { getCurrentUserWithRole } from "@/lib/auth";
 
 interface CustomerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -35,13 +35,13 @@ export default async function CustomerDetailPage({
       *,
       sales_user:users!sales_user_id(*),
       appointer_user:users!appointer_user_id(*),
-      contracts(id, title, contract_type, phase, status, monthly_amount, product_category, contract_number)
+      contracts(id, title, contract_type, stage, step, monthly_amount, product_category, contract_number)
     `)
     .eq("customer_id", id)
     .order("created_at", { ascending: false });
 
   // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
-  const currentUserId = await getCurrentUserIdOrFallback();
+  const { userId: currentUserId, isAdmin } = await getCurrentUserWithRole();
 
   // Get history for this customer
   const history = await getHistory(supabase, "customer", id);
@@ -70,7 +70,7 @@ export default async function CustomerDetailPage({
           </Link>
         </Button>
       </div>
-      <CustomerDetail customer={customer} deals={deals || []} currentUserId={currentUserId} />
+      <CustomerDetail customer={customer} deals={deals || []} currentUserId={currentUserId} isAdmin={isAdmin} />
       <HistorySection history={history} entityType="customer" />
     </div>
   );

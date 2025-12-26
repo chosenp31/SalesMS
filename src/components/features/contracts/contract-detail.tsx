@@ -6,7 +6,7 @@ import { Payment, Task, User, Activity } from "@/types";
 import { Tables } from "@/types/database";
 import {
   CONTRACT_TYPE_LABELS,
-  CONTRACT_STATUS_LABELS,
+  CONTRACT_STEP_LABELS,
 } from "@/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,10 +56,11 @@ interface ContractDetailProps {
   users: User[];
   activities: Activity[];
   currentUserId: string;
+  isAdmin?: boolean;
 }
 
-// 削除可能なステータス（商談中フェーズのみ）
-const DELETABLE_STATUSES = ["商談待ち", "商談日程調整中"];
+// 削除可能なステップ（商談中ステージのみ）
+const DELETABLE_STEPS = ["商談待ち", "商談日程調整中"];
 
 export function ContractDetail({
   contract,
@@ -68,12 +69,14 @@ export function ContractDetail({
   users,
   activities,
   currentUserId,
+  isAdmin = false,
 }: ContractDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const canDelete = DELETABLE_STATUSES.includes(contract.status);
+  const isStepDeletable = DELETABLE_STEPS.includes(contract.step);
+  const canDelete = isAdmin && isStepDeletable;
 
   const formatAmount = (amount: number | null) => {
     if (!amount) return "-";
@@ -84,10 +87,19 @@ export function ContractDetail({
   };
 
   const handleDelete = async () => {
-    if (!canDelete) {
+    if (!isAdmin) {
       toast({
         title: "削除できません",
-        description: "ステータスが進行しているため削除できません。",
+        description: "削除は管理者のみ実行可能です。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isStepDeletable) {
+      toast({
+        title: "削除できません",
+        description: "ステップが進行しているため削除できません。",
         variant: "destructive",
       });
       return;
@@ -174,6 +186,16 @@ export function ContractDetail({
                 size="sm"
                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 disabled={!canDelete}
+                onClick={(e) => {
+                  if (!isAdmin) {
+                    e.preventDefault();
+                    toast({
+                      title: "削除できません",
+                      description: "削除は管理者のみ実行可能です。",
+                      variant: "destructive",
+                    });
+                  }
+                }}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 削除
@@ -183,10 +205,14 @@ export function ContractDetail({
               <AlertDialogHeader>
                 <AlertDialogTitle>契約を削除しますか？</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {!canDelete ? (
+                  {!isAdmin ? (
                     <span className="text-red-600">
-                      ステータスが「{contract.status}」のため削除できません。
-                      商談中フェーズの契約のみ削除可能です。
+                      削除は管理者のみ実行可能です。
+                    </span>
+                  ) : !isStepDeletable ? (
+                    <span className="text-red-600">
+                      ステップが「{contract.step}」のため削除できません。
+                      商談中ステージの契約のみ削除可能です。
                     </span>
                   ) : (
                     <>
@@ -250,10 +276,10 @@ export function ContractDetail({
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">ステータス</dt>
+              <dt className="text-sm font-medium text-gray-500">ステップ</dt>
               <dd className="mt-1">
                 <Badge>
-                  {CONTRACT_STATUS_LABELS[contract.status] || contract.status}
+                  {CONTRACT_STEP_LABELS[contract.step] || contract.step}
                 </Badge>
               </dd>
             </div>

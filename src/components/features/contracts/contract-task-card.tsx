@@ -11,7 +11,7 @@ import { Tables } from "@/types/database";
 import {
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
-  STATUS_TO_PHASE,
+  STEP_TO_STAGE,
 } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -225,12 +225,12 @@ function NewTaskDialog({
               <p className="text-xs text-gray-500 font-medium mb-2">以下の項目は契約情報から自動設定されます</p>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span className="text-gray-500">大分類:</span>
-                  <span className="ml-2 font-medium">{STATUS_TO_PHASE[contract.status] || "-"}</span>
+                  <span className="text-gray-500">ステージ:</span>
+                  <span className="ml-2 font-medium">{STEP_TO_STAGE[contract.step] || "-"}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">小分類:</span>
-                  <span className="ml-2 font-medium">{contract.status}</span>
+                  <span className="text-gray-500">ステップ:</span>
+                  <span className="ml-2 font-medium">{contract.step}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">顧客:</span>
@@ -464,8 +464,8 @@ export function ContractTaskCard({
                 <TableRow className="bg-gray-50">
                   <TableHead className="w-10"></TableHead>
                   <TableHead className="min-w-[120px]">タスク名</TableHead>
-                  <TableHead>大分類</TableHead>
-                  <TableHead>小分類</TableHead>
+                  <TableHead>ステージ</TableHead>
+                  <TableHead>ステップ</TableHead>
                   <TableHead>担当者</TableHead>
                   <TableHead>優先度</TableHead>
                   <TableHead>ステータス</TableHead>
@@ -506,10 +506,10 @@ export function ContractTaskCard({
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-gray-600">
-                      {STATUS_TO_PHASE[contract.status] || "-"}
+                      {STEP_TO_STAGE[contract.step] || "-"}
                     </TableCell>
                     <TableCell className="text-xs text-gray-600">
-                      {contract.status || "-"}
+                      {contract.step || "-"}
                     </TableCell>
                     <TableCell className="text-xs text-gray-600">
                       {task.assigned_user?.name || "-"}

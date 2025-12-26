@@ -3,7 +3,7 @@ import { TaskDetail } from "@/components/features/tasks/task-detail";
 import { HistorySection } from "@/components/features/history/history-section";
 import { notFound } from "next/navigation";
 import { getHistory } from "@/lib/history";
-import { getCurrentUserIdOrFallback } from "@/lib/auth";
+import { getCurrentUserWithRole } from "@/lib/auth";
 
 interface TaskDetailPageProps {
   params: Promise<{ id: string }>;
@@ -14,7 +14,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
   const supabase = await createClient();
 
   // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
-  const currentUserId = await getCurrentUserIdOrFallback();
+  const { userId: currentUserId, isAdmin } = await getCurrentUserWithRole();
 
   // Fetch task with related data
   const { data: task, error } = await supabase
@@ -28,7 +28,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
         deal_number,
         customer:customers!deals_customer_id_fkey(id, company_name, customer_number)
       ),
-      contract:contracts!tasks_contract_id_fkey(id, contract_number, status)
+      contract:contracts!tasks_contract_id_fkey(id, contract_number, step)
     `)
     .eq("id", id)
     .single();
@@ -52,6 +52,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
         task={task}
         users={users || []}
         currentUserId={currentUserId}
+        isAdmin={isAdmin}
       />
       <HistorySection history={history} entityType="task" />
     </div>

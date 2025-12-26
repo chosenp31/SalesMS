@@ -15,7 +15,7 @@ import {
   getFieldLabel,
   formatValue,
 } from "@/lib/history";
-import { CONTRACT_STATUS_LABELS } from "@/constants";
+import { CONTRACT_STEP_LABELS } from "@/constants";
 
 // ステータス履歴の型（ユーザー情報付き）
 type StatusHistoryWithUser = Omit<StatusChangeHistory, 'user'> & {
@@ -123,7 +123,7 @@ export function HistorySection({
                         </span>
                         <span className="text-gray-500 text-sm">が</span>
                         <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
-                          ステータス変更
+                          ステップ変更
                         </Badge>
                         <span className="text-gray-500 text-xs">
                           {format(new Date(statusItem.created_at), "yyyy/MM/dd HH:mm", { locale: ja })}
@@ -131,13 +131,13 @@ export function HistorySection({
                       </div>
                       <div className="mt-2 text-sm text-gray-600 flex items-center gap-1">
                         <span className="text-gray-500">・</span>
-                        <span className="font-medium">ステータス:</span>
+                        <span className="font-medium">ステップ:</span>
                         <span className="text-red-600 line-through">
-                          {statusItem.previous_status ? (CONTRACT_STATUS_LABELS[statusItem.previous_status] || statusItem.previous_status) : "なし"}
+                          {statusItem.previous_step ? (CONTRACT_STEP_LABELS[statusItem.previous_step] || statusItem.previous_step) : "なし"}
                         </span>
                         <span className="text-gray-400">→</span>
                         <span className="text-green-600">
-                          {CONTRACT_STATUS_LABELS[statusItem.new_status] || statusItem.new_status}
+                          {CONTRACT_STEP_LABELS[statusItem.new_step] || statusItem.new_step}
                         </span>
                       </div>
                       {statusItem.comment && (
