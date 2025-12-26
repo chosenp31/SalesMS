@@ -1,6 +1,10 @@
 import { CustomerForm } from "@/components/features/customers/customer-form";
+import { getCurrentUserIdOrFallback } from "@/lib/auth";
 
-export default function NewCustomerPage() {
+export default async function NewCustomerPage() {
+  // 現在のユーザーIDを取得（認証優先、デモモード対応）
+  const currentUserId = await getCurrentUserIdOrFallback();
+
   return (
     <div className="space-y-6">
       <div>
@@ -9,7 +13,7 @@ export default function NewCustomerPage() {
           新しい顧客情報を登録します
         </p>
       </div>
-      <CustomerForm />
+      <CustomerForm currentUserId={currentUserId} />
     </div>
   );
 }

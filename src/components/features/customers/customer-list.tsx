@@ -43,6 +43,7 @@ export function CustomerList({ customers }: CustomerListProps) {
       key: "business_type",
       label: "事業形態",
       type: "select",
+      quickFilter: true, // インライン表示
       options: Object.entries(BUSINESS_TYPE_LABELS).map(([value, label]) => ({
         value,
         label,
