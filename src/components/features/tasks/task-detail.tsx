@@ -41,6 +41,7 @@ import Link from "next/link";
 import { cn, formatDealId, formatContractId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
+import { recordDelete } from "@/lib/history";
 import { TaskDialog } from "./task-dialog";
 
 interface TaskDetailProps {
@@ -71,6 +72,10 @@ export function TaskDetail({ task, users, currentUserId }: TaskDetailProps) {
     setDeleteLoading(true);
     try {
       const supabase = createClient();
+
+      // 削除前に履歴を記録
+      await recordDelete(supabase, "task", task.id, currentUserId || null);
+
       const { error } = await supabase
         .from("tasks")
         .delete()

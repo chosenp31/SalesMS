@@ -6,7 +6,6 @@ import { Activity } from "@/types";
 import { ACTIVITY_TYPE_LABELS } from "@/constants";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -198,9 +197,6 @@ export function ActivityList({ activities }: ActivityListProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center space-x-2 flex-wrap gap-1">
-                    <Badge variant="outline" className="text-xs">
-                      {ACTIVITY_TYPE_LABELS[activity.activity_type] || activity.activity_type}
-                    </Badge>
                     <span className="text-sm text-gray-500 flex items-center gap-1">
                       <User className="h-3 w-3" />
                       {activity.user?.name || "不明"}
