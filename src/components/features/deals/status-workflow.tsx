@@ -415,7 +415,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                           "inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3",
                           isCurrentStatus
                             ? `${colors.active} text-white`
-                            : "border border-input bg-background text-muted-foreground"
+                            : `border ${colors.border} bg-white/80 ${colors.text}`
                         )}
                       >
                         {CONTRACT_STATUS_LABELS[status] || status}
