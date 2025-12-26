@@ -335,46 +335,36 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            契約進捗（ステージ・ステップ）
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-xs">
-                  <p className="text-xs">各ステップにカーソルを合わせると詳細が表示されます</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">
+            ステージ：<span className={cn("font-bold", colors.text)}>{CONTRACT_STAGE_LABELS[currentStage] || currentStage}</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          {/* Stage Progress */}
-          <div className="flex items-center justify-between mb-6 overflow-x-auto">
+        <CardContent className="space-y-4">
+          {/* Stage Progress - 横長の進捗バー */}
+          <div className="flex items-center justify-between overflow-x-auto">
             {stageOrder.map((stage, index) => {
               const isCompleted = index < currentStageIndex;
               const isCurrent = index === currentStageIndex;
               const stageColor = stageColors[stage] || stageColors["商談中"];
 
               return (
-                <div key={stage} className="flex items-center flex-1 min-w-[80px]">
+                <div key={stage} className="flex items-center flex-1 min-w-[70px]">
                   <div className="flex flex-col items-center flex-1">
                     <div
                       className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center border-2",
+                        "w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all",
                         isCompleted && `${stageColor.active} border-transparent`,
-                        isCurrent && `${stageColor.bg} ${stageColor.border}`,
+                        isCurrent && `${stageColor.bg} ${stageColor.border} shadow-md`,
                         !isCompleted && !isCurrent && "bg-gray-100 border-gray-200"
                       )}
                     >
                       {isCompleted ? (
-                        <Check className="h-5 w-5 text-white" />
+                        <Check className="h-4 w-4 text-white" />
                       ) : (
                         <span
                           className={cn(
-                            "text-sm font-medium",
+                            "text-xs font-medium",
                             isCurrent ? stageColor.text : "text-gray-400"
                           )}
                         >
@@ -384,49 +374,56 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                     </div>
                     <span
                       className={cn(
-                        "mt-2 text-xs font-medium text-center",
-                        isCurrent ? stageColor.text : "text-gray-500"
+                        "mt-1 text-[10px] font-medium text-center leading-tight",
+                        isCurrent ? `${stageColor.text} font-bold` : "text-gray-400"
                       )}
                     >
                       {CONTRACT_STAGE_LABELS[stage] || stage}
                     </span>
                   </div>
                   {index < stageOrder.length - 1 && (
-                    <ChevronRight className="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" />
+                    <div className={cn(
+                      "h-0.5 flex-1 mx-1",
+                      index < currentStageIndex ? "bg-gray-400" : "bg-gray-200"
+                    )} />
                   )}
                 </div>
               );
             })}
           </div>
 
-          {/* Current Stage Steps */}
+          {/* Current Stage Steps - ステップ選択エリア（入れ子構造で表現） */}
           {currentStageSteps.length > 0 && (
-            <div className={cn("p-4 rounded-lg", colors.bg)}>
-              <h4 className={cn("text-sm font-medium mb-3", colors.text)}>
-                {CONTRACT_STAGE_LABELS[currentStage] || currentStage}のステップ
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {currentStageSteps.map((step) => {
+            <div className={cn("ml-4 pl-4 border-l-4", colors.border)}>
+              <div className="flex flex-wrap items-center gap-2">
+                {currentStageSteps.map((step, index) => {
                   const isCurrentStep = contract.step === step;
                   return (
-                    <StepTooltip key={step} step={step}>
-                      <Button
-                        variant={isCurrentStep ? "default" : "outline"}
-                        size="sm"
-                        disabled={loading || isCurrentStep}
-                        onClick={() => {
-                          if (!isCurrentStep) {
-                            openConfirmDialog(step);
-                          }
-                        }}
-                        className={cn(
-                          isCurrentStep && colors.active,
-                          "cursor-pointer"
-                        )}
-                      >
-                        {CONTRACT_STEP_LABELS[step] || step}
-                      </Button>
-                    </StepTooltip>
+                    <div key={step} className="flex items-center gap-1">
+                      <StepTooltip step={step}>
+                        <Button
+                          variant={isCurrentStep ? "default" : "ghost"}
+                          size="sm"
+                          disabled={loading || isCurrentStep}
+                          onClick={() => {
+                            if (!isCurrentStep) {
+                              openConfirmDialog(step);
+                            }
+                          }}
+                          className={cn(
+                            "h-8 px-3 text-sm",
+                            isCurrentStep && colors.active,
+                            isCurrentStep && "shadow-md font-bold",
+                            !isCurrentStep && "text-gray-500 hover:text-gray-900"
+                          )}
+                        >
+                          {CONTRACT_STEP_LABELS[step] || step}
+                        </Button>
+                      </StepTooltip>
+                      {index < currentStageSteps.length - 1 && (
+                        <ChevronRight className="h-4 w-4 text-gray-300" />
+                      )}
+                    </div>
                   );
                 })}
               </div>
