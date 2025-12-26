@@ -217,10 +217,41 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
     router.refresh();
   };
 
-  // インライン更新用の関数
+  // ユーザーIDからユーザー名を取得するヘルパー
+  const getUserName = (userId: string | null | undefined) =>
+    users.find((u) => u.id === userId)?.name || "不明";
+
+  // インライン更新用の関数（履歴記録付き）
   const handleInlineUpdate = async (taskId: string, field: string, value: string | null) => {
     const supabase = createClient();
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
     await supabase.from("tasks").update({ [field]: value }).eq("id", taskId);
+
+    // 履歴を記録（担当者変更の場合はユーザー名で記録）
+    if (field === "assigned_user_id") {
+      await recordUpdate(
+        supabase,
+        "task",
+        taskId,
+        currentUserId || null,
+        { assigned_user_name: getUserName(task.assigned_user_id) },
+        { assigned_user_name: getUserName(value) },
+        ["assigned_user_name"]
+      );
+    } else {
+      await recordUpdate(
+        supabase,
+        "task",
+        taskId,
+        currentUserId || null,
+        { [field]: task[field as keyof Task] },
+        { [field]: value },
+        [field]
+      );
+    }
+
     router.refresh();
   };
 

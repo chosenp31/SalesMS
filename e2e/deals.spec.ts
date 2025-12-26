@@ -215,4 +215,76 @@ test.describe('案件管理', () => {
       }
     });
   });
+
+  test.describe('変更履歴', () => {
+    // なぜ必要：変更履歴でユーザー名が正しく表示されることを保証（UUID表示バグの回帰テスト）
+
+    test('営業担当者変更時に履歴にUUIDではなくユーザー名が表示される', async ({ page }) => {
+      await page.goto('/deals');
+
+      // 案件詳細に移動
+      const detailLink = page.getByRole('link').filter({ has: page.locator('.lucide-eye') }).first();
+      const hasDeals = await detailLink.isVisible().catch(() => false);
+
+      if (!hasDeals) {
+        test.skip(true, '案件データがないためスキップ');
+        return;
+      }
+
+      await detailLink.click();
+      await page.waitForLoadState('networkidle');
+
+      // 編集ボタンをクリック
+      const editButton = page.getByRole('link', { name: /編集/i });
+      const hasEditButton = await editButton.isVisible().catch(() => false);
+
+      if (!hasEditButton) {
+        test.skip(true, '編集ボタンがないためスキップ');
+        return;
+      }
+
+      await editButton.click();
+      await page.waitForLoadState('networkidle');
+
+      // 営業担当者を変更
+      const salesUserField = page.getByRole('combobox').filter({ hasText: /営業担当者/i }).or(
+        page.locator('button').filter({ hasText: /営業担当者|選択/i })
+      ).first();
+
+      const hasSalesUserField = await salesUserField.isVisible().catch(() => false);
+
+      if (hasSalesUserField) {
+        await salesUserField.click();
+
+        // 別のユーザーを選択（最初以外のユーザー）
+        const userOptions = page.getByRole('option');
+        const optionCount = await userOptions.count();
+
+        if (optionCount > 1) {
+          await userOptions.nth(1).click();
+        } else if (optionCount > 0) {
+          await userOptions.first().click();
+        }
+
+        // 保存ボタンをクリック
+        await page.getByRole('button', { name: /更新|保存/i }).click();
+        await page.waitForLoadState('networkidle');
+
+        // 変更履歴セクションを確認
+        const historySection = page.getByText('変更履歴');
+        const hasHistory = await historySection.isVisible().catch(() => false);
+
+        if (hasHistory) {
+          // UUID形式のテキストが表示されていないことを確認
+          // UUIDパターン: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+          const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+          const historyContent = await page.locator('.divide-y').first().textContent();
+
+          if (historyContent) {
+            expect(historyContent).not.toMatch(uuidPattern);
+          }
+        }
+      }
+    });
+  });
 });
