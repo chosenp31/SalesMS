@@ -14,11 +14,11 @@ interface DashboardShellProps {
 export function DashboardShell({ children, user }: DashboardShellProps) {
   return (
     <MobileSidebarProvider>
-      <div className="flex min-h-screen bg-gray-100">
+      <div className="flex flex-1 bg-gray-100">
         <Sidebar />
-        <div className="flex-1 flex flex-col min-h-screen">
+        <div className="flex-1 flex flex-col">
           <Header user={user} />
-          <main className="flex-1 p-4 md:p-6 bg-gray-100">{children}</main>
+          <main className="flex-1 p-4 md:p-6">{children}</main>
         </div>
       </div>
     </MobileSidebarProvider>
