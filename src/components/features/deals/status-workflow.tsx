@@ -289,7 +289,7 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                     <div
                       className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center border-2",
-                        isCompleted && `${stageColor.active} border-transparent`,
+                        isCompleted && "bg-green-500 border-transparent",
                         isCurrent && `${stageColor.bg} ${stageColor.border}`,
                         !isCompleted && !isCurrent && "bg-gray-100 border-gray-200"
                       )}
