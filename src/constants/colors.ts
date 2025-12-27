@@ -4,22 +4,22 @@
 
 /**
  * 契約ステージのカラー定義
- * Badge表示用（bg/text/border形式）- ステップより濃い色
+ * Badge表示用（bg/text/border形式）- 濃い塗りつぶし＋白文字で目立たせる
  */
 export const stageColors: Record<string, string> = {
-  商談中: "bg-blue-200 text-blue-800 border-blue-300",
-  "審査・申込中": "bg-yellow-200 text-yellow-800 border-yellow-300",
-  "下見・工事中": "bg-purple-200 text-purple-800 border-purple-300",
-  契約中: "bg-indigo-200 text-indigo-800 border-indigo-300",
-  入金中: "bg-green-200 text-green-800 border-green-300",
-  請求中: "bg-teal-200 text-teal-800 border-teal-300",
-  完了: "bg-gray-200 text-gray-800 border-gray-300",
-  否決: "bg-red-200 text-red-800 border-red-300",
+  商談中: "bg-blue-500 text-white border-blue-500",
+  "審査・申込中": "bg-yellow-500 text-white border-yellow-500",
+  "下見・工事中": "bg-purple-500 text-white border-purple-500",
+  契約中: "bg-indigo-500 text-white border-indigo-500",
+  入金中: "bg-green-500 text-white border-green-500",
+  請求中: "bg-teal-500 text-white border-teal-500",
+  完了: "bg-gray-500 text-white border-gray-500",
+  否決: "bg-red-500 text-white border-red-500",
   // 旧ステージ（後方互換性）
-  審査中: "bg-yellow-200 text-yellow-800 border-yellow-300",
-  工事中: "bg-purple-200 text-purple-800 border-purple-300",
-  失注: "bg-red-200 text-red-800 border-red-300",
-  クローズ: "bg-gray-200 text-gray-800 border-gray-300",
+  審査中: "bg-yellow-500 text-white border-yellow-500",
+  工事中: "bg-purple-500 text-white border-purple-500",
+  失注: "bg-red-500 text-white border-red-500",
+  クローズ: "bg-gray-500 text-white border-gray-500",
 };
 
 /**
@@ -70,17 +70,17 @@ export const stepColors: Record<string, string> = {
  * ステージとステップの両方に対応（後方互換性）
  */
 export const dealStepColors: Record<string, string> = {
-  // ステップ
+  // ステップ（控えめ：白背景＋枠線）
   ...stepColors,
-  // ステージ（後方互換性）- ステージはステップより濃い色
-  商談中: "bg-blue-200 text-blue-800 border-blue-300",
-  "審査・申込中": "bg-yellow-200 text-yellow-800 border-yellow-300",
-  "下見・工事中": "bg-purple-200 text-purple-800 border-purple-300",
-  契約中: "bg-indigo-200 text-indigo-800 border-indigo-300",
-  入金中: "bg-green-200 text-green-800 border-green-300",
-  請求中: "bg-teal-200 text-teal-800 border-teal-300",
-  完了: "bg-gray-200 text-gray-800 border-gray-300",
-  否決: "bg-red-200 text-red-800 border-red-300",
+  // ステージ（目立つ：濃い塗りつぶし＋白文字）
+  商談中: "bg-blue-500 text-white border-blue-500",
+  "審査・申込中": "bg-yellow-500 text-white border-yellow-500",
+  "下見・工事中": "bg-purple-500 text-white border-purple-500",
+  契約中: "bg-indigo-500 text-white border-indigo-500",
+  入金中: "bg-green-500 text-white border-green-500",
+  請求中: "bg-teal-500 text-white border-teal-500",
+  完了: "bg-gray-500 text-white border-gray-500",
+  否決: "bg-red-500 text-white border-red-500",
 };
 
 /**
