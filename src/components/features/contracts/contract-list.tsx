@@ -422,7 +422,6 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                   </TableCell>
                   <TableCell className="py-2">
                     <Badge
-                      variant="outline"
                       className={cn("border text-xs px-1.5 py-0", stageColors[contract.stage])}
                     >
                       {CONTRACT_STAGE_LABELS[contract.stage]}
