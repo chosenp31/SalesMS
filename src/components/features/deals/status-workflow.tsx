@@ -31,17 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, ChevronLeft, ChevronDown, Info } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
-} from "@/components/ui/dropdown-menu";
+import { Check, ChevronRight, ChevronLeft, Info } from "lucide-react";
 import { workflowStageColors } from "@/constants/colors";
 
 // StatusWorkflowが必要とする最小限の契約情報
@@ -283,21 +273,21 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            契約ステータス
+            契約ステージ
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Info className="h-4 w-4 text-gray-400 cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-xs">
-                  <p className="text-xs">各ステータスにカーソルを合わせると詳細が表示されます</p>
+                  <p className="text-xs">各ステージにカーソルを合わせると詳細が表示されます</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Stage Progress - モックアップ準拠 */}
+          {/* Stage Progress - 各ステージ固有の色を使用 */}
           <div className="flex items-center justify-between mb-6 overflow-x-auto">
             {stageOrder.map((stage, index) => {
               const isCompleted = index < currentStageIndex;
@@ -310,11 +300,11 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                     <div
                       className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all",
-                        // 完了: 緑背景＋白チェック
-                        isCompleted && "bg-green-500 border-green-500",
-                        // 現在: ティール背景＋白数字
-                        isCurrent && "bg-teal-500 border-teal-500 shadow-md",
-                        // 未来: 各ステージ色の枠線のみ（塗りなし）
+                        // 完了: グレー（控えめ）＋白チェック
+                        isCompleted && "bg-gray-400 border-gray-400",
+                        // 現在: 各ステージ固有の色（濃い）＋白数字
+                        isCurrent && `${stageColor.active} ${stageColor.border} shadow-md`,
+                        // 未来: 白背景＋各ステージ色の枠線
                         !isCompleted && !isCurrent && `bg-white ${stageColor.border}`
                       )}
                     >
@@ -333,20 +323,20 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                     <span
                       className={cn(
                         "mt-2 text-xs font-medium text-center",
-                        isCompleted && "text-green-600",
-                        isCurrent && "text-teal-600 font-bold",
+                        isCompleted && "text-gray-500",
+                        isCurrent && `${stageColor.text} font-bold`,
                         !isCompleted && !isCurrent && stageColor.text
                       )}
                     >
                       {CONTRACT_STAGE_LABELS[stage] || stage}
                     </span>
                   </div>
-                  {/* 進捗ライン */}
+                  {/* 進捗ライン - 完了はグレー、それ以外はグレー */}
                   {index < stageOrder.length - 1 && (
                     <div
                       className={cn(
                         "h-1 flex-1 mx-2 rounded-full min-w-[20px]",
-                        index < currentStageIndex ? "bg-green-500" : "bg-gray-200"
+                        index < currentStageIndex ? "bg-gray-400" : "bg-gray-200"
                       )}
                     />
                   )}
@@ -355,105 +345,114 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
             })}
           </div>
 
-          {/* Current Stage Steps - ティール系で統一 */}
-          {currentStageSteps.length > 0 && (
-            <div className="p-4 rounded-lg bg-teal-50">
-              <h4 className="text-sm font-medium mb-3 text-teal-700">
-                {CONTRACT_STAGE_LABELS[currentStage] || currentStage}のステップ
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {currentStageSteps.map((step) => {
-                  const isCurrentStep = contract.step === step;
-                  return (
-                    <StepTooltip key={step} step={step}>
-                      <div
-                        className={cn(
-                          "inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3",
-                          isCurrentStep
-                            ? "bg-teal-500 text-white shadow-sm"
-                            : "bg-white border border-teal-300 text-teal-700"
-                        )}
-                      >
-                        {CONTRACT_STEP_LABELS[step] || step}
-                      </div>
-                    </StepTooltip>
-                  );
-                })}
+          {/* Current Stage Steps - 現在のステージの色を使用 */}
+          {currentStageSteps.length > 0 && (() => {
+            const currentColor = workflowStageColors[currentStage] || workflowStageColors["商談中"];
+            return (
+              <div className={cn("p-4 rounded-lg", currentColor.bgLight)}>
+                <h4 className={cn("text-sm font-medium mb-3", currentColor.text)}>
+                  {CONTRACT_STAGE_LABELS[currentStage] || currentStage}のステップ
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {currentStageSteps.map((step) => {
+                    const isCurrentStep = contract.step === step;
+                    return (
+                      <StepTooltip key={step} step={step}>
+                        <div
+                          className={cn(
+                            "inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3",
+                            isCurrentStep
+                              ? `${currentColor.active} text-white shadow-sm`
+                              : `bg-white border ${currentColor.border} ${currentColor.text}`
+                          )}
+                        >
+                          {CONTRACT_STEP_LABELS[step] || step}
+                        </div>
+                      </StepTooltip>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ステップを移動 - 前/次のボタンを横並びで表示 */}
-          {(previousStep || (nextStep && currentStage !== "請求中")) && (
-            <div className="mt-4 pt-4 border-t">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">ステップを移動</h4>
-              <div className="flex gap-3">
-                {/* 前に戻るボタン */}
-                {previousStep && (
-                  <StepTooltip step={previousStep}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={loading}
-                      onClick={() => openConfirmDialog(previousStep)}
-                      className="text-teal-600 border-teal-300 hover:bg-teal-50"
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      {CONTRACT_STEP_LABELS[previousStep] || previousStep}に戻る
-                    </Button>
-                  </StepTooltip>
-                )}
-                {/* 次に進むボタン */}
-                {nextStep && currentStage !== "請求中" && (
-                  <StepTooltip step={nextStep}>
-                    <Button
-                      size="sm"
-                      disabled={loading}
-                      onClick={() => openConfirmDialog(nextStep)}
-                      className="bg-teal-500 text-white hover:bg-teal-600"
-                    >
-                      {CONTRACT_STEP_LABELS[nextStep] || nextStep}に進む
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </StepTooltip>
-                )}
+          {(previousStep || (nextStep && currentStage !== "請求中")) && (() => {
+            const currentColor = workflowStageColors[currentStage] || workflowStageColors["商談中"];
+            return (
+              <div className="mt-4 pt-4 border-t">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">ステップを移動</h4>
+                <div className="flex gap-3">
+                  {/* 前に戻るボタン */}
+                  {previousStep && (
+                    <StepTooltip step={previousStep}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={loading}
+                        onClick={() => openConfirmDialog(previousStep)}
+                        className={cn(currentColor.text, currentColor.border, currentColor.bgLight.replace("bg-", "hover:bg-"))}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        {CONTRACT_STEP_LABELS[previousStep] || previousStep}に戻る
+                      </Button>
+                    </StepTooltip>
+                  )}
+                  {/* 次に進むボタン */}
+                  {nextStep && currentStage !== "請求中" && (
+                    <StepTooltip step={nextStep}>
+                      <Button
+                        size="sm"
+                        disabled={loading}
+                        onClick={() => openConfirmDialog(nextStep)}
+                        className={cn(currentColor.active, "text-white hover:opacity-90")}
+                      >
+                        {CONTRACT_STEP_LABELS[nextStep] || nextStep}に進む
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </StepTooltip>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* 請求中ステージ → 完了への遷移 */}
-          {currentStage === "請求中" && (
-            <div className="mt-4 pt-4 border-t">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">ステップを移動</h4>
-              <div className="flex gap-3">
-                {previousStep && (
-                  <StepTooltip step={previousStep}>
+          {currentStage === "請求中" && (() => {
+            const currentColor = workflowStageColors[currentStage] || workflowStageColors["商談中"];
+            return (
+              <div className="mt-4 pt-4 border-t">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">ステップを移動</h4>
+                <div className="flex gap-3">
+                  {previousStep && (
+                    <StepTooltip step={previousStep}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={loading}
+                        onClick={() => openConfirmDialog(previousStep)}
+                        className={cn(currentColor.text, currentColor.border, currentColor.bgLight.replace("bg-", "hover:bg-"))}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        {CONTRACT_STEP_LABELS[previousStep] || previousStep}に戻る
+                      </Button>
+                    </StepTooltip>
+                  )}
+                  <StepTooltip step="クローズ">
                     <Button
-                      variant="outline"
                       size="sm"
-                      disabled={loading}
-                      onClick={() => openConfirmDialog(previousStep)}
-                      className="text-teal-600 border-teal-300 hover:bg-teal-50"
+                      disabled={loading || contract.step === "クローズ"}
+                      onClick={() => openConfirmDialog("クローズ")}
+                      className={cn(currentColor.active, "text-white hover:opacity-90")}
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      {CONTRACT_STEP_LABELS[previousStep] || previousStep}に戻る
+                      <Check className="h-4 w-4 mr-1" />
+                      案件を完了する
                     </Button>
                   </StepTooltip>
-                )}
-                <StepTooltip step="クローズ">
-                  <Button
-                    size="sm"
-                    disabled={loading || contract.step === "クローズ"}
-                    onClick={() => openConfirmDialog("クローズ")}
-                    className="bg-teal-500 text-white hover:bg-teal-600"
-                  >
-                    <Check className="h-4 w-4 mr-1" />
-                    案件を完了する
-                  </Button>
-                </StepTooltip>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* 案件を終了する場合 */}
           <div className="mt-4 pt-4 border-t">
@@ -483,66 +482,6 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
             </div>
           </div>
 
-          {/* 詳細なステップ選択 - ドロップダウン */}
-          <div className="mt-4 pt-4 border-t">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={loading}
-                  className="text-gray-600"
-                >
-                  他のステップを選択
-                  <ChevronDown className="h-4 w-4 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                {stageOrder.map((stage) => {
-                  const stageSteps = STAGE_STEPS[stage];
-                  if (!stageSteps || stageSteps.length === 0) return null;
-                  const stageColor = workflowStageColors[stage] || workflowStageColors["商談中"];
-                  const isCurrentStage = stage === currentStage;
-
-                  return (
-                    <DropdownMenuSub key={stage}>
-                      <DropdownMenuSubTrigger
-                        className={cn(
-                          "cursor-pointer",
-                          isCurrentStage && "font-medium"
-                        )}
-                      >
-                        <span className={cn("mr-2", stageColor.text)}>●</span>
-                        {CONTRACT_STAGE_LABELS[stage] || stage}
-                        {isCurrentStage && <span className="text-xs text-gray-400 ml-auto">現在</span>}
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                          {stageSteps.map((step) => {
-                            const isCurrentStep = contract.step === step;
-                            return (
-                              <DropdownMenuItem
-                                key={step}
-                                onClick={() => !isCurrentStep && openConfirmDialog(step)}
-                                disabled={isCurrentStep}
-                                className={cn(
-                                  "cursor-pointer",
-                                  isCurrentStep && "bg-teal-50 font-medium"
-                                )}
-                              >
-                                {CONTRACT_STEP_LABELS[step] || step}
-                                {isCurrentStep && <span className="text-xs text-gray-400 ml-auto">現在</span>}
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
         </CardContent>
       </Card>
 

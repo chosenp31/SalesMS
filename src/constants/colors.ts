@@ -85,83 +85,96 @@ export const dealStepColors: Record<string, string> = {
 
 /**
  * StatusWorkflow用のステージカラー
- * ワークフロー表示用（bg/border/text/active形式）
- * - bg: 現在のステージの丸の背景
- * - active: 現在のステップボタンの背景
+ * ワークフロー表示用（bg/border/text/active/bgLight形式）
+ * - bg: ステージの丸の背景（薄め）
+ * - active: 現在のステップボタンの背景（濃い）
+ * - bgLight: ステップセクションの背景（最も薄い）
  */
-export const workflowStageColors: Record<string, { bg: string; border: string; text: string; active: string }> = {
+export const workflowStageColors: Record<string, { bg: string; border: string; text: string; active: string; bgLight: string }> = {
   商談中: {
     bg: "bg-blue-200",
-    border: "border-blue-300",
-    text: "text-blue-800",
+    border: "border-blue-500",
+    text: "text-blue-700",
     active: "bg-blue-500",
+    bgLight: "bg-blue-50",
   },
   "審査・申込中": {
     bg: "bg-yellow-200",
-    border: "border-yellow-300",
-    text: "text-yellow-800",
+    border: "border-yellow-500",
+    text: "text-yellow-700",
     active: "bg-yellow-500",
+    bgLight: "bg-yellow-50",
   },
   "下見・工事中": {
     bg: "bg-purple-200",
-    border: "border-purple-300",
-    text: "text-purple-800",
+    border: "border-purple-500",
+    text: "text-purple-700",
     active: "bg-purple-500",
+    bgLight: "bg-purple-50",
   },
   契約中: {
     bg: "bg-indigo-200",
-    border: "border-indigo-300",
-    text: "text-indigo-800",
+    border: "border-indigo-500",
+    text: "text-indigo-700",
     active: "bg-indigo-500",
+    bgLight: "bg-indigo-50",
   },
   入金中: {
     bg: "bg-green-200",
-    border: "border-green-300",
-    text: "text-green-800",
+    border: "border-green-500",
+    text: "text-green-700",
     active: "bg-green-500",
+    bgLight: "bg-green-50",
   },
   請求中: {
     bg: "bg-teal-200",
-    border: "border-teal-300",
-    text: "text-teal-800",
+    border: "border-teal-500",
+    text: "text-teal-700",
     active: "bg-teal-500",
+    bgLight: "bg-teal-50",
   },
   完了: {
     bg: "bg-gray-200",
-    border: "border-gray-300",
-    text: "text-gray-800",
+    border: "border-gray-500",
+    text: "text-gray-700",
     active: "bg-gray-500",
+    bgLight: "bg-gray-50",
   },
   否決: {
     bg: "bg-red-200",
-    border: "border-red-300",
-    text: "text-red-800",
+    border: "border-red-500",
+    text: "text-red-700",
     active: "bg-red-500",
+    bgLight: "bg-red-50",
   },
   // 旧ステージ（後方互換性）
   審査中: {
     bg: "bg-yellow-200",
-    border: "border-yellow-300",
-    text: "text-yellow-800",
+    border: "border-yellow-500",
+    text: "text-yellow-700",
     active: "bg-yellow-500",
+    bgLight: "bg-yellow-50",
   },
   工事中: {
     bg: "bg-purple-200",
-    border: "border-purple-300",
-    text: "text-purple-800",
+    border: "border-purple-500",
+    text: "text-purple-700",
     active: "bg-purple-500",
+    bgLight: "bg-purple-50",
   },
   失注: {
     bg: "bg-red-200",
-    border: "border-red-300",
-    text: "text-red-800",
+    border: "border-red-500",
+    text: "text-red-700",
     active: "bg-red-500",
+    bgLight: "bg-red-50",
   },
   クローズ: {
     bg: "bg-gray-200",
-    border: "border-gray-300",
-    text: "text-gray-800",
+    border: "border-gray-500",
+    text: "text-gray-700",
     active: "bg-gray-500",
+    bgLight: "bg-gray-50",
   },
 };
 
