@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
 import { Eye, Plus, Trash2, Loader2 } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -110,6 +111,14 @@ export function CustomerDetail({ customer, deals, currentUserId, isAdmin = false
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "顧客管理", href: "/customers" },
+          { label: customer.company_name },
+        ]}
+      />
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>基本情報</CardTitle>

@@ -30,7 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trash2, Loader2, ChevronDown } from "lucide-react";
+import { Trash2, Loader2, ChevronDown, FileText } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,9 +65,32 @@ export function DealDetail({ deal, currentUserId, isAdmin = false }: DealDetailP
   const { toast } = useToast();
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
 
   const hasContracts = (deal.contracts?.length || 0) > 0;
   const canDelete = isAdmin && !hasContracts;
+
+  // 確認が必要なステータス変更かどうかを判定
+  const requiresConfirmation = (status: string) => {
+    return status === "won" || status === "lost";
+  };
+
+  const handleStatusClick = (newStatus: string) => {
+    if (newStatus === deal.status) return;
+
+    if (requiresConfirmation(newStatus)) {
+      setPendingStatusChange(newStatus);
+    } else {
+      handleStatusChange(newStatus);
+    }
+  };
+
+  const confirmStatusChange = () => {
+    if (pendingStatusChange) {
+      handleStatusChange(pendingStatusChange);
+      setPendingStatusChange(null);
+    }
+  };
 
   const handleDeleteClick = () => {
     if (!isAdmin) {
@@ -189,6 +213,14 @@ export function DealDetail({ deal, currentUserId, isAdmin = false }: DealDetailP
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "案件管理", href: "/deals" },
+          { label: deal.title },
+        ]}
+      />
+
       <div className="space-y-6">
         {/* Deal Information */}
         <div className="space-y-6">
@@ -296,7 +328,7 @@ export function DealDetail({ deal, currentUserId, isAdmin = false }: DealDetailP
                         {Object.entries(DEAL_STATUS_LABELS).map(([value, label]) => (
                           <DropdownMenuItem
                             key={value}
-                            onClick={() => handleStatusChange(value)}
+                            onClick={() => handleStatusClick(value)}
                             className={cn(
                               "cursor-pointer",
                               deal.status === value && "bg-blue-50 font-medium"
@@ -313,6 +345,33 @@ export function DealDetail({ deal, currentUserId, isAdmin = false }: DealDetailP
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
+
+                    {/* ステータス変更確認ダイアログ */}
+                    <AlertDialog open={!!pendingStatusChange} onOpenChange={(open) => !open && setPendingStatusChange(null)}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            {pendingStatusChange === "won" ? "案件を成約にしますか？" : "案件を失注にしますか？"}
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {pendingStatusChange === "won" ? (
+                              <>「{deal.title}」を成約としてクローズします。この操作は案件の最終ステータスとなります。</>
+                            ) : (
+                              <>「{deal.title}」を失注としてクローズします。この操作は案件の最終ステータスとなります。</>
+                            )}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={confirmStatusChange}
+                            className={pendingStatusChange === "lost" ? "bg-red-600 hover:bg-red-700" : ""}
+                          >
+                            {pendingStatusChange === "won" ? "成約にする" : "失注にする"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </dd>
                 </div>
                 <div>
@@ -375,9 +434,11 @@ export function DealDetail({ deal, currentUserId, isAdmin = false }: DealDetailP
             </CardHeader>
             <CardContent>
               {!deal.contracts || deal.contracts.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">
-                  契約がまだ登録されていません
-                </p>
+                <div className="text-center py-6">
+                  <FileText className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                  <p className="text-sm text-gray-500 mb-1">契約がまだ登録されていません</p>
+                  <p className="text-xs text-gray-400">右上の「契約追加」ボタンから追加できます</p>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>

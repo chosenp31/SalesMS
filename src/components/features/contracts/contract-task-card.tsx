@@ -36,6 +36,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -395,6 +405,7 @@ export function ContractTaskCard({
   currentUserId,
 }: ContractTaskCardProps) {
   const router = useRouter();
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   // この契約に紐づくタスクのみフィルタ
   const contractTasks = tasks.filter((task) => task.contract_id === contract.id);
@@ -407,11 +418,16 @@ export function ContractTaskCard({
     router.refresh();
   };
 
-  const handleDelete = async (taskId: string) => {
-    if (!confirm("このタスクを削除しますか？")) return;
+  const handleDeleteClick = (taskId: string) => {
+    setDeleteTargetId(taskId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
 
     const supabase = createClient();
-    await supabase.from("tasks").delete().eq("id", taskId);
+    await supabase.from("tasks").delete().eq("id", deleteTargetId);
+    setDeleteTargetId(null);
     router.refresh();
   };
 
@@ -444,9 +460,11 @@ export function ContractTaskCard({
       </CardHeader>
       <CardContent className="p-0">
         {contractTasks.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-4">
-            タスクがありません
-          </p>
+          <div className="text-center py-6">
+            <CheckSquare className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+            <p className="text-sm text-gray-500 mb-1">タスクがありません</p>
+            <p className="text-xs text-gray-400">上の「タスク追加」ボタンから追加できます</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -532,7 +550,7 @@ export function ContractTaskCard({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(task.id)}
+                        onClick={() => handleDeleteClick(task.id)}
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
@@ -544,6 +562,24 @@ export function ContractTaskCard({
           </div>
         )}
       </CardContent>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>タスクを削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              このタスクを削除します。この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              削除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

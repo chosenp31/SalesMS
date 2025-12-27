@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/column-filter-header";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, FileText, Search, X } from "lucide-react";
+import { Eye, Pencil, FileText, Search, X, Plus } from "lucide-react";
 import { cn, formatDealId } from "@/lib/utils";
 import { dealStepColors } from "@/constants/colors";
 
@@ -210,7 +210,17 @@ export function DealList({ deals }: DealListProps) {
   if (deals.length === 0) {
     return (
       <div className="bg-white rounded-lg border p-8 text-center">
-        <p className="text-gray-500">案件がまだ登録されていません</p>
+        <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+        <p className="text-gray-500 mb-2">案件がまだ登録されていません</p>
+        <p className="text-sm text-gray-400 mb-4">
+          新規案件を作成して営業活動を開始しましょう
+        </p>
+        <Button asChild>
+          <Link href="/deals/new">
+            <Plus className="h-4 w-4 mr-2" />
+            新規案件を作成
+          </Link>
+        </Button>
       </div>
     );
   }

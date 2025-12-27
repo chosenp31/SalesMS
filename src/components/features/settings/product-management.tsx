@@ -26,6 +26,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit2, Package, Trash2 } from "lucide-react";
@@ -59,6 +69,7 @@ export function ProductManagement({ products, isAdmin }: ProductManagementProps)
   });
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<ContractType>("property");
+  const [deleteTarget, setDeleteTarget] = useState<ProductMaster | null>(null);
 
   const openNewDialog = (contractType: ContractType) => {
     const maxOrder = Math.max(
@@ -157,21 +168,25 @@ export function ProductManagement({ products, isAdmin }: ProductManagementProps)
     }
   };
 
-  const handleDelete = async (product: ProductMaster) => {
-    if (!confirm(`「${product.name}」を削除しますか？`)) return;
+  const handleDeleteClick = (product: ProductMaster) => {
+    setDeleteTarget(product);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
       const supabase = createClient();
       const { error } = await supabase
         .from("product_master")
         .delete()
-        .eq("id", product.id);
+        .eq("id", deleteTarget.id);
 
       if (error) throw error;
 
       toast({
         title: "商材を削除しました",
-        description: `${product.name}を削除しました`,
+        description: `${deleteTarget.name}を削除しました`,
       });
       router.refresh();
     } catch (err) {
@@ -180,6 +195,8 @@ export function ProductManagement({ products, isAdmin }: ProductManagementProps)
         description: err instanceof Error ? err.message : "削除中にエラーが発生しました",
         variant: "destructive",
       });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -276,7 +293,7 @@ export function ProductManagement({ products, isAdmin }: ProductManagementProps)
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDelete(product)}
+                                onClick={() => handleDeleteClick(product)}
                               >
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
@@ -384,6 +401,24 @@ export function ProductManagement({ products, isAdmin }: ProductManagementProps)
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>商材を削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{deleteTarget?.name}」を削除します。この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              削除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

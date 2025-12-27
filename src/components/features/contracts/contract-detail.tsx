@@ -30,6 +30,7 @@ import { ContractTaskCard } from "./contract-task-card";
 import { ActivityForm } from "../activities/activity-form";
 import { ActivityList } from "../activities/activity-list";
 import { CreditCard, FileText, ExternalLink, Trash2, Loader2, MessageCircle } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { formatDealId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -170,6 +171,14 @@ export function ContractDetail({
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "契約管理", href: "/contracts" },
+          { label: contract.title || "契約詳細" },
+        ]}
+      />
+
       {/* Status Workflow */}
       <StatusWorkflow contract={contract} currentUserId={currentUserId} />
 

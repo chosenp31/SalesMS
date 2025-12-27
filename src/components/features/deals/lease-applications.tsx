@@ -21,6 +21,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -257,12 +267,18 @@ export function LeaseApplications({
   applications,
 }: LeaseApplicationsProps) {
   const router = useRouter();
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
-  const handleDelete = async (applicationId: string) => {
-    if (!confirm("この審査申請を削除しますか？")) return;
+  const handleDeleteClick = (applicationId: string) => {
+    setDeleteTargetId(applicationId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
 
     const supabase = createClient();
-    await supabase.from("lease_applications").delete().eq("id", applicationId);
+    await supabase.from("lease_applications").delete().eq("id", deleteTargetId);
+    setDeleteTargetId(null);
     router.refresh();
   };
 
@@ -340,7 +356,7 @@ export function LeaseApplications({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(app.id)}
+                    onClick={() => handleDeleteClick(app.id)}
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
@@ -350,6 +366,24 @@ export function LeaseApplications({
           </div>
         )}
       </CardContent>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>審査申請を削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              この審査申請を削除します。この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              削除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

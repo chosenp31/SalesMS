@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Customer } from "@/types";
 import { BUSINESS_TYPE_LABELS } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
+import { useUnsavedChangesWarning } from "@/lib/hooks/use-unsaved-changes-warning";
 import { recordCreate, recordUpdate } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const customerSchema = z.object({
   company_name: z.string().min(1, "会社名は必須です"),
@@ -73,6 +84,14 @@ export function CustomerForm({ customer, currentUserId }: CustomerFormProps) {
       address: customer?.address || "",
     },
   });
+
+  // 未保存変更の警告
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    confirmNavigation,
+    cancelNavigation,
+  } = useUnsavedChangesWarning({ isDirty: form.formState.isDirty });
 
   const onSubmit = async (data: CustomerFormValues) => {
     setLoading(true);
@@ -151,6 +170,7 @@ export function CustomerForm({ customer, currentUserId }: CustomerFormProps) {
   };
 
   return (
+    <>
     <Card>
       <CardContent className="pt-6">
         {error && (
@@ -280,5 +300,26 @@ export function CustomerForm({ customer, currentUserId }: CustomerFormProps) {
         </Form>
       </CardContent>
     </Card>
+
+    {/* 未保存変更の警告ダイアログ */}
+    <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>保存されていない変更があります</AlertDialogTitle>
+          <AlertDialogDescription>
+            このページを離れると、入力した内容が失われます。本当に離れますか？
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={cancelNavigation}>
+            このページに留まる
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={confirmNavigation}>
+            変更を破棄して離れる
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

@@ -19,6 +19,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   SearchFilterBar,
   FilterOption,
   ActiveFilter,
@@ -61,6 +71,7 @@ export function TaskList({ tasks, users, deals, currentUserId, isAdmin = false, 
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [sortField, setSortField] = useState<SortField>("due_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   // Filter options
   const filterOptions: FilterOption[] = [
@@ -209,7 +220,7 @@ export function TaskList({ tasks, users, deals, currentUserId, isAdmin = false, 
     router.refresh();
   };
 
-  const handleDelete = async (taskId: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
     if (!isAdmin) {
@@ -221,14 +232,19 @@ export function TaskList({ tasks, users, deals, currentUserId, isAdmin = false, 
       return;
     }
 
-    if (!confirm("このタスクを削除しますか？")) return;
+    setDeleteTargetId(taskId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
 
     const supabase = createClient();
 
     // 削除前に履歴を記録
-    await recordDelete(supabase, "task", taskId, currentUserId || null);
+    await recordDelete(supabase, "task", deleteTargetId, currentUserId || null);
 
-    await supabase.from("tasks").delete().eq("id", taskId);
+    await supabase.from("tasks").delete().eq("id", deleteTargetId);
+    setDeleteTargetId(null);
     router.refresh();
   };
 
@@ -373,7 +389,15 @@ export function TaskList({ tasks, users, deals, currentUserId, isAdmin = false, 
     return (
       <div className="bg-white rounded-lg border p-8 text-center">
         <CheckSquare className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-        <p className="text-gray-500">タスクがまだ登録されていません</p>
+        <p className="text-gray-500 mb-2">タスクがまだ登録されていません</p>
+        <p className="text-sm text-gray-400 mb-4">
+          契約詳細画面からタスクを追加できます
+        </p>
+        <Button variant="outline" asChild>
+          <Link href="/contracts">
+            契約一覧を見る
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -683,7 +707,7 @@ export function TaskList({ tasks, users, deals, currentUserId, isAdmin = false, 
                           size="sm"
                           className="h-7 w-7 p-0"
                           disabled={!isAdmin}
-                          onClick={(e) => handleDelete(task.id, e)}
+                          onClick={(e) => handleDeleteClick(task.id, e)}
                         >
                           <Trash2 className={cn("h-3.5 w-3.5", isAdmin ? "text-red-500" : "text-gray-300")} />
                         </Button>
@@ -701,6 +725,24 @@ export function TaskList({ tasks, users, deals, currentUserId, isAdmin = false, 
           </div>
         )}
       </div>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>タスクを削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              このタスクを削除します。この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              削除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

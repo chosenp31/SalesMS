@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn, formatDealId, formatContractId } from "@/lib/utils";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/lib/hooks/use-toast";
 import { recordDelete } from "@/lib/history";
@@ -102,13 +103,13 @@ export function TaskDetail({ task, users, currentUserId, isAdmin = false }: Task
 
   return (
     <div className="space-y-6">
-      {/* 戻るボタン */}
-      <Button variant="ghost" size="sm" asChild>
-        <Link href="/tasks">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          タスク一覧に戻る
-        </Link>
-      </Button>
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "タスク", href: "/tasks" },
+          { label: task.title },
+        ]}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* メイン情報 */}

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/search-filter-bar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, ChevronUp, ChevronDown, Building2, Phone, Mail } from "lucide-react";
+import { Eye, Pencil, ChevronUp, ChevronDown, Building2, Phone, Mail, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CustomerListProps {
@@ -181,7 +181,16 @@ export function CustomerList({ customers }: CustomerListProps) {
     return (
       <div className="bg-white rounded-lg border p-8 text-center">
         <Building2 className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-        <p className="text-gray-500">顧客がまだ登録されていません</p>
+        <p className="text-gray-500 mb-2">顧客がまだ登録されていません</p>
+        <p className="text-sm text-gray-400 mb-4">
+          案件作成時に新しい顧客を登録できます
+        </p>
+        <Button variant="outline" asChild>
+          <Link href="/deals/new">
+            <Plus className="h-4 w-4 mr-2" />
+            案件を作成して顧客を登録
+          </Link>
+        </Button>
       </div>
     );
   }

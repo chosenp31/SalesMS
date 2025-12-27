@@ -14,6 +14,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   SearchFilterBar,
   FilterOption,
   ActiveFilter,
@@ -69,6 +79,7 @@ export function PaymentList({ payments, contracts, currentUserId, isAdmin = fals
   const [sortField, setSortField] = useState<SortField>("expected_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   // Filter options
   const filterOptions: FilterOption[] = [
@@ -185,7 +196,7 @@ export function PaymentList({ payments, contracts, currentUserId, isAdmin = fals
     }
   };
 
-  const handleDelete = async (paymentId: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (paymentId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (processingId) return; // 処理中は無視
 
@@ -198,16 +209,20 @@ export function PaymentList({ payments, contracts, currentUserId, isAdmin = fals
       return;
     }
 
-    if (!confirm("この入金情報を削除しますか？")) return;
+    setDeleteTargetId(paymentId);
+  };
 
-    setProcessingId(paymentId);
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+
+    setProcessingId(deleteTargetId);
     try {
       const supabase = createClient();
 
       // 削除前に履歴を記録
-      await recordDelete(supabase, "payment", paymentId, currentUserId || null);
+      await recordDelete(supabase, "payment", deleteTargetId, currentUserId || null);
 
-      const { error } = await supabase.from("payments").delete().eq("id", paymentId);
+      const { error } = await supabase.from("payments").delete().eq("id", deleteTargetId);
 
       if (error) {
         throw error;
@@ -226,6 +241,7 @@ export function PaymentList({ payments, contracts, currentUserId, isAdmin = fals
       });
     } finally {
       setProcessingId(null);
+      setDeleteTargetId(null);
     }
   };
 
@@ -372,7 +388,15 @@ export function PaymentList({ payments, contracts, currentUserId, isAdmin = fals
     return (
       <div className="bg-white rounded-lg border p-8 text-center">
         <CreditCard className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-        <p className="text-gray-500">入金情報がまだ登録されていません</p>
+        <p className="text-gray-500 mb-2">入金情報がまだ登録されていません</p>
+        <p className="text-sm text-gray-400 mb-4">
+          契約詳細画面から入金情報を追加できます
+        </p>
+        <Button variant="outline" asChild>
+          <Link href="/contracts">
+            契約一覧を見る
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -575,7 +599,7 @@ export function PaymentList({ payments, contracts, currentUserId, isAdmin = fals
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => handleDelete(payment.id, e)}
+                      onClick={(e) => handleDeleteClick(payment.id, e)}
                       disabled={!isAdmin || processingId === payment.id}
                       title={!isAdmin ? "削除は管理者のみ実行可能です" : "削除"}
                     >
@@ -597,6 +621,24 @@ export function PaymentList({ payments, contracts, currentUserId, isAdmin = fals
           </div>
         )}
       </div>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>入金情報を削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              この入金情報を削除します。この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              削除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

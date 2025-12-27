@@ -299,10 +299,19 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
     return (
       <div className="bg-white rounded-lg border p-8 text-center">
         <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-        <p className="text-gray-500">契約がまだ登録されていません</p>
-        {filterDealId && (
-          <Button variant="outline" className="mt-4" onClick={handleClearFilter}>
+        <p className="text-gray-500 mb-2">契約がまだ登録されていません</p>
+        <p className="text-sm text-gray-400 mb-4">
+          案件詳細画面から契約を追加できます
+        </p>
+        {filterDealId ? (
+          <Button variant="outline" onClick={handleClearFilter}>
             全ての契約を表示
+          </Button>
+        ) : (
+          <Button variant="outline" asChild>
+            <Link href="/deals">
+              案件一覧を見る
+            </Link>
           </Button>
         )}
       </div>

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Customer, Deal, User } from "@/types";
 import { BUSINESS_TYPE_LABELS } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
+import { useUnsavedChangesWarning } from "@/lib/hooks/use-unsaved-changes-warning";
 import { recordCreate, recordUpdate } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -212,6 +223,14 @@ export function DealForm({
       business_type: "corporation",
     },
   });
+
+  // 未保存変更の警告
+  const {
+    showDialog: showUnsavedDialog,
+    setShowDialog: setShowUnsavedDialog,
+    confirmNavigation,
+    cancelNavigation,
+  } = useUnsavedChangesWarning({ isDirty: form.formState.isDirty });
 
   // 郵便番号から住所を取得
   const fetchAddress = useCallback(async (postalCode: string) => {
@@ -830,6 +849,26 @@ export function DealForm({
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* 未保存変更の警告ダイアログ */}
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>保存されていない変更があります</AlertDialogTitle>
+            <AlertDialogDescription>
+              このページを離れると、入力した内容が失われます。本当に離れますか？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelNavigation}>
+              このページに留まる
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmNavigation}>
+              変更を破棄して離れる
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
