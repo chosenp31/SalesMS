@@ -288,10 +288,10 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                   <div className="flex flex-col items-center flex-1">
                     <div
                       className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center border-2",
-                        isCompleted && "bg-green-500 border-transparent",
-                        isCurrent && `${stageColor.bg} ${stageColor.border}`,
-                        !isCompleted && !isCurrent && "bg-gray-100 border-gray-200"
+                        "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all",
+                        isCompleted && "bg-gray-300 border-gray-300",
+                        isCurrent && `${stageColor.bg} ${stageColor.border} shadow-md`,
+                        !isCompleted && !isCurrent && `${stageColor.bg} ${stageColor.border} opacity-60`
                       )}
                     >
                       {isCompleted ? (
@@ -299,8 +299,8 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                       ) : (
                         <span
                           className={cn(
-                            "text-sm font-medium",
-                            isCurrent ? stageColor.text : "text-gray-400"
+                            "text-sm font-bold",
+                            stageColor.text
                           )}
                         >
                           {index + 1}
@@ -310,7 +310,9 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                     <span
                       className={cn(
                         "mt-2 text-xs font-medium text-center",
-                        isCurrent ? stageColor.text : "text-gray-500"
+                        isCompleted && "text-gray-400",
+                        isCurrent && `${stageColor.text} font-bold`,
+                        !isCompleted && !isCurrent && `${stageColor.text} opacity-60`
                       )}
                     >
                       {CONTRACT_STAGE_LABELS[stage] || stage}
@@ -339,8 +341,8 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                         className={cn(
                           "inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3",
                           isCurrentStep
-                            ? `${colors.active} text-white`
-                            : "border border-input bg-background text-muted-foreground"
+                            ? `${colors.active} text-white shadow-sm`
+                            : `bg-white ${colors.border} border ${colors.text}`
                         )}
                       >
                         {CONTRACT_STEP_LABELS[step] || step}
