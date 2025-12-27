@@ -31,7 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, ChevronDown, Info } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -260,36 +260,46 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
   return (
     <>
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">
-            ステージ：<span className={cn("font-bold", colors.text)}>{CONTRACT_STAGE_LABELS[currentStage] || currentStage}</span>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            契約ステータス
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  <p className="text-xs">各ステータスにカーソルを合わせると詳細が表示されます</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Stage Progress - 横長の進捗バー */}
-          <div className="flex items-center justify-between overflow-x-auto">
+        <CardContent>
+          {/* Stage Progress */}
+          <div className="flex items-center justify-between mb-6 overflow-x-auto">
             {stageOrder.map((stage, index) => {
               const isCompleted = index < currentStageIndex;
               const isCurrent = index === currentStageIndex;
               const stageColor = workflowStageColors[stage] || workflowStageColors["商談中"];
 
               return (
-                <div key={stage} className="flex items-center flex-1 min-w-[70px]">
+                <div key={stage} className="flex items-center flex-1 min-w-[80px]">
                   <div className="flex flex-col items-center flex-1">
                     <div
                       className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all",
+                        "w-10 h-10 rounded-full flex items-center justify-center border-2",
                         isCompleted && `${stageColor.active} border-transparent`,
-                        isCurrent && `${stageColor.bg} ${stageColor.border} shadow-md`,
+                        isCurrent && `${stageColor.bg} ${stageColor.border}`,
                         !isCompleted && !isCurrent && "bg-gray-100 border-gray-200"
                       )}
                     >
                       {isCompleted ? (
-                        <Check className="h-4 w-4 text-white" />
+                        <Check className="h-5 w-5 text-white" />
                       ) : (
                         <span
                           className={cn(
-                            "text-xs font-medium",
+                            "text-sm font-medium",
                             isCurrent ? stageColor.text : "text-gray-400"
                           )}
                         >
@@ -299,18 +309,15 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                     </div>
                     <span
                       className={cn(
-                        "mt-1 text-[10px] font-medium text-center leading-tight",
-                        isCurrent ? `${stageColor.text} font-bold` : "text-gray-400"
+                        "mt-2 text-xs font-medium text-center",
+                        isCurrent ? stageColor.text : "text-gray-500"
                       )}
                     >
                       {CONTRACT_STAGE_LABELS[stage] || stage}
                     </span>
                   </div>
                   {index < stageOrder.length - 1 && (
-                    <div className={cn(
-                      "h-0.5 flex-1 mx-1",
-                      index < currentStageIndex ? "bg-gray-400" : "bg-gray-200"
-                    )} />
+                    <ChevronRight className="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" />
                   )}
                 </div>
               );
