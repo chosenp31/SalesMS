@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { TaskList } from "@/components/features/tasks/task-list";
 import { NewTaskMessageDialog } from "@/components/features/tasks/new-task-message-dialog";
-import { getCurrentUserIdOrFallback } from "@/lib/auth";
+import { getCurrentUserWithRole } from "@/lib/auth";
 
 interface TasksPageProps {
   searchParams: Promise<{ contract_id?: string; status?: string }>;
@@ -14,7 +14,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
   const statusFilter = params.status;
 
   // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
-  const currentUserId = await getCurrentUserIdOrFallback();
+  const { userId: currentUserId, isAdmin } = await getCurrentUserWithRole();
 
   let query = supabase
     .from("tasks")
@@ -26,7 +26,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         deal_number,
         customer:customers(id, company_name, customer_number)
       ),
-      contract:contracts(id, title, phase, status, contract_number),
+      contract:contracts(id, title, stage, step, contract_number),
       assigned_user:users!tasks_assigned_user_id_fkey(*)
     `)
     .order("due_date", { ascending: true, nullsFirst: false })
@@ -88,6 +88,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         users={users || []}
         deals={deals || []}
         currentUserId={currentUserId}
+        isAdmin={isAdmin}
         filterContractId={contractIdFilter}
         filterStatus={statusFilter}
       />

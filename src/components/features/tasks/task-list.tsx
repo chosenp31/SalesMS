@@ -5,7 +5,7 @@ import { Task, User, DealOption, TaskStatus } from "@/types";
 import {
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
-  CONTRACT_STATUS_LABELS,
+  CONTRACT_STEP_LABELS,
 } from "@/constants";
 import {
   Table,
@@ -38,71 +38,25 @@ import { Pencil, Trash2, ChevronUp, ChevronDown, CheckSquare, AlertCircle, X, Ca
 import { TaskDialog } from "./task-dialog";
 import Link from "next/link";
 import { recordDelete, recordUpdate } from "@/lib/history";
+import { useToast } from "@/lib/hooks/use-toast";
+import { priorityColors, stepColors, taskStatusColors } from "@/constants/colors";
 
 interface TaskListProps {
   tasks: Task[];
   users: User[];
   deals: DealOption[];
   currentUserId: string;
+  isAdmin?: boolean;
   filterContractId?: string;
   filterStatus?: string;
 }
 
-const priorityColors = {
-  high: "bg-red-100 text-red-800 border-red-200",
-  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  low: "bg-green-100 text-green-800 border-green-200",
-};
-
-const contractStatusColors: Record<string, string> = {
-  // 新スキーマ - 商談中
-  商談待ち: "bg-blue-50 text-blue-700 border-blue-200",
-  商談日程調整中: "bg-blue-50 text-blue-700 border-blue-200",
-  // 新スキーマ - 審査・申込中
-  "審査・申込対応中": "bg-yellow-50 text-yellow-700 border-yellow-200",
-  "審査・申込待ち": "bg-yellow-50 text-yellow-700 border-yellow-200",
-  // 新スキーマ - 下見・工事中
-  下見調整中: "bg-purple-50 text-purple-700 border-purple-200",
-  下見実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
-  工事日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
-  工事実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
-  // 新スキーマ - 契約中
-  検収確認中: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  契約書提出対応中: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  契約書確認待ち: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  // 新スキーマ - 入金中
-  入金待ち: "bg-green-50 text-green-700 border-green-200",
-  入金済: "bg-green-100 text-green-800 border-green-200",
-  // 新スキーマ - 請求中
-  初回請求確認待ち: "bg-teal-50 text-teal-700 border-teal-200",
-  請求処理対応中: "bg-teal-50 text-teal-700 border-teal-200",
-  // 新スキーマ - 完了・否決
-  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
-  対応検討中: "bg-orange-50 text-orange-700 border-orange-200",
-  失注: "bg-red-100 text-red-800 border-red-200",
-  // 旧スキーマ（後方互換性）
-  日程調整中: "bg-blue-50 text-blue-700 border-blue-200",
-  MTG実施待ち: "bg-blue-50 text-blue-700 border-blue-200",
-  見積提出: "bg-blue-50 text-blue-700 border-blue-200",
-  受注確定: "bg-blue-100 text-blue-800 border-blue-200",
-  書類準備中: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  審査結果待ち: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  可決: "bg-green-100 text-green-800 border-green-200",
-  否決: "bg-red-100 text-red-800 border-red-200",
-  下見日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
-};
-
-const statusColors: Record<TaskStatus, string> = {
-  未着手: "bg-gray-100 text-gray-800 border-gray-200",
-  進行中: "bg-blue-100 text-blue-800 border-blue-200",
-  完了: "bg-green-100 text-green-800 border-green-200",
-};
-
-type SortField = "title" | "contractStatus" | "customer" | "deal" | "contract" | "assigned_user" | "priority" | "status" | "due_date";
+type SortField = "title" | "contractStep" | "customer" | "deal" | "contract" | "assigned_user" | "priority" | "status" | "due_date";
 type SortDirection = "asc" | "desc";
 
-export function TaskList({ tasks, users, deals, currentUserId, filterContractId, filterStatus }: TaskListProps) {
+export function TaskList({ tasks, users, deals, currentUserId, isAdmin = false, filterContractId, filterStatus }: TaskListProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [searchValue, setSearchValue] = useState("");
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [sortField, setSortField] = useState<SortField>("due_date");
@@ -257,6 +211,16 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
 
   const handleDelete = async (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (!isAdmin) {
+      toast({
+        title: "削除できません",
+        description: "削除は管理者のみ実行可能です。",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!confirm("このタスクを削除しますか？")) return;
 
     const supabase = createClient();
@@ -316,8 +280,8 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
         case "title":
           comparison = a.title.localeCompare(b.title);
           break;
-        case "contractStatus":
-          comparison = (a.contract?.status || "").localeCompare(b.contract?.status || "");
+        case "contractStep":
+          comparison = (a.contract?.step || "").localeCompare(b.contract?.step || "");
           break;
         case "customer":
           comparison = (a.deal?.customer?.company_name || "").localeCompare(b.deal?.customer?.company_name || "");
@@ -478,7 +442,7 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
                   <SortHeader field="customer">顧客</SortHeader>
                 </TableHead>
                 <TableHead className="w-[110px]">
-                  <SortHeader field="contractStatus">契約ステータス</SortHeader>
+                  <SortHeader field="contractStep">契約ステップ</SortHeader>
                 </TableHead>
                 <TableHead className="w-[80px]">
                   <SortHeader field="contract">契約ID</SortHeader>
@@ -549,12 +513,12 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
                       )}
                     </TableCell>
                     <TableCell className="py-2">
-                      {task.contract?.status ? (
+                      {task.contract?.step ? (
                         <Badge
                           variant="outline"
-                          className={cn("border text-xs px-1.5 py-0", contractStatusColors[task.contract.status])}
+                          className={cn("border text-xs px-1.5 py-0", stepColors[task.contract.step])}
                         >
-                          {CONTRACT_STATUS_LABELS[task.contract.status]}
+                          {CONTRACT_STEP_LABELS[task.contract.step]}
                         </Badge>
                       ) : (
                         <span className="text-gray-400 text-sm">-</span>
@@ -637,7 +601,7 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
                           <button>
                             <Badge
                               variant="outline"
-                              className={cn("border text-xs px-1.5 py-0 cursor-pointer hover:opacity-80", statusColors[task.status])}
+                              className={cn("border text-xs px-1.5 py-0 cursor-pointer hover:opacity-80", taskStatusColors[task.status])}
                             >
                               {TASK_STATUS_LABELS[task.status]}
                             </Badge>
@@ -718,9 +682,10 @@ export function TaskList({ tasks, users, deals, currentUserId, filterContractId,
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0"
+                          disabled={!isAdmin}
                           onClick={(e) => handleDelete(task.id, e)}
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          <Trash2 className={cn("h-3.5 w-3.5", isAdmin ? "text-red-500" : "text-gray-300")} />
                         </Button>
                       </div>
                     </TableCell>

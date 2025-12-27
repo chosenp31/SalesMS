@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { getHistory } from "@/lib/history";
-import { getCurrentUserIdOrFallback } from "@/lib/auth";
+import { getCurrentUserWithRole } from "@/lib/auth";
 
 interface ContractDetailPageProps {
   params: Promise<{ id: string }>;
@@ -54,7 +54,7 @@ export default async function ContractDetailPage({
         title,
         customer:customers(id, company_name)
       ),
-      contract:contracts(id, title, status, phase)
+      contract:contracts(id, title, step, stage)
     `)
     .eq("contract_id", id)
     .order("due_date", { ascending: true });
@@ -86,7 +86,7 @@ export default async function ContractDetailPage({
     .order("created_at", { ascending: false });
 
   // 認証ユーザーID取得（認証無効時はデモ用フォールバック）
-  const currentUserId = await getCurrentUserIdOrFallback();
+  const { userId: currentUserId, isAdmin } = await getCurrentUserWithRole();
 
   // Get history for this contract
   const history = await getHistory(supabase, "contract", id);
@@ -120,6 +120,7 @@ export default async function ContractDetailPage({
         users={users || []}
         activities={activities || []}
         currentUserId={currentUserId}
+        isAdmin={isAdmin}
       />
       <HistorySection
         history={history}

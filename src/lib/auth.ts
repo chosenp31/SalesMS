@@ -64,3 +64,41 @@ export async function getCurrentUserProfile() {
 
   return profile;
 }
+
+/**
+ * 現在のユーザーIDとロールを取得する
+ * デモモード対応：認証がない場合はusersテーブルの最初のユーザーを使用
+ */
+export async function getCurrentUserWithRole(): Promise<{ userId: string; isAdmin: boolean }> {
+  const supabase = await createClient();
+
+  // まず認証ユーザーを確認
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    // usersテーブルからロールを取得
+    const { data: profile } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    return {
+      userId: user.id,
+      isAdmin: profile?.role === "admin",
+    };
+  }
+
+  // デモモード：認証がない場合はusersテーブルから取得
+  const { data: users } = await supabase
+    .from("users")
+    .select("id, role")
+    .order("created_at")
+    .limit(1);
+
+  const firstUser = users?.[0];
+  return {
+    userId: firstUser?.id || "",
+    isAdmin: firstUser?.role === "admin",
+  };
+}

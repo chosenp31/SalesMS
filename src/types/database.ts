@@ -6,11 +6,17 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-// 契約ステータス（小分類）の型 - string型で新旧両方の値に対応
-export type ContractStatusType = string;
+// 契約ステップの型 - string型で新旧両方の値に対応
+export type ContractStepType = string;
 
-// 契約フェーズ（大分類）の型 - string型で新旧両方の値に対応
-export type ContractPhaseType = string;
+// 契約ステージの型 - string型で新旧両方の値に対応
+export type ContractStageType = string;
+
+// 後方互換性のためのエイリアス
+/** @deprecated ContractStepType を使用してください */
+export type ContractStatusType = ContractStepType;
+/** @deprecated ContractStageType を使用してください */
+export type ContractPhaseType = ContractStageType;
 
 // 契約種別の型 - string型で新旧両方の値に対応
 export type ContractTypeValue = string;
@@ -169,8 +175,8 @@ export type Database = {
           contract_type: ContractTypeValue;
           product_category: string | null;
           lease_company: string | null;
-          phase: ContractPhaseType;
-          status: ContractStatusType;
+          stage: ContractStageType;
+          step: ContractStepType;
           monthly_amount: number | null;
           total_amount: number | null;
           contract_months: number | null;
@@ -188,8 +194,8 @@ export type Database = {
           contract_type: ContractTypeValue;
           product_category?: string | null;
           lease_company?: string | null;
-          phase?: ContractPhaseType;
-          status?: ContractStatusType;
+          stage?: ContractStageType;
+          step?: ContractStepType;
           monthly_amount?: number | null;
           total_amount?: number | null;
           contract_months?: number | null;
@@ -207,8 +213,8 @@ export type Database = {
           contract_type?: ContractTypeValue;
           product_category?: string | null;
           lease_company?: string | null;
-          phase?: ContractPhaseType;
-          status?: ContractStatusType;
+          stage?: ContractStageType;
+          step?: ContractStepType;
           monthly_amount?: number | null;
           total_amount?: number | null;
           contract_months?: number | null;
@@ -445,16 +451,16 @@ export type Database = {
           }
         ];
       };
-      // ステータス変更履歴
+      // ステップ変更履歴
       contract_status_history: {
         Row: {
           id: string;
           contract_id: string;
           changed_by_user_id: string;
-          previous_status: string | null;
-          new_status: string;
-          previous_phase: string | null;
-          new_phase: string;
+          previous_step: string | null;
+          new_step: string;
+          previous_stage: string | null;
+          new_stage: string;
           comment: string | null;
           created_at: string;
         };
@@ -462,10 +468,10 @@ export type Database = {
           id?: string;
           contract_id: string;
           changed_by_user_id: string;
-          previous_status?: string | null;
-          new_status: string;
-          previous_phase?: string | null;
-          new_phase: string;
+          previous_step?: string | null;
+          new_step: string;
+          previous_stage?: string | null;
+          new_stage: string;
           comment?: string | null;
           created_at?: string;
         };
@@ -473,10 +479,10 @@ export type Database = {
           id?: string;
           contract_id?: string;
           changed_by_user_id?: string;
-          previous_status?: string | null;
-          new_status?: string;
-          previous_phase?: string | null;
-          new_phase?: string;
+          previous_step?: string | null;
+          new_step?: string;
+          previous_stage?: string | null;
+          new_stage?: string;
           comment?: string | null;
           created_at?: string;
         };

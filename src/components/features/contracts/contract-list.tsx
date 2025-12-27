@@ -3,8 +3,8 @@
 import { useState, useMemo } from "react";
 import { TaskStatus } from "@/types";
 import {
-  CONTRACT_PHASE_LABELS,
-  CONTRACT_STATUS_LABELS,
+  CONTRACT_STAGE_LABELS,
+  CONTRACT_STEP_LABELS,
   CONTRACT_TYPE_LABELS,
 } from "@/constants";
 import {
@@ -26,6 +26,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, Pencil, FileText } from "lucide-react";
 import { cn, formatContractId, formatDealId } from "@/lib/utils";
+import { stageColors, stepColors } from "@/constants/colors";
 
 interface ContractTask {
   id: string;
@@ -40,8 +41,8 @@ interface ContractWithRelations {
   contract_type: string;
   product_category: string | null;
   lease_company: string | null;
-  phase: string;
-  status: string;
+  stage: string;
+  step: string;
   monthly_amount: number | null;
   total_amount: number | null;
   contract_months: number | null;
@@ -77,62 +78,7 @@ interface ContractListProps {
   filterDealId?: string;
 }
 
-const phaseColors: Record<string, string> = {
-  商談中: "bg-blue-100 text-blue-800 border-blue-200",
-  "審査・申込中": "bg-yellow-100 text-yellow-800 border-yellow-200",
-  "下見・工事中": "bg-purple-100 text-purple-800 border-purple-200",
-  契約中: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  入金中: "bg-green-100 text-green-800 border-green-200",
-  請求中: "bg-teal-100 text-teal-800 border-teal-200",
-  完了: "bg-gray-100 text-gray-800 border-gray-200",
-  否決: "bg-red-100 text-red-800 border-red-200",
-  // 旧フェーズ（後方互換性）
-  審査中: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  工事中: "bg-purple-100 text-purple-800 border-purple-200",
-  失注: "bg-red-100 text-red-800 border-red-200",
-  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
-};
-
-const statusColors: Record<string, string> = {
-  // 商談中
-  商談待ち: "bg-blue-50 text-blue-700 border-blue-200",
-  商談日程調整中: "bg-blue-50 text-blue-700 border-blue-200",
-  // 審査・申込中
-  "審査・申込対応中": "bg-yellow-50 text-yellow-700 border-yellow-200",
-  "審査・申込待ち": "bg-yellow-50 text-yellow-700 border-yellow-200",
-  // 下見・工事中
-  下見調整中: "bg-purple-50 text-purple-700 border-purple-200",
-  下見実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
-  工事日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
-  工事実施待ち: "bg-purple-50 text-purple-700 border-purple-200",
-  // 契約中
-  検収確認中: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  契約書提出対応中: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  契約書確認待ち: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  // 入金中
-  入金待ち: "bg-green-50 text-green-700 border-green-200",
-  入金済: "bg-green-100 text-green-800 border-green-200",
-  // 請求中
-  初回請求確認待ち: "bg-teal-50 text-teal-700 border-teal-200",
-  請求処理対応中: "bg-teal-50 text-teal-700 border-teal-200",
-  // 完了
-  クローズ: "bg-gray-100 text-gray-800 border-gray-200",
-  // 否決
-  対応検討中: "bg-orange-50 text-orange-700 border-orange-200",
-  失注: "bg-red-100 text-red-800 border-red-200",
-  // 旧ステータス（後方互換性）
-  日程調整中: "bg-blue-50 text-blue-700 border-blue-200",
-  MTG実施待ち: "bg-blue-50 text-blue-700 border-blue-200",
-  見積提出: "bg-blue-50 text-blue-700 border-blue-200",
-  受注確定: "bg-blue-100 text-blue-800 border-blue-200",
-  書類準備中: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  審査結果待ち: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  可決: "bg-green-100 text-green-800 border-green-200",
-  否決: "bg-red-100 text-red-800 border-red-200",
-  下見日程調整中: "bg-purple-50 text-purple-700 border-purple-200",
-};
-
-type SortField = "contract_id" | "contract_type" | "product_category" | "customer" | "phase" | "status" | "deal" | "incomplete_tasks";
+type SortField = "contract_id" | "contract_type" | "product_category" | "customer" | "stage" | "step" | "deal" | "incomplete_tasks";
 type SortDirection = "asc" | "desc";
 
 // タスク数を取得するヘルパー
@@ -153,11 +99,11 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
   // Filter options
   const filterOptions: FilterOption[] = [
     {
-      key: "phase",
-      label: "大分類",
+      key: "stage",
+      label: "ステージ",
       type: "select",
       quickFilter: true,
-      options: Object.entries(CONTRACT_PHASE_LABELS).map(([value, label]) => ({
+      options: Object.entries(CONTRACT_STAGE_LABELS).map(([value, label]) => ({
         value,
         label,
       })),
@@ -173,10 +119,10 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
       })),
     },
     {
-      key: "status",
-      label: "小分類",
+      key: "step",
+      label: "ステップ",
       type: "select",
-      options: Object.entries(CONTRACT_STATUS_LABELS).map(([value, label]) => ({
+      options: Object.entries(CONTRACT_STEP_LABELS).map(([value, label]) => ({
         value,
         label,
       })),
@@ -266,10 +212,10 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
 
     // Apply filters
     for (const filter of activeFilters) {
-      if (filter.key === "phase") {
-        result = result.filter((contract) => contract.phase === filter.value);
-      } else if (filter.key === "status") {
-        result = result.filter((contract) => contract.status === filter.value);
+      if (filter.key === "stage") {
+        result = result.filter((contract) => contract.stage === filter.value);
+      } else if (filter.key === "step") {
+        result = result.filter((contract) => contract.step === filter.value);
       } else if (filter.key === "contract_type") {
         result = result.filter((contract) => contract.contract_type === filter.value);
       }
@@ -301,11 +247,11 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
         case "customer":
           comparison = (a.deal?.customer?.company_name || "").localeCompare(b.deal?.customer?.company_name || "");
           break;
-        case "phase":
-          comparison = a.phase.localeCompare(b.phase);
+        case "stage":
+          comparison = a.stage.localeCompare(b.stage);
           break;
-        case "status":
-          comparison = a.status.localeCompare(b.status);
+        case "step":
+          comparison = a.step.localeCompare(b.step);
           break;
         case "deal":
           const aDealId = formatDealId(a.deal?.customer?.customer_number, a.deal?.deal_number);
@@ -409,10 +355,10 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                 <SortHeader field="customer">顧客名</SortHeader>
               </TableHead>
               <TableHead className="w-[90px]">
-                <SortHeader field="phase">大分類</SortHeader>
+                <SortHeader field="stage">ステージ</SortHeader>
               </TableHead>
               <TableHead className="w-[120px]">
-                <SortHeader field="status">小分類</SortHeader>
+                <SortHeader field="step">ステップ</SortHeader>
               </TableHead>
               <TableHead className="w-[80px]">
                 <SortHeader field="deal">案件ID</SortHeader>
@@ -468,17 +414,17 @@ export function ContractList({ contracts, filterDealId }: ContractListProps) {
                   <TableCell className="py-2">
                     <Badge
                       variant="outline"
-                      className={cn("border text-xs px-1.5 py-0", phaseColors[contract.phase])}
+                      className={cn("border text-xs px-1.5 py-0", stageColors[contract.stage])}
                     >
-                      {CONTRACT_PHASE_LABELS[contract.phase]}
+                      {CONTRACT_STAGE_LABELS[contract.stage]}
                     </Badge>
                   </TableCell>
                   <TableCell className="py-2">
                     <Badge
                       variant="outline"
-                      className={cn("border text-xs px-1.5 py-0", statusColors[contract.status])}
+                      className={cn("border text-xs px-1.5 py-0", stepColors[contract.step])}
                     >
-                      {CONTRACT_STATUS_LABELS[contract.status]}
+                      {CONTRACT_STEP_LABELS[contract.step]}
                     </Badge>
                   </TableCell>
                   <TableCell className="py-2">

@@ -42,8 +42,8 @@ export type DealContract = {
   id: string;
   title: string;
   contract_type?: AnyContractType | string;  // 新旧両方の値に対応
-  phase?: AnyContractPhase | string;
-  status?: AnyContractStatus | string;
+  stage?: AnyContractStage | string;
+  step?: AnyContractStep | string;
   monthly_amount?: number | null;
   product_category?: string | null;
   contract_number?: number;
@@ -75,8 +75,8 @@ export type Deal = {
 // 商談ステータス
 export type DealStatus = "active" | "won" | "lost" | "pending";
 
-// 契約ステータス（小分類）
-export type ContractStatus =
+// 契約ステップ
+export type ContractStep =
   // 商談中
   | "商談待ち"
   | "商談日程調整中"
@@ -105,9 +105,9 @@ export type ContractStatus =
   | "失注";
 
 /**
- * @deprecated DBマイグレーションで新しいステータスに移行すること
+ * @deprecated DBマイグレーションで新しいステップに移行すること
  */
-export type LegacyContractStatus =
+export type LegacyContractStep =
   | "日程調整中"
   | "MTG実施待ち"
   | "見積提出"
@@ -118,11 +118,11 @@ export type LegacyContractStatus =
   | "否決"
   | "下見日程調整中";
 
-// 契約ステータス（DB移行完了までの一時的な型）
-export type AnyContractStatus = ContractStatus | LegacyContractStatus;
+// 契約ステップ（DB移行完了までの一時的な型）
+export type AnyContractStep = ContractStep | LegacyContractStep;
 
-// 契約フェーズ（大分類）
-export type ContractPhase =
+// 契約ステージ
+export type ContractStage =
   | "商談中"
   | "審査・申込中"
   | "下見・工事中"
@@ -133,17 +133,31 @@ export type ContractPhase =
   | "否決";
 
 /**
- * @deprecated DBマイグレーションで新しいフェーズに移行すること
+ * @deprecated DBマイグレーションで新しいステージに移行すること
  * 審査中 → 審査・申込中、工事中 → 下見・工事中
  */
-export type LegacyContractPhase =
+export type LegacyContractStage =
   | "審査中"
   | "工事中"
   | "失注"
   | "クローズ";
 
-// 契約フェーズ（DB移行完了までの一時的な型）
-export type AnyContractPhase = ContractPhase | LegacyContractPhase;
+// 契約ステージ（DB移行完了までの一時的な型）
+export type AnyContractStage = ContractStage | LegacyContractStage;
+
+// 後方互換性のためのエイリアス
+/** @deprecated ContractStep を使用してください */
+export type ContractStatus = ContractStep;
+/** @deprecated LegacyContractStep を使用してください */
+export type LegacyContractStatus = LegacyContractStep;
+/** @deprecated AnyContractStep を使用してください */
+export type AnyContractStatus = AnyContractStep;
+/** @deprecated ContractStage を使用してください */
+export type ContractPhase = ContractStage;
+/** @deprecated LegacyContractStage を使用してください */
+export type LegacyContractPhase = LegacyContractStage;
+/** @deprecated AnyContractStage を使用してください */
+export type AnyContractPhase = AnyContractStage;
 
 // 契約（個別の契約明細）- 新旧両方の値に対応
 export type Contract = {
@@ -153,8 +167,8 @@ export type Contract = {
   contract_type: AnyContractType;  // 新旧両方の値に対応
   product_category: string | null;
   lease_company: string | null;
-  phase: AnyContractPhase;  // 新旧両方の値に対応
-  status: AnyContractStatus;  // 新旧両方の値に対応
+  stage: AnyContractStage;  // 新旧両方の値に対応
+  step: AnyContractStep;  // 新旧両方の値に対応
   monthly_amount: number | null;
   total_amount: number | null;
   contract_months: number | null;
@@ -248,21 +262,25 @@ export type Activity = {
   status_change?: StatusChangeHistory | null;
 };
 
-// ステータス変更履歴
-export type StatusChangeHistory = {
+// ステップ変更履歴
+export type StepChangeHistory = {
   id: string;
   contract_id: string;
   changed_by_user_id: string;
-  previous_phase: string | null;
-  new_phase: string;
-  previous_status: string | null;
-  new_status: string;
+  previous_stage: string | null;
+  new_stage: string;
+  previous_step: string | null;
+  new_step: string;
   comment: string | null;
   created_at: string;
   // Relations
   user?: User;
   contract?: Contract;
 };
+
+// 後方互換性のためのエイリアス
+/** @deprecated StepChangeHistory を使用してください */
+export type StatusChangeHistory = StepChangeHistory;
 
 // タスク履歴
 export type TaskHistory = {
@@ -331,8 +349,8 @@ export type Task = {
     title?: string;
     contract_type?: ContractType | string;
     contract_number?: number;
-    phase?: AnyContractPhase | string;
-    status?: AnyContractStatus | string;
+    stage?: AnyContractStage | string;
+    step?: AnyContractStep | string;
   } | null;
   assigned_user?: Partial<User>;
   task_name_master?: TaskNameMaster | null;

@@ -3,15 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CONTRACT_STATUS_LABELS,
-  CONTRACT_PHASE_LABELS,
-  STATUS_TO_PHASE,
-  PHASE_STATUSES,
-  STATUS_DETAILS,
-  STATUS_COMPLETION_MESSAGES,
+  CONTRACT_STEP_LABELS,
+  CONTRACT_STAGE_LABELS,
+  STEP_TO_STAGE,
+  STAGE_STEPS,
+  STEP_DETAILS,
+  STEP_COMPLETION_MESSAGES,
 } from "@/constants";
 import { createClient } from "@/lib/supabase/client";
-import { recordStatusChange } from "@/lib/history";
+import { recordStepChange } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -31,7 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, ChevronLeft, Info, ChevronDown } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,11 +42,12 @@ import {
   DropdownMenuSubContent,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
+import { workflowStageColors } from "@/constants/colors";
 
 // StatusWorkflowが必要とする最小限の契約情報
 interface ContractForWorkflow {
   id: string;
-  status: string;  // 新旧両方の値に対応
+  step: string;  // 新旧両方の値に対応
   deal_id?: string;
 }
 
@@ -55,94 +56,18 @@ interface StatusWorkflowProps {
   currentUserId: string;
 }
 
-// 新しいフェーズ順序
-const phaseOrder = ["商談中", "審査・申込中", "下見・工事中", "契約中", "入金中", "請求中"];
+// 新しいステージ順序
+const stageOrder = ["商談中", "審査・申込中", "下見・工事中", "契約中", "入金中", "請求中"];
 
-// 旧フェーズから新フェーズへのマッピング
-const phaseMapping: Record<string, string> = {
+// 旧ステージから新ステージへのマッピング
+const stageMapping: Record<string, string> = {
   審査中: "審査・申込中",
   工事中: "下見・工事中",
 };
 
-const phaseColors: Record<string, { bg: string; border: string; text: string; active: string }> = {
-  商談中: {
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    text: "text-blue-800",
-    active: "bg-blue-500",
-  },
-  "審査・申込中": {
-    bg: "bg-yellow-50",
-    border: "border-yellow-200",
-    text: "text-yellow-800",
-    active: "bg-yellow-500",
-  },
-  "下見・工事中": {
-    bg: "bg-purple-50",
-    border: "border-purple-200",
-    text: "text-purple-800",
-    active: "bg-purple-500",
-  },
-  契約中: {
-    bg: "bg-indigo-50",
-    border: "border-indigo-200",
-    text: "text-indigo-800",
-    active: "bg-indigo-500",
-  },
-  入金中: {
-    bg: "bg-green-50",
-    border: "border-green-200",
-    text: "text-green-800",
-    active: "bg-green-500",
-  },
-  請求中: {
-    bg: "bg-teal-50",
-    border: "border-teal-200",
-    text: "text-teal-800",
-    active: "bg-teal-500",
-  },
-  完了: {
-    bg: "bg-gray-50",
-    border: "border-gray-200",
-    text: "text-gray-800",
-    active: "bg-gray-500",
-  },
-  否決: {
-    bg: "bg-red-50",
-    border: "border-red-200",
-    text: "text-red-800",
-    active: "bg-red-500",
-  },
-  // 旧フェーズ（後方互換性）
-  審査中: {
-    bg: "bg-yellow-50",
-    border: "border-yellow-200",
-    text: "text-yellow-800",
-    active: "bg-yellow-500",
-  },
-  工事中: {
-    bg: "bg-purple-50",
-    border: "border-purple-200",
-    text: "text-purple-800",
-    active: "bg-purple-500",
-  },
-  失注: {
-    bg: "bg-red-50",
-    border: "border-red-200",
-    text: "text-red-800",
-    active: "bg-red-500",
-  },
-  クローズ: {
-    bg: "bg-gray-50",
-    border: "border-gray-200",
-    text: "text-gray-800",
-    active: "bg-gray-500",
-  },
-};
-
-// ステータスツールチップコンポーネント
-function StatusTooltip({ status, children }: { status: string; children: React.ReactNode }) {
-  const details = STATUS_DETAILS[status];
+// ステップツールチップコンポーネント
+function StepTooltip({ step, children }: { step: string; children: React.ReactNode }) {
+  const details = STEP_DETAILS[step];
 
   if (!details) {
     return <>{children}</>;
@@ -156,7 +81,7 @@ function StatusTooltip({ status, children }: { status: string; children: React.R
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs p-3">
           <div className="space-y-2">
-            <p className="font-medium text-sm">{CONTRACT_STATUS_LABELS[status] || status}</p>
+            <p className="font-medium text-sm">{CONTRACT_STEP_LABELS[step] || step}</p>
             <p className="text-xs text-gray-600">{details.description}</p>
             {details.note && (
               <p className="text-xs text-gray-500 italic">{details.note}</p>
@@ -179,69 +104,69 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
   const [loading, setLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
-    targetStatus: string;
+    targetStep: string;
     message: string;
     comment: string;
   }>({
     open: false,
-    targetStatus: "",
+    targetStep: "",
     message: "",
     comment: "",
   });
 
-  // 現在のフェーズを取得（旧フェーズの場合はマッピングする）
-  let currentPhase = STATUS_TO_PHASE[contract.status] || "商談中";
-  if (phaseMapping[currentPhase]) {
-    currentPhase = phaseMapping[currentPhase];
+  // 現在のステージを取得（旧ステージの場合はマッピングする）
+  let currentStage = STEP_TO_STAGE[contract.step] || "商談中";
+  if (stageMapping[currentStage]) {
+    currentStage = stageMapping[currentStage];
   }
 
-  const currentPhaseIndex = phaseOrder.indexOf(currentPhase);
-  const currentPhaseStatuses = PHASE_STATUSES[currentPhase] || [];
-  const colors = phaseColors[currentPhase] || phaseColors["商談中"];
+  const currentStageIndex = stageOrder.indexOf(currentStage);
+  const currentStageSteps = STAGE_STEPS[currentStage] || [];
+  const colors = workflowStageColors[currentStage] || workflowStageColors["商談中"];
 
-  // ステータス更新処理
-  const updateStatus = async (newStatus: string, comment?: string) => {
+  // ステップ更新処理
+  const updateStep = async (newStep: string, comment?: string) => {
     setLoading(true);
     const supabase = createClient();
 
-    // 新しいフェーズを取得
-    const newPhase = STATUS_TO_PHASE[newStatus] || currentPhase;
-    const previousStatus = contract.status;
-    const previousPhase = currentPhase;
+    // 新しいステージを取得
+    const newStage = STEP_TO_STAGE[newStep] || currentStage;
+    const previousStep = contract.step;
+    const previousStage = currentStage;
 
-    // 契約ステータスを更新
+    // 契約ステップを更新
     const { error } = await supabase
       .from("contracts")
-      .update({ status: newStatus, phase: newPhase })
+      .update({ step: newStep, stage: newStage })
       .eq("id", contract.id);
 
     if (error) {
-      console.error("Error updating status:", error);
+      console.error("Error updating step:", error);
     } else {
-      // ステータス変更履歴を記録（entity_historyに統一）
-      const historyResult = await recordStatusChange(
+      // ステップ変更履歴を記録（entity_historyに統一）
+      const historyResult = await recordStepChange(
         supabase,
         contract.id,
         currentUserId || null,
-        previousPhase,
-        newPhase,
-        previousStatus,
-        newStatus,
+        previousStage,
+        newStage,
+        previousStep,
+        newStep,
         comment
       );
 
       if (!historyResult.success) {
-        console.error("Error recording status history:", historyResult.error);
+        console.error("Error recording step history:", historyResult.error);
       }
 
-      // 活動履歴にもステータス変更を記録
-      const statusChangeContent = `ステータスを変更しました\n${CONTRACT_STATUS_LABELS[previousStatus] || previousStatus} → ${CONTRACT_STATUS_LABELS[newStatus] || newStatus}${comment ? `\n\nコメント: ${comment}` : ""}`;
+      // 活動履歴にもステップ変更を記録
+      const stepChangeContent = `ステップを変更しました\n${CONTRACT_STEP_LABELS[previousStep] || previousStep} → ${CONTRACT_STEP_LABELS[newStep] || newStep}${comment ? `\n\nコメント: ${comment}` : ""}`;
 
       const { error: activityError } = await supabase.from("activities").insert({
         user_id: currentUserId,
         activity_type: "status_change",
         contract_id: contract.id,
-        content: statusChangeContent,
+        content: stepChangeContent,
         is_status_change: true,
         status_change_id: null, // entity_historyに統合されたため不要
       });
@@ -251,17 +176,17 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
       }
 
       // Contract完了時にDealステータス自動更新
-      if (newStatus === "クローズ" && contract.deal_id) {
+      if (newStep === "クローズ" && contract.deal_id) {
         // 同じDealの他の契約を取得
         const { data: otherContracts } = await supabase
           .from("contracts")
-          .select("id, status")
+          .select("id, step")
           .eq("deal_id", contract.deal_id)
           .neq("id", contract.id);
 
         // 全ての契約がクローズまたは失注の場合、Dealを成約に更新
         const allContractsCompleted = !otherContracts || otherContracts.every(
-          (c) => c.status === "クローズ" || c.status === "失注"
+          (c) => c.step === "クローズ" || c.step === "失注"
         );
 
         if (allContractsCompleted) {
@@ -273,15 +198,15 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
       }
 
       // Contract失注時にDealステータス自動更新（全て失注の場合）
-      if (newStatus === "失注" && contract.deal_id) {
+      if (newStep === "失注" && contract.deal_id) {
         const { data: allContracts } = await supabase
           .from("contracts")
-          .select("id, status")
+          .select("id, step")
           .eq("deal_id", contract.deal_id);
 
         // 全ての契約が失注の場合、Dealも失注に更新
         const allContractsLost = allContracts && allContracts.every(
-          (c) => c.id === contract.id ? true : c.status === "失注"
+          (c) => c.id === contract.id ? true : c.step === "失注"
         );
 
         if (allContractsLost) {
@@ -294,88 +219,78 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
     }
 
     setLoading(false);
-    setConfirmDialog({ open: false, targetStatus: "", message: "", comment: "" });
+    setConfirmDialog({ open: false, targetStep: "", message: "", comment: "" });
     router.refresh();
   };
 
   // 確認ダイアログを開く
-  const openConfirmDialog = (targetStatus: string) => {
-    const message = STATUS_COMPLETION_MESSAGES[contract.status] || `${CONTRACT_STATUS_LABELS[targetStatus] || targetStatus}に進みますか？`;
+  const openConfirmDialog = (targetStep: string) => {
+    const message = STEP_COMPLETION_MESSAGES[contract.step] || `${CONTRACT_STEP_LABELS[targetStep] || targetStep}に進みますか？`;
     setConfirmDialog({
       open: true,
-      targetStatus,
+      targetStep,
       message,
       comment: "",
     });
   };
 
-  // 現在のステータスの次のステータスを取得
-  const getNextStatus = () => {
-    const currentStatusIndex = currentPhaseStatuses.indexOf(contract.status);
+  // 現在のステップの次のステップを取得
+  const getNextStep = () => {
+    const currentStepIndex = currentStageSteps.indexOf(contract.step);
 
-    // 現在のフェーズ内に次のステータスがある場合
-    if (currentStatusIndex >= 0 && currentStatusIndex < currentPhaseStatuses.length - 1) {
-      return currentPhaseStatuses[currentStatusIndex + 1];
+    // 現在のステージ内に次のステップがある場合
+    if (currentStepIndex >= 0 && currentStepIndex < currentStageSteps.length - 1) {
+      return currentStageSteps[currentStepIndex + 1];
     }
 
-    // 次のフェーズの最初のステータス
-    if (currentPhaseIndex >= 0 && currentPhaseIndex < phaseOrder.length - 1) {
-      const nextPhase = phaseOrder[currentPhaseIndex + 1];
-      const nextPhaseStatuses = PHASE_STATUSES[nextPhase];
-      if (nextPhaseStatuses && nextPhaseStatuses.length > 0) {
-        return nextPhaseStatuses[0];
+    // 次のステージの最初のステップ
+    if (currentStageIndex >= 0 && currentStageIndex < stageOrder.length - 1) {
+      const nextStage = stageOrder[currentStageIndex + 1];
+      const nextStageSteps = STAGE_STEPS[nextStage];
+      if (nextStageSteps && nextStageSteps.length > 0) {
+        return nextStageSteps[0];
       }
     }
 
     return null;
   };
 
-  const nextStatus = getNextStatus();
+  const nextStep = getNextStep();
 
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            契約ステータス
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-xs">
-                  <p className="text-xs">各ステータスにカーソルを合わせると詳細が表示されます</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">
+            ステージ：<span className={cn("font-bold", colors.text)}>{CONTRACT_STAGE_LABELS[currentStage] || currentStage}</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          {/* Phase Progress */}
-          <div className="flex items-center justify-between mb-6 overflow-x-auto">
-            {phaseOrder.map((phase, index) => {
-              const isCompleted = index < currentPhaseIndex;
-              const isCurrent = index === currentPhaseIndex;
-              const phaseColor = phaseColors[phase] || phaseColors["商談中"];
+        <CardContent className="space-y-4">
+          {/* Stage Progress - 横長の進捗バー */}
+          <div className="flex items-center justify-between overflow-x-auto">
+            {stageOrder.map((stage, index) => {
+              const isCompleted = index < currentStageIndex;
+              const isCurrent = index === currentStageIndex;
+              const stageColor = workflowStageColors[stage] || workflowStageColors["商談中"];
 
               return (
-                <div key={phase} className="flex items-center flex-1 min-w-[80px]">
+                <div key={stage} className="flex items-center flex-1 min-w-[70px]">
                   <div className="flex flex-col items-center flex-1">
                     <div
                       className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center border-2",
-                        isCompleted && `${phaseColor.active} border-transparent`,
-                        isCurrent && `${phaseColor.bg} ${phaseColor.border}`,
+                        "w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all",
+                        isCompleted && `${stageColor.active} border-transparent`,
+                        isCurrent && `${stageColor.bg} ${stageColor.border} shadow-md`,
                         !isCompleted && !isCurrent && "bg-gray-100 border-gray-200"
                       )}
                     >
                       {isCompleted ? (
-                        <Check className="h-5 w-5 text-white" />
+                        <Check className="h-4 w-4 text-white" />
                       ) : (
                         <span
                           className={cn(
-                            "text-sm font-medium",
-                            isCurrent ? phaseColor.text : "text-gray-400"
+                            "text-xs font-medium",
+                            isCurrent ? stageColor.text : "text-gray-400"
                           )}
                         >
                           {index + 1}
@@ -384,85 +299,88 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                     </div>
                     <span
                       className={cn(
-                        "mt-2 text-xs font-medium text-center",
-                        isCurrent ? phaseColor.text : "text-gray-500"
+                        "mt-1 text-[10px] font-medium text-center leading-tight",
+                        isCurrent ? `${stageColor.text} font-bold` : "text-gray-400"
                       )}
                     >
-                      {CONTRACT_PHASE_LABELS[phase] || phase}
+                      {CONTRACT_STAGE_LABELS[stage] || stage}
                     </span>
                   </div>
-                  {index < phaseOrder.length - 1 && (
-                    <ChevronRight className="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" />
+                  {index < stageOrder.length - 1 && (
+                    <div className={cn(
+                      "h-0.5 flex-1 mx-1",
+                      index < currentStageIndex ? "bg-gray-400" : "bg-gray-200"
+                    )} />
                   )}
                 </div>
               );
             })}
           </div>
 
-          {/* Current Phase Statuses - 表示のみ（変更は下のボタンで行う） */}
-          {currentPhaseStatuses.length > 0 && (
+          {/* Current Stage Steps - 表示のみ（変更は下のボタンで行う） */}
+          {currentStageSteps.length > 0 && (
             <div className={cn("p-4 rounded-lg", colors.bg)}>
               <h4 className={cn("text-sm font-medium mb-3", colors.text)}>
-                {CONTRACT_PHASE_LABELS[currentPhase] || currentPhase}のステータス
+                {CONTRACT_STAGE_LABELS[currentStage] || currentStage}のステップ
               </h4>
               <div className="flex flex-wrap gap-2">
-                {currentPhaseStatuses.map((status) => {
-                  const isCurrentStatus = contract.status === status;
+                {currentStageSteps.map((step) => {
+                  const isCurrentStep = contract.step === step;
                   return (
-                    <StatusTooltip key={status} status={status}>
+                    <StepTooltip key={step} step={step}>
                       <div
                         className={cn(
                           "inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3",
-                          isCurrentStatus
+                          isCurrentStep
                             ? `${colors.active} text-white`
-                            : "border border-input bg-background text-gray-700"
+                            : "border border-input bg-background text-muted-foreground"
                         )}
                       >
-                        {CONTRACT_STATUS_LABELS[status] || status}
+                        {CONTRACT_STEP_LABELS[step] || step}
                       </div>
-                    </StatusTooltip>
+                    </StepTooltip>
                   );
                 })}
               </div>
             </div>
           )}
 
-          {/* Next Status Button - 請求中フェーズでは次のフェーズへの進行をブロック */}
-          {nextStatus && currentPhase !== "請求中" && (
+          {/* Next Step Button - 請求中ステージでは次のステージへの進行をブロック */}
+          {nextStep && currentStage !== "請求中" && (
             <div className="mt-4 pt-4 border-t">
               <p className="text-sm text-gray-500 mb-2">
-                次のステータスに進む場合は、以下のボタンをクリックしてください。
+                次のステップに進む場合は、以下のボタンをクリックしてください。
               </p>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={loading}
-                onClick={() => openConfirmDialog(nextStatus)}
+                onClick={() => openConfirmDialog(nextStep)}
               >
-                {CONTRACT_STATUS_LABELS[nextStatus] || nextStatus}へ進む
+                {CONTRACT_STEP_LABELS[nextStep] || nextStep}へ進む
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           )}
 
-          {/* 請求中フェーズ → 完了への遷移 */}
-          {currentPhase === "請求中" && (
+          {/* 請求中ステージ → 完了への遷移 */}
+          {currentStage === "請求中" && (
             <div className="mt-4 pt-4 border-t">
               <p className="text-sm text-gray-500 mb-2">
                 請求が完了したら、案件をクローズしてください。
               </p>
-              <StatusTooltip status="クローズ">
+              <StepTooltip step="クローズ">
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={loading || contract.status === "クローズ"}
+                  disabled={loading || contract.step === "クローズ"}
                   onClick={() => openConfirmDialog("クローズ")}
                   className="text-gray-600 border-gray-300 hover:bg-gray-50"
                 >
                   <Check className="h-4 w-4 mr-1" />
                   案件を完了する
                 </Button>
-              </StatusTooltip>
+              </StepTooltip>
             </div>
           )}
 
@@ -472,36 +390,36 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
               否決の場合
             </p>
             <div className="flex gap-2">
-              <StatusTooltip status="対応検討中">
+              <StepTooltip step="対応検討中">
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={loading || contract.status === "対応検討中"}
+                  disabled={loading || contract.step === "対応検討中"}
                   onClick={() => openConfirmDialog("対応検討中")}
                   className="text-orange-600 border-orange-200 hover:bg-orange-50"
                 >
                   対応検討中
                 </Button>
-              </StatusTooltip>
-              <StatusTooltip status="失注">
+              </StepTooltip>
+              <StepTooltip step="失注">
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={loading || contract.status === "失注"}
+                  disabled={loading || contract.step === "失注"}
                   onClick={() => openConfirmDialog("失注")}
                   className="text-red-600 border-red-200 hover:bg-red-50"
                 >
                   失注
                 </Button>
-              </StatusTooltip>
+              </StepTooltip>
             </div>
           </div>
 
-          {/* バックフロー - 前のフェーズ/ステータスに戻す */}
-          {currentPhaseIndex > 0 && (
+          {/* バックフロー - 前のステージ/ステップに戻す */}
+          {currentStageIndex > 0 && (
             <div className="mt-4 pt-4 border-t">
               <p className="text-sm text-gray-500 mb-2">
-                前のフェーズに戻す場合
+                前のステージに戻す場合
               </p>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -512,45 +430,45 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
                     className="text-gray-600"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
-                    前のステータスに戻す
+                    前のステップに戻す
                     <ChevronDown className="h-4 w-4 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
-                  {phaseOrder.slice(0, currentPhaseIndex + 1).map((phase) => {
-                    const phaseStatuses = PHASE_STATUSES[phase];
-                    if (!phaseStatuses || phaseStatuses.length === 0) return null;
-                    const phaseColor = phaseColors[phase] || phaseColors["商談中"];
-                    const isCurrentPhase = phase === currentPhase;
+                  {stageOrder.slice(0, currentStageIndex + 1).map((stage) => {
+                    const stageSteps = STAGE_STEPS[stage];
+                    if (!stageSteps || stageSteps.length === 0) return null;
+                    const stageColor = workflowStageColors[stage] || workflowStageColors["商談中"];
+                    const isCurrentStage = stage === currentStage;
 
                     return (
-                      <DropdownMenuSub key={phase}>
+                      <DropdownMenuSub key={stage}>
                         <DropdownMenuSubTrigger
                           className={cn(
                             "cursor-pointer",
-                            isCurrentPhase && "font-medium"
+                            isCurrentStage && "font-medium"
                           )}
                         >
-                          <span className={cn("mr-2", phaseColor.text)}>●</span>
-                          {CONTRACT_PHASE_LABELS[phase] || phase}
-                          {isCurrentPhase && <span className="text-xs text-gray-400 ml-auto">現在</span>}
+                          <span className={cn("mr-2", stageColor.text)}>●</span>
+                          {CONTRACT_STAGE_LABELS[stage] || stage}
+                          {isCurrentStage && <span className="text-xs text-gray-400 ml-auto">現在</span>}
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
                           <DropdownMenuSubContent>
-                            {phaseStatuses.map((status) => {
-                              const isCurrentStatus = contract.status === status;
+                            {stageSteps.map((step) => {
+                              const isCurrentStep = contract.step === step;
                               return (
                                 <DropdownMenuItem
-                                  key={status}
-                                  onClick={() => !isCurrentStatus && openConfirmDialog(status)}
-                                  disabled={isCurrentStatus}
+                                  key={step}
+                                  onClick={() => !isCurrentStep && openConfirmDialog(step)}
+                                  disabled={isCurrentStep}
                                   className={cn(
                                     "cursor-pointer",
-                                    isCurrentStatus && "bg-blue-50 font-medium"
+                                    isCurrentStep && "bg-blue-50 font-medium"
                                   )}
                                 >
-                                  {CONTRACT_STATUS_LABELS[status] || status}
-                                  {isCurrentStatus && <span className="text-xs text-gray-400 ml-auto">現在</span>}
+                                  {CONTRACT_STEP_LABELS[step] || step}
+                                  {isCurrentStep && <span className="text-xs text-gray-400 ml-auto">現在</span>}
                                 </DropdownMenuItem>
                               );
                             })}
@@ -571,24 +489,24 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
         open={confirmDialog.open}
         onOpenChange={(open) => {
           if (!open) {
-            setConfirmDialog({ open: false, targetStatus: "", message: "", comment: "" });
+            setConfirmDialog({ open: false, targetStep: "", message: "", comment: "" });
           }
         }}
       >
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>ステータス変更の確認</DialogTitle>
+            <DialogTitle>ステップ変更の確認</DialogTitle>
             <DialogDescription className="pt-2">
               {confirmDialog.message}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Label htmlFor="status-comment" className="text-sm font-medium">
+            <Label htmlFor="step-comment" className="text-sm font-medium">
               コメント（任意）
             </Label>
             <Textarea
-              id="status-comment"
-              placeholder="ステータス変更に関するコメントを入力..."
+              id="step-comment"
+              placeholder="ステップ変更に関するコメントを入力..."
               className="mt-2"
               rows={3}
               value={confirmDialog.comment}
@@ -601,12 +519,12 @@ export function StatusWorkflow({ contract, currentUserId }: StatusWorkflowProps)
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={() => setConfirmDialog({ open: false, targetStatus: "", message: "", comment: "" })}
+              onClick={() => setConfirmDialog({ open: false, targetStep: "", message: "", comment: "" })}
             >
               キャンセル
             </Button>
             <Button
-              onClick={() => updateStatus(confirmDialog.targetStatus, confirmDialog.comment)}
+              onClick={() => updateStep(confirmDialog.targetStep, confirmDialog.comment)}
               disabled={loading}
             >
               {loading ? "更新中..." : "完了"}

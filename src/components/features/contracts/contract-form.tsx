@@ -9,11 +9,11 @@ import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/types/database";
 import {
   CONTRACT_TYPE_LABELS,
-  CONTRACT_STATUS_LABELS,
+  CONTRACT_STEP_LABELS,
   PRODUCT_CATEGORIES,
   LEASE_COMPANIES,
   CONTRACT_MONTHS_OPTIONS,
-  STATUS_TO_PHASE,
+  STEP_TO_STAGE,
 } from "@/constants";
 import { useToast } from "@/lib/hooks/use-toast";
 import { recordCreate, recordUpdate } from "@/lib/history";
@@ -64,7 +64,7 @@ const contractSchema = z.object({
   contract_type: z.string().min(1, "契約種別を選択してください"),
   product_category: z.string().optional(),
   lease_company: z.string().optional(),
-  status: z.string().min(1, "ステータスを選択してください"),
+  step: z.string().min(1, "ステップを選択してください"),
   monthly_amount: z.string().optional().refine(
     (val) => !val || (parseFloat(val) >= 0),
     { message: "月額は0以上で入力してください" }
@@ -101,8 +101,8 @@ const TRACKED_FIELDS = [
   "contract_type",
   "product_category",
   "lease_company",
-  "phase",
-  "status",
+  "stage",
+  "step",
   "monthly_amount",
   "total_amount",
   "contract_months",
@@ -130,7 +130,7 @@ export function ContractForm({ dealId, contract, currentUserId }: ContractFormPr
       contract_type: contract?.contract_type || "lease",
       product_category: contract?.product_category || "",
       lease_company: contract?.lease_company || "",
-      status: contract?.status || "商談待ち",
+      step: contract?.step || "商談待ち",
       monthly_amount: contract?.monthly_amount?.toString() || "",
       total_amount: contract?.total_amount?.toString() || "",
       contract_months: contract?.contract_months?.toString() || "",
@@ -147,8 +147,8 @@ export function ContractForm({ dealId, contract, currentUserId }: ContractFormPr
     try {
       const supabase = createClient();
 
-      // ステータスからフェーズを自動計算
-      const phase = STATUS_TO_PHASE[data.status] || "商談中";
+      // ステップからステージを自動計算
+      const stage = STEP_TO_STAGE[data.step] || "商談中";
 
       const contractData = {
         deal_id: dealId,
@@ -156,8 +156,8 @@ export function ContractForm({ dealId, contract, currentUserId }: ContractFormPr
         contract_type: data.contract_type,
         product_category: data.product_category || null,
         lease_company: data.lease_company || null,
-        phase: phase,
-        status: data.status,
+        stage: stage,
+        step: data.step,
         monthly_amount: data.monthly_amount
           ? parseFloat(data.monthly_amount)
           : null,
@@ -342,21 +342,21 @@ export function ContractForm({ dealId, contract, currentUserId }: ContractFormPr
               />
               <FormField
                 control={form.control}
-                name="status"
+                name="step"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ステータス *</FormLabel>
+                    <FormLabel>ステップ *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="ステータスを選択" />
+                          <SelectValue placeholder="ステップを選択" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(CONTRACT_STATUS_LABELS).map(
+                        {Object.entries(CONTRACT_STEP_LABELS).map(
                           ([value, label]) => (
                             <SelectItem key={value} value={value}>
                               {label}
